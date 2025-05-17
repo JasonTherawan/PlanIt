@@ -1,0 +1,145 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-box {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  width: 500px;
+  position: relative;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.25);
+}
+
+.close-btn {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2;
+}
+
+.close-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.tab-buttons {
+  display: flex;
+  margin-bottom: 12px;
+  margin-top: 10px;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+.activity-tab {
+  background-color: #001B3A;
+  color: white;
+  border-radius: 6px 0 0 6px;
+}
+
+.goal-tab {
+  background-color: #B9E7F6;
+  color: #001B3A;
+  font-weight: 600;
+  border-radius: 0 6px 6px 0;
+}
+
+.activity-tab:hover {
+    background-color: #B9E7F6;
+    color: #001B3A;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  background-color: white;
+}
+
+.form-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="date"] {
+  padding: 8px;
+  width: 100%;
+  margin-top: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.row-inputs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.add-timeline {
+  width: 100%;
+  background-color: #B9E7F6;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.add-timeline:hover {
+    background-color: #001B3A;
+    color:#B9E7F6;
+}
+
+.progress-input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.button-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.update-btn {
+  background-color: #B9E7F6;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.update-btn:hover {
+    background-color: #001B3A;
+}
+
+.cancel-btn {
+  background-color: #ddd;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-btn:hover {
+    background-color: #8f8e8e;
+}

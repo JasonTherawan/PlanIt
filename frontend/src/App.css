@@ -5,38 +5,51 @@
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+body {
+  color: black;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: bold;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.app-container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.app-title {
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: white;
 }
 
-.card {
-  padding: 2em;
+.add-activity-btn {
+  padding: 10px 20px;
+  margin-right: 10px;
+  background-color: #87CEEB;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
 }
 
-.read-the-docs {
-  color: #888;
+.add-activity-btn:hover {
+  background-color: #002244;
+}
+
+.add-goal-btn {
+  padding: 10px 20px;
+  margin-right: 10px;
+  background-color: #87CEEB;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.add-goal-btn:hover {
+  background-color: #002244;
 }
