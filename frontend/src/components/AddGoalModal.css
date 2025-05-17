@@ -1,31 +1,33 @@
 .modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
 }
 
 .modal-box {
-  background: white;
-  padding: 24px;
-  border-radius: 8px;
-  width: 500px;
-  position: relative;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.25);
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.25);
 }
 
 .close-btn {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  z-index: 2;
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 2;
 }
 
 .close-icon {
@@ -35,29 +37,30 @@
 }
 
 .tab-buttons {
-  display: flex;
-  margin-bottom: 12px;
-  margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 12px;
+    margin-top: 20px;
 }
 
 .tab {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  cursor: pointer;
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    max-width: 150px;
 }
 
 .activity-tab {
-  background-color: #001B3A;
-  color: white;
-  border-radius: 6px 0 0 6px;
+    background-color: #001B3A;
+    color: white;
 }
 
 .goal-tab {
-  background-color: #B9E7F6;
-  color: #001B3A;
-  font-weight: 600;
-  border-radius: 0 6px 6px 0;
+    background-color: #B9E7F6;
+    color: #001B3A;
 }
 
 .activity-tab:hover {
@@ -66,66 +69,190 @@
 }
 
 .form-group {
-  margin-bottom: 16px;
-  background-color: white;
+    margin-bottom: 15px;
 }
 
-.form-group label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 4px;
+.goal-title {
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    color: #666;
+    width: 100%;
+    margin-bottom: 15px;
+    display: block;
 }
 
-.form-group input[type="text"],
-.form-group input[type="date"] {
-  padding: 8px;
-  width: 100%;
-  margin-top: 4px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+.goal-title::placeholder {
+    color: #999;
+    text-align: center;
 }
 
-.row-inputs {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 4px;
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: #001B3A;
+    margin-bottom: 4px;
+    text-align: left;
+}
+
+.row-inputs.hours {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.time-block {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.hour-input {
+    padding: 8px 10px;
+    width: 60px;
+    border: 1px solid black;
+    border-radius: 10px;
+    font-size: 14px;
+    text-align: center;
+    background-color: white;
+    color: black;
+}
+
+.meridiem-select {
+    padding: 8px 6px;
+    border: 1px solid black;
+    border-radius: 10px;
+    background-color: white;
+    color: black;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.to-label {
+    font-size: 14px;
+    color: black;
+    font-weight: 500;
+}
+
+.timeline-section {
+    margin-bottom: 20px;
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.timeline-title {
+    font-weight: 600;
+    color: #001B3A;
+    font-size: 16px;
+}
+
+.timeline-title-input {
+    font-weight: 600;
+    font-size: 16px;
+    color: #001B3A;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    width: 100%;
+}
+
+.timeline-title-input::placeholder {
+    color: #999;
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.bin-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.timeline-body {
+    width: 400px;
+    margin: 0;
+}
+
+.description-input {
+    width: 100%;
+    height: 60px;
+    padding: 10px;
+    border: 1px solid black;
+    border-radius: 10px;
+    font-size: 14px;
+    background-color: white;
+    color: black;
+    resize: none;
+    margin-bottom: 4px;
+    text-align: left;
+}
+
+.description-input::placeholder {
+    text-align: left;
+    color: #999;
+}
+
+.row-inputs-dates {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 20px;
+}
+
+.row-inputs-dates input[type="date"] {
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid black;
+    border-radius: 8px;
+    background-color: #B9E7F6;
+    color: black;
+    width: 140px;
 }
 
 .add-timeline {
-  width: 100%;
-  background-color: #B9E7F6;
-  padding: 8px;
-  border: none;
-  border-radius: 4px;
-  margin-bottom: 16px;
-  cursor: pointer;
+    padding: 10px;
+    background-color: #B9E7F6;
+    border: none;
+    border-radius: 10px;
+    color: #001B3A;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 20px;
+    display: block;
 }
 
 .add-timeline:hover {
     background-color: #001B3A;
-    color:#B9E7F6;
-}
-
-.progress-input {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 16px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+    color: #B9E7F6;
 }
 
 .button-row {
-  display: flex;
-  justify-content: space-between;
+    display: flex;
+    justify-content: space-between;
 }
 
 .update-btn {
-  background-color: #B9E7F6;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+    background-color: #B9E7F6;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
 .update-btn:hover {
@@ -133,13 +260,17 @@
 }
 
 .cancel-btn {
-  background-color: #ddd;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+    background-color: #ddd;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
 .cancel-btn:hover {
     background-color: #8f8e8e;
+}
+
+body.modal-open {
+  overflow: hidden;
 }

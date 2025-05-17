@@ -8,12 +8,16 @@
 body {
   color: black;
   font-family: 'Montserrat', sans-serif;
-  font-weight: bold;
+  font-weight: 400;
+}
+
+input::placeholder,
+textarea::placeholder {
+  font-family: 'Montserrat', sans-serif;
 }
 
 .app-container {
   padding: 20px;
-  font-family: Arial, sans-serif;
 }
 
 .app-title {

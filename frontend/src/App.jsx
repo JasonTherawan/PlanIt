@@ -6,7 +6,7 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-      <div className="app-container">
+    <div className="app-container">
       <h1 className="app-title">PlanIt</h1>
 
       <button className="add-activity-btn">
