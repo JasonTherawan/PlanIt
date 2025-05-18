@@ -1,0 +1,114 @@
+.planit-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.planit-intro img {
+  width: 50px;
+  margin-bottom: 0.5rem;
+}
+
+.planit-intro h2 {
+  font-size: 1.8rem;
+  color: white;
+  margin: 0;
+}
+
+.planit-intro p {
+  color: #a8c6dd;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+form {
+  width: 75%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.register-credential {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.register-credential label {
+  color: white;
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+  display: block;
+}
+
+.username,
+.password {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+  border-radius: 4px;
+  border: none;
+  font-size: 0.9rem;
+}
+
+input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #a8d5eb;
+}
+
+.username::after,
+.password::after {
+  content: "";
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.usernameError-message,
+.passwordError-message,
+.registerError-message {
+  color: #ff5c5c;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.register-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #b2e2ec;
+  border: none;
+  border-radius: 999px;
+  color: #0a2c4e;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 0.5rem;
+}
+
+.register-button:hover {
+  background-color: #9ad8e6;
+}
+
+form > p {
+  margin-top: 1rem;
+  color: #a8c6dd;
+  font-size: 0.8rem;
+}
+
+form > p > a {
+  color: white;
+  text-decoration: underline;
+  margin-left: 5px;
+  cursor: pointer;
+}
