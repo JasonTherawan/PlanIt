@@ -114,6 +114,7 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
         else {
             setErrorMessages([]);
             alert("Submit successful");
+            localStorage.removeItem("draftGoal");
             onClose();
         }
     };
