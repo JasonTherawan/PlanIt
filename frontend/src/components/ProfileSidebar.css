@@ -1,0 +1,117 @@
+.profile-sidebar {
+  width: 320px;
+  background-color: #002244; 
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; 
+  font-family: 'Segoe UI', sans-serif;
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.2);
+  height: 100vh;
+  color: white;
+}
+
+/* Profile header */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.profile-picture {
+  height: 80px;
+  width: 80px;
+  background-color: #e0e0e0;
+  border-radius: 50%;
+}
+
+.profile-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+/* Fields */
+.profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-fields textarea,
+.profile-fields input {
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  resize: none;
+  background-color: white;
+  color: black;
+}
+
+/* Buttons */
+.profile-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.bottom-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  margin-bottom: 10px;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.button .icon {
+  font-size: 16px;
+}
+
+/* Button variants */
+.primary {
+  background-color: #2196f3;
+  color: white;
+}
+.primary:hover {
+  background-color: #1976d2;
+}
+
+.secondary {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+.secondary:hover {
+  background-color: #bbdefb;
+}
+
+.warning {
+  background-color: #2196f3;
+  color: white;
+}
+.warning:hover {
+  background-color: #1976d2;
+}
+
+.danger {
+  background-color: #ef5350;
+  color: white;
+}
+.danger:hover {
+  background-color: #e53935;
+}
