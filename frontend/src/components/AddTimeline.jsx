@@ -1,15 +1,29 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { binIcon } from '../assets';
 
-function AddTimeline({ id, index, title, onTitleChange, onRemove, registerRefs }) {
+const AddTimeline = forwardRef(({ id, index, title, onTitleChange, onRemove }, ref) => {
     const fromRef = useRef();
     const toRef = useRef();
+    const descRef = useRef();
 
-    useEffect(() => {
-        if (registerRefs) {
-            registerRefs(id, fromRef, toRef);
+    useImperativeHandle(ref, () => ({
+        getDateRange: () => {
+            const fromVal = fromRef.current?.value;
+            const toVal = toRef.current?.value;
+            const descVal = descRef.current?.value;
+
+            const from = fromVal ? new Date(fromVal) : null;
+            const to = toVal ? new Date(toVal) : null;
+
+            return { from, to, description: descVal?.trim() || '' };
+        },
+
+        setData: ({ from, to, description }) => {
+            if (fromRef.current) fromRef.current.value = from ? new Date(from).toISOString().split('T')[0] : '';
+            if (toRef.current) toRef.current.value = to ? new Date(to).toISOString().split('T')[0] : '';
+            if (descRef.current) descRef.current.value = description || '';
         }
-    }, [registerRefs, id]);
+    }));
 
     return (
         <div className="timeline-section">
@@ -27,8 +41,11 @@ function AddTimeline({ id, index, title, onTitleChange, onRemove, registerRefs }
             </div>
 
             <div className="timeline-body">
-                <textarea placeholder="Description . . ." className="description-input"></textarea>
-
+                <textarea
+                    placeholder="Description . . ."
+                    className="description-input"
+                    ref={descRef}
+                />
                 <div className="row-inputs-dates">
                     <input type="date" ref={fromRef} />
                     <span className="to-label">To</span>
@@ -37,6 +54,6 @@ function AddTimeline({ id, index, title, onTitleChange, onRemove, registerRefs }
             </div>
         </div>
     );
-}
+});
 
 export default AddTimeline;

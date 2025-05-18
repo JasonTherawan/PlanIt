@@ -90,6 +90,11 @@
     text-align: center;
 }
 
+.goal-title.filled {
+    font-weight: bold;
+    color: #001B3A;
+}
+
 .form-label {
     display: block;
     font-weight: 600;

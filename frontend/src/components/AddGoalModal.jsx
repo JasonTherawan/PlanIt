@@ -1,28 +1,52 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './AddGoalModal.css';
 import { closeIcon } from '../assets';
 import AddTimeline from './AddTimeline';
 import DailyHours from './DailyHours';
 
-function AddGoalModal({ onClose }) {
-    // Modal Effect: Prevent page scroll (only pop up scroll)
+function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
     useEffect(() => {
-        document.body.classList.add("modal-open");
-        return () => {
-            document.body.classList.remove("modal-open");
-        };
+        const saved = localStorage.getItem("draftGoal");
+        if (saved) {
+            try {
+                const draft = JSON.parse(saved);
+                setGoalTitle(draft.goalTitle || '');
+                if (draft.dailyHours) {
+                    dailyHoursRef.current?.setValues?.(draft.dailyHours.start, draft.dailyHours.end);
+                }
+
+                if (draft.timelines?.length > 0) {
+                    setTimelines(
+                        draft.timelines.map(({ id, title }) => ({
+                            id,
+                            title: title || ''
+                        }))
+                    );
+                    setCounter(draft.timelines.length);
+
+                    setTimeout(() => {
+                        draft.timelines.forEach((timeline) => {
+                            const ref = timelineRefs.current[timeline.id];
+                            if (ref?.current?.setData) {
+                                ref.current.setData({
+                                    from: timeline.from,
+                                    to: timeline.to,
+                                    description: timeline.description
+                                });
+                            }
+                        });
+                    }, 0);
+                }
+            } catch (err) {
+                console.error("Invalid draftGoal format", err);
+            }
+        }
     }, []);
 
     const goalTitleRef = useRef();
+    const [goalTitle, setGoalTitle] = useState('');
+
     const dailyHoursRef = useRef();
-
-    const convertTo24Hour = (hourStr, period) => {
-        const h = parseFloat(hourStr);
-        if (isNaN(h) || h < 1 || h >= 13) return null;
-
-        let base = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
-        return base;
-    };
 
     const [timelines, setTimelines] = useState([{ id: 'T001', title: '' }]);
     const [counter, setCounter] = useState(1);
@@ -57,49 +81,28 @@ function AddGoalModal({ onClose }) {
     const handleSubmit = () => {
         const errors = [];
 
-        const goalTitle = goalTitleRef.current?.value?.trim();
-        if (!goalTitle) {
+        if (!goalTitle.trim()) {
             errors.push("Goal title must be inputted");
         }
 
-        const { startHour, startPeriod, endHour, endPeriod } = dailyHoursRef.current.getValues();
-        const startFloat = parseFloat(startHour);
-        const endFloat = parseFloat(endHour);
+        const { start, end } = dailyHoursRef.current.getValues();
 
-        if (!startHour || !endHour) {
+        if (start === null || end === null || start >= end) {
             errors.push("Daily Hours are invalid");
-        } else if (isNaN(startFloat) || isNaN(endFloat)) {
-            errors.push("Daily Hours must be numbers");
-        } else {
-            const [startInt, startMin = '00'] = startHour.split(".");
-            const [endInt, endMin = '00'] = endHour.split(".");
-
-            if (
-                startFloat < 0.01 || startFloat > 12.59 ||
-                endFloat < 0.01 || endFloat > 12.59 ||
-                parseInt(startMin) >= 60 ||
-                parseInt(endMin) >= 60
-            ) {
-                errors.push("Daily Hours must be between 0.01 and 12.59, minutes < 60");
-            } else {
-                const start = convertTo24Hour(startHour, startPeriod);
-                const end = convertTo24Hour(endHour, endPeriod);
-
-                if (start === null || end === null || start >= end) {
-                    errors.push("Daily Hours are invalid");
-                }
-            }
         }
 
         timelines.forEach((timeline, index) => {
-            const titleText = timeline.title?.trim() || `Timeline Title ${index + 1}`;
-            const refs = timelineRefs.current[timeline.id];
+            const title = timeline.title?.trim();
+            const titleText = title || `Timeline Title ${index + 1}`;
+            const timelineRef = timelineRefs.current[timeline.id];
 
-            const from = new Date(refs?.from?.current?.value);
-            const to = new Date(refs?.to?.current?.value);
+            if (!title) {
+                errors.push(`"${titleText}" Title must be inputted`);
+            }
 
-            if (!refs?.from?.current?.value || !refs?.to?.current?.value || isNaN(from) || isNaN(to) || from > to) {
-                errors.push(`${titleText} Date is invalid`);
+            const { from, to } = timelineRef.current?.getDateRange?.() || {};
+            if (!from || !to || isNaN(from) || isNaN(to) || from > to) {
+                errors.push(`"${titleText}" Date Range is invalid`);
             }
         });
 
@@ -110,10 +113,53 @@ function AddGoalModal({ onClose }) {
         }
     };
 
+    const getDraftData = () => {
+        const { start, end } = dailyHoursRef.current.getValues();
+
+        const timelinesData = timelines
+            .map((timeline, index) => {
+                const ref = timelineRefs.current[timeline.id];
+                const { from, to, description } = ref.current?.getDateRange?.() || {};
+                const title = timeline.title?.trim();
+
+                const isEmptyTimeline = !title && !description && (!from || !to);
+                if (isEmptyTimeline) return null;
+
+                return {
+                    id: timeline.id,
+                    title,
+                    description,
+                    from,
+                    to
+                };
+            })
+            .filter(Boolean);
+
+        return {
+            goalTitle: goalTitle.trim(),
+            dailyHours: { start, end },
+            timelines: timelinesData
+        };
+    };
+
     return (
         <div className="modal-overlay">
             <div className="modal-box">
-                <button className="close-btn" onClick={onClose}>
+                <button className="close-btn" onClick={() => {
+                    const draft = getDraftData();
+
+                    const isEmpty =
+                        !draft.goalTitle &&
+                        draft.timelines.every(t => !t.title) &&
+                        draft.dailyHours.start === null &&
+                        draft.dailyHours.end === null;
+
+                    if (!isEmpty && onSaveDraft) {
+                        onSaveDraft(draft);
+                    } else {
+                        onClose();
+                    }
+                }}>
                     <img src={closeIcon} alt="Close" className="close-icon" />
                 </button>
 
@@ -125,36 +171,48 @@ function AddGoalModal({ onClose }) {
                 <div className="form-group">
                     <input
                         type="text"
-                        ref={goalTitleRef}
+                        value={goalTitle}
+                        onChange={(e) => setGoalTitle(e.target.value)}
                         placeholder="Goal Title"
-                        className="goal-title"
+                        className={`goal-title ${goalTitle ? 'filled' : ''}`}
+                        autoFocus
                     />
                 </div>
 
                 <DailyHours ref={dailyHoursRef} />
 
-                {timelines.map((timeline, index) => (
-                    <AddTimeline
-                        key={timeline.id}
-                        id={timeline.id}
-                        index={index}
-                        title={timeline.title}
-                        onTitleChange={handleTitleChange}
-                        onRemove={handleRemoveTimeline}
-                        registerRefs={(from, to) => registerRefs(timeline.id, from, to)}
-                    />
-                ))}
+                {timelines.map((timeline, index) => {
+                    const timelineRef = timelineRefs.current[timeline.id] ||= React.createRef();
+
+                    return (
+                        <AddTimeline
+                            key={timeline.id}
+                            ref={timelineRef}
+                            id={timeline.id}
+                            index={index}
+                            title={timeline.title}
+                            onTitleChange={handleTitleChange}
+                            onRemove={handleRemoveTimeline}
+                        />
+                    );
+                })}
 
                 <button type="button" className="add-timeline" onClick={handleAddTimeline}>
                     + Timeline
                 </button>
 
-                <div className="button-row">
-                    <button className="update-btn" onClick={handleSubmit}>Add / Update</button>
-                    <button className="cancel-btn" onClick={onClose}>Cancel</button>
-                </div>
+                {isEditing ? (
+                    <div className="button-row">
+                        <button className="update-btn" onClick={handleSubmit}>Update</button>
+                        <button className="cancel-btn" onClick={onCancelDraft}>Cancel changes</button>
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                        <button className="update-btn" onClick={handleSubmit}>Add</button>
+                    </div>
+                )}
             </div>
-        </div>
+        </div >
     );
 }
 

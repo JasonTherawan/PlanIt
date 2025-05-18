@@ -1,9 +1,16 @@
-import { useState } from 'react'
-import './App.css'
-import AddGoalModal from './components/AddGoalModal'
+import { useState } from 'react';
+import './App.css';
+import AddGoalModal from './components/AddGoalModal';
+import useModal from './hooks/useModal';
 
 function App() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const {
+    isOpen: isGoalModalOpen,
+    openModal: openGoalModal,
+    closeModal: closeGoalModal
+  } = useModal();
+
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
 
   return (
     <div className="app-container">
@@ -12,15 +19,32 @@ function App() {
       <button className="add-activity-btn">
         + Add Activity
       </button>
-      <button className="add-goal-btn" onClick={() => setIsModalOpen(true)}>
+      <button
+        className="add-goal-btn"
+        onClick={() => {
+          setIsEditingGoal(false);
+          openGoalModal();
+        }}
+      >
         + Add Goal
       </button>
 
-      {isModalOpen && (
-        <AddGoalModal onClose={() => setIsModalOpen(false)} />
+      {isGoalModalOpen && (
+        <AddGoalModal
+          isEditing={isEditingGoal}
+          onClose={closeGoalModal}
+          onSaveDraft={(draft) => {
+            localStorage.setItem("draftGoal", JSON.stringify(draft));
+            closeGoalModal();
+          }}
+          onCancelDraft={() => {
+            localStorage.removeItem("draftGoal");
+            closeGoalModal();
+          }}
+        />
       )}
     </div>
   );
 }
 
-export default App
+export default App;
