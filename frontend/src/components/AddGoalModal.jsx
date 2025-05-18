@@ -158,7 +158,7 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
                 const { from, to, description } = ref.current?.getDateRange?.() || {};
                 const title = timeline.title?.trim();
 
-                const isEmptyTimeline = !title && !description && (!from || !to);
+                const isEmptyTimeline = !title && !description && !from && !to;
                 if (isEmptyTimeline) return null;
 
                 return {
@@ -186,7 +186,9 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
 
                     const isEmpty =
                         !draft.goalTitle &&
-                        draft.timelines.every(t => !t.title) &&
+                        draft.timelines.every(t =>
+                            !t.title && !t.description && !t.from && !t.to
+                        ) &&
                         draft.dailyHours.start === null &&
                         draft.dailyHours.end === null;
 
