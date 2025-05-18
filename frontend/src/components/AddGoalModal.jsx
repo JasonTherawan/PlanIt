@@ -110,9 +110,11 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
 
         if (errors.length > 0) {
             setErrorMessages(errors);
-        } else {
+        } 
+        else {
             setErrorMessages([]);
             alert("Submit successful");
+            onClose();
         }
     };
 

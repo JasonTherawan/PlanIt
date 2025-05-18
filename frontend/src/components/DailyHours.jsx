@@ -31,14 +31,14 @@ const DailyHours = forwardRef((props, ref) => {
 
         if (
             isNaN(hour) || isNaN(minute) ||
-            hour < 0 || hour >= 24 ||
+            hour < 0 || hour > 24 ||
             minute < 0 || minute >= 60
         ) {
             return null;
         }
 
         const decimal = hour + minute / 60;
-        if (decimal < 0 || decimal >= 24) return null;
+        if (decimal < 0 || decimal > 24) return null; 
 
         return decimal;
     };
@@ -70,7 +70,7 @@ const DailyHours = forwardRef((props, ref) => {
                         }
                     }}
                     className="hour-input"
-                    placeholder="00.01"
+                    placeholder="00.00"
                 />
 
                 <span className="to-label">to</span>
@@ -87,7 +87,7 @@ const DailyHours = forwardRef((props, ref) => {
                         }
                     }}
                     className="hour-input"
-                    placeholder="23.59"
+                    placeholder="24.00"
                 />
             </div>
         </div>
