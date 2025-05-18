@@ -224,9 +224,52 @@
     font-size: 14px;
     border: 1px solid black;
     border-radius: 8px;
-    background-color: #B9E7F6;
+    background-color: white;
     color: black;
     width: 140px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.date-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.custom-date-input {
+  padding-right: 36px;
+  background-color: #B9E7F6;
+  color: black;
+  border-radius: 8px;
+  border: 1px solid black;
+  width: 140px;
+  height: 20px;
+}
+
+.calendar-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+}
+
+.calendar-icon img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 .add-timeline {

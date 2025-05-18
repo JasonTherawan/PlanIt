@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { binIcon } from '../assets';
+import { calendarIcon } from '../assets';
 
 const AddTimeline = forwardRef(({ id, index, title, onTitleChange, onRemove }, ref) => {
     const fromRef = useRef();
@@ -47,9 +48,19 @@ const AddTimeline = forwardRef(({ id, index, title, onTitleChange, onRemove }, r
                     ref={descRef}
                 />
                 <div className="row-inputs-dates">
-                    <input type="date" ref={fromRef} />
+                    <div className="date-wrapper">
+                        <input type="date" className="custom-date-input" ref={fromRef} />
+                        <span className="calendar-icon">
+                            <img src={calendarIcon} alt="Calendar Icon" />
+                        </span>
+                    </div>
                     <span className="to-label">To</span>
-                    <input type="date" ref={toRef} />
+                    <div className="date-wrapper">
+                        <input type="date" className="custom-date-input" ref={toRef} />
+                        <span className="calendar-icon">
+                            <img src={calendarIcon} alt="Calendar Icon" />
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>

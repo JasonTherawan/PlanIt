@@ -1,6 +1,7 @@
 import backarrowButton from './back-arrow-button.png'
 import backButton from './back-button.png'
 import binIcon from './bin-icon.png'
+import calendarIcon from './calendar-icon.png'
 import closeIcon from './close-icon.png'
 import copyIcon from './copy-icon.png'
 import editIcon from './edit-icon.png'
@@ -11,6 +12,7 @@ export {
     backarrowButton,
     backButton,
     binIcon,
+    calendarIcon,
     closeIcon,
     copyIcon,
     editIcon,
