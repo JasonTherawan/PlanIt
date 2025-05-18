@@ -229,9 +229,10 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
                     {goalTitleError && <div className="error-text goal-title-error">{goalTitleError}</div>}
                 </div>
 
+                <label className="form-label">Daily Hours</label>
                 <DailyHours ref={dailyHoursRef} />
                 {dailyHoursError && <div className="error-text">{dailyHoursError}</div>}
-
+                
                 {timelines.map((timeline, index) => {
                     const timelineRef = timelineRefs.current[timeline.id] ||= React.createRef();
 
