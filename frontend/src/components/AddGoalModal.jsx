@@ -221,6 +221,7 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
                         type="text"
                         value={goalTitle}
                         onChange={(e) => setGoalTitle(e.target.value)}
+                        onFocus={(e) => e.target.select()}
                         placeholder="Goal Title"
                         className={`goal-title ${goalTitle ? 'filled' : ''}`}
                         autoFocus

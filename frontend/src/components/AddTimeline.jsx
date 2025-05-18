@@ -33,6 +33,7 @@ const AddTimeline = forwardRef(({ id, index, title, onTitleChange, onRemove }, r
                     type="text"
                     value={title}
                     onChange={(e) => onTitleChange(id, e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     className="timeline-title-input"
                     placeholder={`Timeline Title ${index + 1}`}
                 />
@@ -44,19 +45,20 @@ const AddTimeline = forwardRef(({ id, index, title, onTitleChange, onRemove }, r
             <div className="timeline-body">
                 <textarea
                     placeholder="Description . . ."
+                    onFocus={(e) => e.target.select()}
                     className="description-input"
                     ref={descRef}
                 />
                 <div className="row-inputs-dates">
                     <div className="date-wrapper">
-                        <input type="date" className="custom-date-input" ref={fromRef} />
+                        <input type="date" onFocus={(e) => e.target.select()} className="custom-date-input" ref={fromRef} />
                         <span className="calendar-icon">
                             <img src={calendarIcon} alt="Calendar Icon" />
                         </span>
                     </div>
                     <span className="to-label">To</span>
                     <div className="date-wrapper">
-                        <input type="date" className="custom-date-input" ref={toRef} />
+                        <input type="date" onFocus={(e) => e.target.select()} className="custom-date-input" ref={toRef} />
                         <span className="calendar-icon">
                             <img src={calendarIcon} alt="Calendar Icon" />
                         </span>

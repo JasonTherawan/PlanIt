@@ -62,6 +62,7 @@ const DailyHours = forwardRef((props, ref) => {
                     type="text"
                     value={startHour}
                     onChange={(e) => setStartHour(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     onBlur={() => handleFormat(startHour, setStartHour)}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -79,6 +80,7 @@ const DailyHours = forwardRef((props, ref) => {
                     type="text"
                     value={endHour}
                     onChange={(e) => setEndHour(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     onBlur={() => handleFormat(endHour, setEndHour)}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
