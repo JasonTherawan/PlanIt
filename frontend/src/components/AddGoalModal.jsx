@@ -124,7 +124,7 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
                 errs.push(`${timeline.titleText} Date Range is invalid`);
             }
             if (timeline.from && latestEndDate && timeline.from <= latestEndDate) {
-                errs.push(`Must start after "${enrichedTimelines[i - 1]?.titleText}"`);
+                errs.push(`Must start after ${enrichedTimelines[i - 1]?.titleText}`);
             }
 
             if (timeline.to && (!latestEndDate || timeline.to > latestEndDate)) {
