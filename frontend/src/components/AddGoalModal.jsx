@@ -43,6 +43,8 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
         }
     }, []);
 
+    const [errorMessages, setErrorMessages] = useState([]);
+
     const goalTitleRef = useRef();
     const [goalTitle, setGoalTitle] = useState('');
 
@@ -107,8 +109,9 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
         });
 
         if (errors.length > 0) {
-            alert(errors.join("\n"));
+            setErrorMessages(errors);
         } else {
+            setErrorMessages([]);
             alert("Submit successful");
         }
     };
@@ -162,6 +165,16 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
                 }}>
                     <img src={closeIcon} alt="Close" className="close-icon" />
                 </button>
+
+                {errorMessages.length > 0 && (
+                    <div className="error-box">
+                        <ul>
+                            {errorMessages.map((msg, idx) => (
+                                <li key={idx}>{msg}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 <div className="tab-buttons">
                     <button className="tab activity-tab">Activity</button>
