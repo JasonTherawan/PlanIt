@@ -44,7 +44,6 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
     }, []);
 
     const [errorMessages, setErrorMessages] = useState([]);
-    const [timelineRemoveError, setTimelineRemoveError] = useState('');
 
     const goalTitleRef = useRef();
     const [goalTitle, setGoalTitle] = useState('');
@@ -73,6 +72,7 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
         setCounter(counter + 1);
     };
 
+    const [timelineRemoveError, setTimelineRemoveError] = useState('');
     const handleRemoveTimeline = (idToRemove) => {
         if (timelines.length === 1) {
             setTimelineRemoveError("You must have at least one timeline.");
