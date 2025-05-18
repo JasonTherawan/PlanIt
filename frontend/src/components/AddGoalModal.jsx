@@ -80,43 +80,68 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
         setTimelines(timelines.filter(t => t.id !== idToRemove));
     };
 
+    const [goalTitleError, setGoalTitleError] = useState('');
+    const [dailyHoursError, setDailyHoursError] = useState('');
+    const [timelineErrors, setTimelineErrors] = useState([]);
+
     const handleSubmit = () => {
+        setGoalTitleError('');
+        setDailyHoursError('');
+        setTimelineErrors([]);
+        setErrorMessages([]);
+
         const errors = [];
 
         if (!goalTitle.trim()) {
-            errors.push("Goal title must be inputted");
+            const msg = "Goal title must be inputted";
+            setGoalTitleError(msg);
+            errors.push(msg);
         }
 
         const { start, end } = dailyHoursRef.current.getValues();
-
         if (start === null || end === null || start >= end) {
-            errors.push("Daily Hours are invalid");
+            const msg = "Daily Hours are invalid";
+            setDailyHoursError(msg);
+            errors.push(msg);
         }
 
-        timelines.forEach((timeline, index) => {
+        const enrichedTimelines = timelines.map((timeline, index) => {
+            const ref = timelineRefs.current[timeline.id];
+            const { from, to } = ref.current?.getDateRange?.() || {};
             const title = timeline.title?.trim();
             const titleText = title || `Timeline Title ${index + 1}`;
-            const timelineRef = timelineRefs.current[timeline.id];
-
-            if (!title) {
-                errors.push(`"${titleText}" Title must be inputted`);
-            }
-
-            const { from, to } = timelineRef.current?.getDateRange?.() || {};
-            if (!from || !to || isNaN(from) || isNaN(to) || from > to) {
-                errors.push(`"${titleText}" Date Range is invalid`);
-            }
+            return { id: timeline.id, index, title, titleText, from, to };
         });
 
-        if (errors.length > 0) {
-            setErrorMessages(errors);
-        } 
-        else {
-            setErrorMessages([]);
-            alert("Submit successful");
-            localStorage.removeItem("draftGoal");
-            onClose();
-        }
+        let latestEndDate = null;
+        const timelineErrs = [];
+
+        enrichedTimelines.forEach((timeline, i) => {
+            const errs = [];
+
+            if (!timeline.title) errs.push("Title must be inputted");
+            if (!timeline.from || !timeline.to || timeline.from > timeline.to) {
+                errs.push(`${timeline.titleText} Date Range is invalid`);
+            }
+            if (timeline.from && latestEndDate && timeline.from <= latestEndDate) {
+                errs.push(`Must start after "${enrichedTimelines[i - 1]?.titleText}"`);
+            }
+
+            if (timeline.to && (!latestEndDate || timeline.to > latestEndDate)) {
+                latestEndDate = timeline.to;
+            }
+
+            timelineErrs.push(errs);
+            if (errs.length > 0) errors.push(...errs);
+        });
+
+        setTimelineErrors(timelineErrs);
+
+        if (errors.length > 0) return;
+
+        alert("Submit successful");
+        localStorage.removeItem("draftGoal");
+        onClose();
     };
 
     const getDraftData = () => {
@@ -193,23 +218,31 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
                         className={`goal-title ${goalTitle ? 'filled' : ''}`}
                         autoFocus
                     />
+                    {goalTitleError && <div className="error-text goal-title-error">{goalTitleError}</div>}
                 </div>
 
                 <DailyHours ref={dailyHoursRef} />
+                {dailyHoursError && <div className="error-text">{dailyHoursError}</div>}
 
                 {timelines.map((timeline, index) => {
                     const timelineRef = timelineRefs.current[timeline.id] ||= React.createRef();
 
                     return (
-                        <AddTimeline
-                            key={timeline.id}
-                            ref={timelineRef}
-                            id={timeline.id}
-                            index={index}
-                            title={timeline.title}
-                            onTitleChange={handleTitleChange}
-                            onRemove={handleRemoveTimeline}
-                        />
+                        <div key={timeline.id}>
+                            <AddTimeline
+                                ref={timelineRef}
+                                id={timeline.id}
+                                index={index}
+                                title={timeline.title}
+                                onTitleChange={handleTitleChange}
+                                onRemove={handleRemoveTimeline}
+                            />
+                            {timelineErrors[index] &&
+                                timelineErrors[index].map((err, i) => (
+                                    <div className="timeline-error" key={i}>{err}</div>
+                                ))
+                            }
+                        </div>
                     );
                 })}
 

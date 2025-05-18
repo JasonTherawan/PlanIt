@@ -36,25 +36,17 @@
     object-fit: contain;
 }
 
-.error-box {
-  background-color: #ffe6e6;
-  border: 1px solid red;
-  padding: 10px 15px;
-  border-radius: 8px;
-  margin-top: 12px;
-  margin-bottom: 16px;
-  color: #b30000;
-  font-size: 14px;
+.error-text {
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
   text-align: left;
+  margin-bottom: 15px;
 }
 
-.error-box ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.error-box li {
-  list-style-type: disc;
+.goal-title-error {
+  text-align: center;
+  margin-bottom: 15px;
 }
 
 .tab-buttons {
@@ -89,10 +81,6 @@
     color: #001B3A;
 }
 
-.form-group {
-    margin-bottom: 15px;
-}
-
 .goal-title {
     font-size: 20px;
     font-weight: 600;
@@ -102,7 +90,6 @@
     background-color: transparent;
     color: #666;
     width: 100%;
-    margin-bottom: 15px;
     display: block;
 }
 
@@ -165,7 +152,7 @@
 }
 
 .timeline-section {
-    margin-bottom: 20px;
+    margin-top: 20px;
 }
 
 .timeline-header {
@@ -193,6 +180,14 @@
 
 .timeline-title-input::placeholder {
     color: #999;
+}
+
+.timeline-error {
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
+  text-align: left;
+  margin-bottom: 4px;
 }
 
 .remove-btn {
@@ -237,7 +232,6 @@
     gap: 12px;
     align-items: center;
     justify-content: flex-start;
-    margin-bottom: 20px;
 }
 
 .row-inputs-dates input[type="date"] {
@@ -302,6 +296,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-weight: 600;
     cursor: pointer;
     width: 100%;
+    margin-top: 20px;
     margin-bottom: 20px;
     display: block;
 }
