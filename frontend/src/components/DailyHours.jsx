@@ -56,7 +56,6 @@ const DailyHours = forwardRef((props, ref) => {
 
     return (
         <div className="form-group">
-            <label className="form-label">Daily Hours</label>
             <div className="row-inputs hours">
                 <input
                     type="text"

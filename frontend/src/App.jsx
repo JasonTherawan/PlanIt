@@ -1,50 +1,50 @@
-import { useState } from 'react';
-import './App.css';
-import AddGoalModal from './components/AddGoalModal';
-import useModal from './hooks/useModal';
+"use client"
+
+import { useState } from "react"
+import Sidebar from "./components/Sidebar"
+import CalendarGrid from "./components/CalendarGrid"
+import Header from "./components/Header"
 
 function App() {
-  const {
-    isOpen: isGoalModalOpen,
-    openModal: openGoalModal,
-    closeModal: closeGoalModal
-  } = useModal();
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [events, setEvents] = useState([
+    {
+      id: 1,
+      title: "Team Meeting",
+      start: new Date(2025, 1, 24, 10, 0),
+      end: new Date(2025, 1, 24, 11, 30),
+    },
+    {
+      id: 2,
+      title: "Lunch with Client",
+      start: new Date(2025, 1, 25, 12, 0),
+      end: new Date(2025, 1, 25, 13, 30),
+    },
+  ])
 
-  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const addEvent = (newEvent) => {
+    setEvents([...events, { id: Date.now(), ...newEvent }])
+  }
 
   return (
-    <div className="app-container">
-      <h1 className="app-title">PlanIt</h1>
+    <div className="flex h-screen w-full overflow-hidden">
+      {/* Fixed sidebar */}
+      <div className="w-56 flex-shrink-0">
+        <Sidebar currentDate={currentDate} setCurrentDate={setCurrentDate} events={events} addEvent={addEvent} />
+      </div>
 
-      <button className="add-activity-btn">
-        + Add Activity
-      </button>
-      <button
-        className="add-goal-btn"
-        onClick={() => {
-          setIsEditingGoal(false);
-          openGoalModal();
-        }}
-      >
-        + Add Goal
-      </button>
+      {/* Main content */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Fixed header */}
+        <div className="flex-shrink-0">
+          <Header currentDate={currentDate} setCurrentDate={setCurrentDate} />
+        </div>
 
-      {isGoalModalOpen && (
-        <AddGoalModal
-          isEditing={isEditingGoal}
-          onClose={closeGoalModal}
-          onSaveDraft={(draft) => {
-            localStorage.setItem("draftGoal", JSON.stringify(draft));
-            closeGoalModal();
-          }}
-          onCancelDraft={() => {
-            localStorage.removeItem("draftGoal");
-            closeGoalModal();
-          }}
-        />
-      )}
+        {/* Calendar grid */}
+        <CalendarGrid currentDate={currentDate} events={events} setCurrentDate={setCurrentDate} />
+      </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
