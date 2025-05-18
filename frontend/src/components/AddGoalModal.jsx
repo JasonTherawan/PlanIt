@@ -44,6 +44,7 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
     }, []);
 
     const [errorMessages, setErrorMessages] = useState([]);
+    const [timelineRemoveError, setTimelineRemoveError] = useState('');
 
     const goalTitleRef = useRef();
     const [goalTitle, setGoalTitle] = useState('');
@@ -74,8 +75,11 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
 
     const handleRemoveTimeline = (idToRemove) => {
         if (timelines.length === 1) {
-            alert("You must have a timeline");
+            setTimelineRemoveError("You must have at least one timeline.");
             return;
+        } 
+        else {
+            setTimelineRemoveError("");
         }
         setTimelines(timelines.filter(t => t.id !== idToRemove));
     };
@@ -245,7 +249,7 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
                         </div>
                     );
                 })}
-
+                {timelineRemoveError && <div className="error-text">{timelineRemoveError}</div>}
                 <button type="button" className="add-timeline" onClick={handleAddTimeline}>
                     + Timeline
                 </button>
