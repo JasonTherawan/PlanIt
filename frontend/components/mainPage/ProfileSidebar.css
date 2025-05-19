@@ -1,5 +1,9 @@
 .profile-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
   width: 320px;
+  height: 100vh;
   background-color: #002244; 
   padding: 24px;
   display: flex;
@@ -7,8 +11,8 @@
   justify-content: space-between; 
   font-family: 'Segoe UI', sans-serif;
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.2);
-  height: 100vh;
   color: white;
+  z-index: 30;
 }
 
 /* Profile header */
