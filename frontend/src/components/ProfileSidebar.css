@@ -1,10 +1,11 @@
 .profile-sidebar {
+  position: relative; 
   width: 320px;
-  background-color: #002244; 
+  background-color: #002244;
   padding: 24px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between; 
+  justify-content: space-between;
   font-family: 'Segoe UI', sans-serif;
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.2);
   height: 100vh;
@@ -12,6 +13,20 @@
 }
 
 /* Profile header */
+.profile-picture-preview {
+  height: 80px;
+  width: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #e0e0e0;
+  cursor: pointer;
+}
+
+.profile-picture-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .profile-header {
   display: flex;
   align-items: center;
@@ -33,6 +48,14 @@
 }
 
 /* Fields */
+
+.profile-name-input {
+  padding: 10px;
+  border: 1px solid #444;
+  border-radius: 10px;
+  color: #888;
+}
+
 .profile-fields {
   display: flex;
   flex-direction: column;
@@ -50,13 +73,46 @@
   color: black;
 }
 
+.field-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.field-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ccc;
+  text-align: left;
+}
+
+.field-error {
+  color: #f44336; 
+  font-size: 12px;
+  margin-top: 4px;
+  margin-left: 2px;
+  font-weight: 500;
+  text-align: left;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+
 /* Buttons */
 .profile-buttons {
   display: flex;
-  flex-direction: column;
+ 
   gap: 10px;
   margin-top: 20px;
 }
+
+.profile-buttons button {
+  flex: 1;
+}
+
 
 .bottom-buttons {
   display: flex;
@@ -81,6 +137,29 @@
 
 .button .icon {
   font-size: 16px;
+}
+
+.icon-button.back-icon {
+  position: absolute;
+  top: 40px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #bbdefb;
+  font-size: 20px;
+  cursor: pointer;
+  transition: color 0.2s;
+  align-items: right;
+}
+
+.icon-button.back-icon:hover {
+  color: white;
+}
+
+.disabled-button {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 /* Button variants */
@@ -115,3 +194,4 @@
 .danger:hover {
   background-color: #e53935;
 }
+
