@@ -1,16 +1,16 @@
 .profile-sidebar {
-  position: relative; 
+  position: relative;
   width: 320px;
   background-color: #002244;
   padding: 24px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   font-family: 'Segoe UI', sans-serif;
   box-shadow: -2px 0 6px rgba(0, 0, 0, 0.2);
-  height: 100vh;
   color: white;
+
 }
+
 
 /* Profile header */
 .profile-picture-preview {
@@ -27,6 +27,13 @@
   height: 100%;
   object-fit: cover;
 }
+
+.profile-picture-label:hover img {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+
 .profile-header {
   display: flex;
   align-items: center;
@@ -47,7 +54,15 @@
   color: white;
 }
 
+
+
 /* Fields */
+
+.username-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
 
 .profile-name-input {
   padding: 10px;
@@ -88,7 +103,7 @@
 }
 
 .field-error {
-  color: #f44336; 
+  color: #f44336;
   font-size: 12px;
   margin-top: 4px;
   margin-left: 2px;
@@ -100,11 +115,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
+.password-input {
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background-color: white;
+  color: black;
+
+
+  height: 25px;
+  width: 93%;
+  align-items: left;
+}
+
 
 /* Buttons */
 .profile-buttons {
   display: flex;
- 
+
   gap: 10px;
   margin-top: 20px;
 }
@@ -118,9 +147,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: auto;
-  margin-bottom: 10px;
+  margin-top: 64px;
 }
+
 
 .button {
   display: flex;
@@ -167,6 +196,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-color: #2196f3;
   color: white;
 }
+
 .primary:hover {
   background-color: #1976d2;
 }
@@ -175,6 +205,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-color: #e3f2fd;
   color: #1976d2;
 }
+
 .secondary:hover {
   background-color: #bbdefb;
 }
@@ -183,6 +214,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-color: #2196f3;
   color: white;
 }
+
 .warning:hover {
   background-color: #1976d2;
 }
@@ -191,7 +223,72 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-color: #ef5350;
   color: white;
 }
+
 .danger:hover {
   background-color: #e53935;
 }
 
+
+
+
+/* Confirmation popup overlay */
+
+
+
+.confirmation-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.confirmation-buttons .button {
+  min-width: 100px;
+  padding: 10px 40px;
+  text-align: center;
+}
+
+.confirmation-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  
+}
+
+/* Popup content box */
+.confirmation-content {
+  background-color: #ffffff;
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* Confirmation message */
+.confirmation-content p {
+  font-size: 18px;
+  font-weight: 500;
+  color: #333333;
+  margin-bottom: 24px;
+}
+
+/* Button layout */
+.confirmation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.confirmation-buttons .button {
+  min-width: 100px;
+}
