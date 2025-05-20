@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"
 
-import Header from "../components/loginPage/header"
+import LandingHeader from "../components/landing/LandingHeader";
 import "./LandingPage.css"
 
 function LandingPage (){
@@ -21,7 +21,7 @@ function LandingPage (){
 
         <>
             <div className="container">
-                <Header/>
+                <LandingHeader/>
                 <div className="overlay">
                     <h2>The all-in-one solution for scheduling, reminders, and productivity.</h2>
                     <button className="signup-btn" onClick={handleSignUpClick}>Sign up for free</button>

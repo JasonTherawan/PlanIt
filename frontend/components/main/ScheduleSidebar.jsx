@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import AddEventModal from "./AddEventModal"
 
-const Sidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
+const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [viewDate, setViewDate] = useState(new Date(currentDate))
 
@@ -190,4 +190,4 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
   )
 }
 
-export default Sidebar
+export default ScheduleSidebar

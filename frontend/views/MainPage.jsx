@@ -1,7 +1,7 @@
 import { useState } from "react"
-import Sidebar from "../components/mainPage/Sidebar"
+import ScheduleSidebar from "../components/mainPage/ScheduleSidebar"
 import CalendarGrid from "../components/mainPage/CalendarGrid"
-import Header from "../components/mainPage/Header"
+import MainHeader from "../components/mainPage/MainHeader"
 
 export default function MainPage(){
     const [currentDate, setCurrentDate] = useState(new Date())
@@ -28,14 +28,14 @@ export default function MainPage(){
         <div className="flex h-screen w-full overflow-hidden">
             {/* Fixed sidebar */}
             <div className="w-56 flex-shrink-0">
-                <Sidebar currentDate={currentDate} setCurrentDate={setCurrentDate} events={events} addEvent={addEvent} />
+                <ScheduleSidebar currentDate={currentDate} setCurrentDate={setCurrentDate} events={events} addEvent={addEvent} />
             </div>
 
             {/* Main content */}
             <div className="flex flex-col flex-1 overflow-hidden">
                 {/* Fixed header */}
                 <div className="flex-shrink-0">
-                    <Header currentDate={currentDate} setCurrentDate={setCurrentDate} />
+                    <MainHeader currentDate={currentDate} setCurrentDate={setCurrentDate} />
                 </div>
 
                 {/* Calendar grid */}

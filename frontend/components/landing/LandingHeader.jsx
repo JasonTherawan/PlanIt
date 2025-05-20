@@ -1,9 +1,9 @@
-import Navbar from "./Navbar"
-import "./Header.css"
+import Navbar from "../login/Navbar"
+import "./LandingHeader.css"
 
 import planitlogo from "../../assets/planitlogo.png"
 
-function Header (){
+function LandingHeader (){
 
     return (
 
@@ -23,4 +23,4 @@ function Header (){
 
 }
 
-export default Header;
+export default LandingHeader;
