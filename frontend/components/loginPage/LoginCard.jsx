@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"
-import planitlogo from "../../assets/planitlogo.png"
+import planitlogo from "../assets/planitlogo.png"
 import "./LoginCard.css"
 
 function LoginCard () {
@@ -10,6 +10,7 @@ function LoginCard () {
     const[errorUsername, setErrorUsername] = useState("");
     const[errorPassword, setErrorPassword] = useState("");
     const[error, setError] = useState("");
+    const navigate = useNavigate();
 
     const handleUsernameInput = (input) => {
 
@@ -31,6 +32,10 @@ function LoginCard () {
 
             setErrorUsername("Username cannot be empty")
         }
+        else if (!username.includes('@')){
+
+            setErrorUsername("Invalid email format")
+        }
 
         if (!password){
 
@@ -40,13 +45,17 @@ function LoginCard () {
         if (username === "dummy"){
 
             setError("login success");
-            const navigate = useNavigate();
             navigate('/home');        
         }
         else {
 
-            setError("login failed")
+            setError("Login failed")
         }
+    }
+
+    const handleRegisterClick = () => {
+
+        navigate('/signup')
     }
 
     return (
@@ -88,6 +97,10 @@ function LoginCard () {
             {error &&  <p className="loginError-message">{error}</p>}
         </form>
 
+        <div className="register-link">
+            <p>Don't have account yet?</p>
+            <button className="register-button" onClick={handleRegisterClick}>Register here</button>
+        </div>
         </>
     )
 }
