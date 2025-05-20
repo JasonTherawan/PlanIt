@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './AddGoalModal.css';
-import { closeIcon } from '../assets';
+import { closeIcon } from '../../../assets';
 import AddTimeline from './AddTimeline';
-import DailyHours from './DailyHours';
+import DailyHours from '../DailyHours';
 
 function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
     useEffect(() => {

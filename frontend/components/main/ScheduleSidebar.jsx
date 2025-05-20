@@ -2,10 +2,24 @@
 
 import { useState } from "react"
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react"
-import AddEventModal from "./AddEventModal"
+import AddActivityModal from "./activity/AddActivityModal";
+import AddGoalModal from "./goal/AddGoalModal";
+import useModal from "../../hooks/useModal";
 
 const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const {
+    isOpen: isGoalModalOpen,
+    openModal: openGoalModal,
+    closeModal: closeGoalModal
+  } = useModal();
+
+  const {
+    isOpen: isActivityModalOpen,
+    openModal: openActivityModal,
+    closeModal: closeActivityModal
+  } = useModal();
+
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [viewDate, setViewDate] = useState(new Date(currentDate))
 
   // Get the first day of the month
@@ -106,7 +120,17 @@ const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
       <div className="p-4 flex items-center">
         <button
           className="w-8 h-8 rounded-full bg-white bg-opacity-10 flex items-center justify-center hover:bg-opacity-20"
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            // you can implement a dropdown or menu here
+            const choice = prompt("Add 'goal' or 'activity'?");
+            if (choice === "goal") {
+              setIsEditingGoal(false);
+              openGoalModal();
+            } else if (choice === "activity") {
+              openActivityModal();
+            }
+          }}
+
         >
           <Plus size={20} />
         </button>
@@ -178,14 +202,25 @@ const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
         )}
       </div>
 
-      {isModalOpen && (
-        <AddEventModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onAddEvent={addEvent}
-          currentDate={currentDate}
+      {isGoalModalOpen && (
+        <AddGoalModal
+          isEditing={isEditingGoal}
+          onClose={closeGoalModal}
+          onSaveDraft={(draft) => {
+            localStorage.setItem("draftGoal", JSON.stringify(draft));
+            closeGoalModal();
+          }}
+          onCancelDraft={() => {
+            localStorage.removeItem("draftGoal");
+            closeGoalModal();
+          }}
         />
       )}
+
+      {isActivityModalOpen && (
+        <AddActivityModal onClose={closeActivityModal} />
+      )}
+
     </div>
   )
 }

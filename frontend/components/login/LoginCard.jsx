@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"
-import planitlogo from "../../assets/planitlogo.png"
+import { PlanItLogo } from "../../assets";
 import "./LoginCard.css"
 
 function LoginCard () {
@@ -54,7 +54,7 @@ function LoginCard () {
         <>
         
         <div className="planit-intro">
-            <img src = {planitlogo} alt="" />
+            <img src = {PlanItLogo} alt="" />
             <h2>PLANIT</h2>
             <p>Plan Smarter. Work Better.</p>
         </div>

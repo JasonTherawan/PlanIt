@@ -1,7 +1,7 @@
-import Navbar from "../login/Navbar"
+import Navbar from "./Navbar";
 import "./LandingHeader.css"
 
-import planitlogo from "../../assets/planitlogo.png"
+import { PlanItLogo } from "../../assets";
 
 function LandingHeader (){
 
@@ -10,7 +10,7 @@ function LandingHeader (){
         <header className="header">
 
             <div className="planit-header-left">
-                <img className="planit-logo" src= {planitlogo} alt="Planit logo" />
+                <img className="planit-logo" src= {PlanItLogo} alt="Planit logo" />
                 <div className="planit-intro">
                     <h1 className="planit-title">PLANIT</h1>
                     <p className="planit-vision">Plan Smarter. Work Better.</p>

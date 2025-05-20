@@ -1,9 +1,9 @@
 import { useState } from "react"
-import ScheduleSidebar from "../components/mainPage/ScheduleSidebar"
-import CalendarGrid from "../components/mainPage/CalendarGrid"
-import MainHeader from "../components/mainPage/MainHeader"
+import ScheduleSidebar from "../components/main/ScheduleSidebar"
+import CalendarGrid from "../components/main/CalendarGrid"
+import MainHeader from "../components/main/MainHeader"
 
-export default function MainPage(){
+function MainPage () {
     const [currentDate, setCurrentDate] = useState(new Date())
     const [events, setEvents] = useState([
         {
@@ -44,3 +44,5 @@ export default function MainPage(){
         </div>
     )
 }
+
+export default MainPage

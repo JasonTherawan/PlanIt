@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './AddActivityModal.css';
-import { closeIcon } from '../assets';
-import DailyHours from './DailyHours';
-import { calendarIcon } from '../assets';
+import { closeIcon } from '../../../assets';
+import DailyHours from '../DailyHours';
+import { calendarIcon } from '../../../assets';
 
 function AddActivityModal({ onClose }) {
     // Modal Effect: Prevent page scroll (only pop up scroll)

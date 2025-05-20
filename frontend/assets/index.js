@@ -7,6 +7,9 @@ import copyIcon from './copy-icon.png'
 import editIcon from './edit-icon.png'
 import logoutIcon from './log-out-icon.png'
 import teamIcon from './team-icon.png'
+import LoginPageImage from './loginpageimage.png'
+import LandingPageBG from './landingpagebg.png'
+import PlanItLogo from './planitlogo.png'
 
 export {
     backarrowButton,
@@ -17,5 +20,8 @@ export {
     copyIcon,
     editIcon,
     logoutIcon,
-    teamIcon
+    teamIcon,
+    LoginPageImage, 
+    LandingPageBG,
+    PlanItLogo
 };

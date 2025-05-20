@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { binIcon } from '../assets';
-import { calendarIcon } from '../assets';
+import { binIcon } from '../../../assets';
+import { calendarIcon } from '../../../assets';
 
 const AddTimeline = forwardRef(({ id, index, title, onTitleChange, onRemove }, ref) => {
     const fromRef = useRef();
