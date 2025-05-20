@@ -9,7 +9,7 @@ function LandingPage (){
 
     const handleSignUpClick = () => {
 
-        navigate('/signup')
+        navigate('/register')
     }
 
     const handleLearnMoreClick = () => {
