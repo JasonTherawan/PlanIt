@@ -1,0 +1,122 @@
+.planit-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.planit-intro img {
+  width: 50px;
+  margin-bottom: 0.5rem;
+}
+
+.planit-intro h2 {
+  font-size: 1.8rem;
+  color: white;
+  margin: 0;
+}
+
+.planit-intro p {
+  color: #a8c6dd;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+form {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.register-credential {
+  width: 100%;
+}
+
+.register-credential label {
+  color: white;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+  display: block;
+}
+
+.username,
+.password,
+.confirm-password {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: none;
+  font-size: 0.9rem;
+}
+
+input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #a8d5eb;
+}
+
+input.error {
+  border: 1px solid #ff5c5c;
+}
+
+.usernameError-message,
+.passwordError-message,
+.confirmPasswordError-message,
+.registerError-message {
+  color: #ff5c5c;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.register-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #b2e2ec;
+  border: none;
+  border-radius: 999px;
+  color: #0a2c4e;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 0.5rem;
+}
+
+.register-button:hover {
+  background-color: #9ad8e6;
+}
+
+form > p {
+  margin-top: 1rem;
+  color: #a8c6dd;
+  font-size: 0.8rem;
+}
+
+form > p > a {
+  color: white;
+  text-decoration: underline;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+.register-login-link {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #a8c6dd;
+  text-align: center;
+}
+
+.register-login-link a {
+  color: #ffffff;
+  font-weight: bold;
+  margin-left: 5px;
+  text-decoration: underline;
+  cursor: pointer;
+}
