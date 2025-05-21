@@ -4,7 +4,7 @@ import { closeIcon } from '../../../assets';
 import AddTimeline from './AddTimeline';
 import DailyHours from '../DailyHours';
 
-function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
+function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing, onSwitchToActivity}) {
     useEffect(() => {
         const saved = localStorage.getItem("draftGoal");
         if (saved) {
@@ -212,7 +212,7 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing }) {
                 )}
 
                 <div className="tab-buttons">
-                    <button className="tab activity-tab">Activity</button>
+                    <button className="tab activity-tab" onClick={onSwitchToActivity} >Activity</button>
                     <button className="tab goal-tab">Goal</button>
                 </div>
 

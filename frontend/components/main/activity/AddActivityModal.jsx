@@ -4,7 +4,7 @@ import { closeIcon } from '../../../assets';
 import DailyHours from '../DailyHours';
 import { calendarIcon } from '../../../assets';
 
-function AddActivityModal({ onClose }) {
+function AddActivityModal({ onClose, onSwitchToGoal }) {
     // Modal Effect: Prevent page scroll (only pop up scroll)
     useEffect(() => {
         document.body.classList.add("modal-open");
@@ -92,7 +92,7 @@ function AddActivityModal({ onClose }) {
 
                 <div className="tab-buttons">
                     <button className="tab activity-tab">Activity</button>
-                    <button className="tab goal-tab">Goal</button>
+                    <button className="tab goal-tab" onClick={onSwitchToGoal}>Goal</button>
                 </div>
 
                 <div className="form-group">

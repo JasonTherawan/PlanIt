@@ -26,6 +26,16 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
     closeModal: closeActivityModal
   } = useModal()
 
+  const switchToGoalModal = () => {
+    closeActivityModal()
+    setIsEditingGoal(false)
+    openGoalModal()
+  }
+
+  const switchToActivityModal = () => {
+    closeGoalModal()
+    openActivityModal()
+  }
   const [isEditingGoal, setIsEditingGoal] = useState(false)
   const [viewDate, setViewDate] = useState(new Date(currentDate))
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -245,6 +255,7 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
           <AddGoalModal
             isEditing={isEditingGoal}
             onClose={closeGoalModal}
+            onSwitchToActivity={switchToActivityModal}
             onSaveDraft={(draft) => {
               localStorage.setItem("draftGoal", JSON.stringify(draft))
               closeGoalModal()
@@ -257,7 +268,11 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
         )
       }
 
-      {isActivityModalOpen && <AddActivityModal onClose={closeActivityModal} />}
+      {isActivityModalOpen && 
+        <AddActivityModal
+          onClose={closeActivityModal} 
+          onSwitchToGoal={switchToGoalModal}
+          />}
     </div >
   )
 }
