@@ -2,7 +2,7 @@
 
 import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { useState } from "react"
-import ProfileSidebar from "./ProfileSidebar"
+// import ProfileSidebar from "./ProfileSidebar"
 
 const Header = ({ currentDate, setCurrentDate }) => {
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false)
@@ -55,7 +55,7 @@ const Header = ({ currentDate, setCurrentDate }) => {
         </div>
       </div>
 
-      {isProfileSidebarOpen && (
+      {/* {isProfileSidebarOpen && (
         <>
           <div
             className="fixed inset-0 bg-opacity-50 z-30"
@@ -63,7 +63,7 @@ const Header = ({ currentDate, setCurrentDate }) => {
           />
           <ProfileSidebar />
         </>
-      )}
+      )} */}
     </>
   )
 }

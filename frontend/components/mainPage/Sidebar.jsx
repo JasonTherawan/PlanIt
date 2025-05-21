@@ -3,9 +3,11 @@
 import { useState } from "react"
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import AddEventModal from "./AddEventModal"
+import AddItemModal from "./AddItemModal"
 
 const Sidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false)
+  const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [viewDate, setViewDate] = useState(new Date(currentDate))
 
   // Get the first day of the month
@@ -105,8 +107,8 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
     <div className="w-56 bg-[#002147] text-white flex flex-col h-full">
       <div className="p-4 flex items-center">
         <button
-          className="w-8 h-8 rounded-full bg-white bg-opacity-10 flex items-center justify-center hover:bg-opacity-20"
-          onClick={() => setIsModalOpen(true)}
+          className="w-8 h-8 rounded-full bg-black bg-opacity-10 flex items-center justify-center hover:bg-opacity-20"
+          onClick={() => setIsItemModalOpen(true)}
         >
           <Plus size={20} />
         </button>
@@ -178,14 +180,16 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
         )}
       </div>
 
-      {isModalOpen && (
+      {isEventModalOpen && (
         <AddEventModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          isOpen={isEventModalOpen}
+          onClose={() => setIsEventModalOpen(false)}
           onAddEvent={addEvent}
           currentDate={currentDate}
         />
       )}
+
+      {isItemModalOpen && <AddItemModal isOpen={isItemModalOpen} onClose={() => setIsItemModalOpen(false)} />}
     </div>
   )
 }

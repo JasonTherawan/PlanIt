@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"
-import planitlogo from "../assets/planitlogo.png"
+import planitlogo from "../../assets/planitlogo.png"
 import "./LoginCard.css"
 
 function LoginCard () {
