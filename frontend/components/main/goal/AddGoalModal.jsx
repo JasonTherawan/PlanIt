@@ -4,7 +4,7 @@ import { closeIcon } from '../../../assets';
 import AddTimeline from './AddTimeline';
 import DailyHours from '../DailyHours';
 
-function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing, onSwitchToActivity}) {
+function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing, onSwitchToActivity }) {
     useEffect(() => {
         const saved = localStorage.getItem("draftGoal");
         if (saved) {
@@ -212,8 +212,8 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing, onSwitch
                 )}
 
                 <div className="tab-buttons">
-                    <button className="tab activity-tab" onClick={onSwitchToActivity} >Activity</button>
-                    <button className="tab goal-tab">Goal</button>
+                    <button className="tab activity-tab inactive" onClick={onSwitchToActivity}>Activity</button>
+                    <button className="tab goal-tab active">Goal</button>
                 </div>
 
                 <div className="form-group">
@@ -232,7 +232,7 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing, onSwitch
                 <label className="form-label">Daily Hours</label>
                 <DailyHours ref={dailyHoursRef} />
                 {dailyHoursError && <div className="error-text">{dailyHoursError}</div>}
-                
+
                 {timelines.map((timeline, index) => {
                     const timelineRef = timelineRefs.current[timeline.id] ||= React.createRef();
 

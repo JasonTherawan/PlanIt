@@ -12,11 +12,12 @@
     background: white;
     padding: 24px;
     border-radius: 8px;
-    width: 60%;
+    width: 500px;
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.25);
+    max-width: 700px;
 }
 
 .close-btn {
@@ -37,16 +38,16 @@
 }
 
 .error-text {
-  color: red;
-  font-size: 12px;
-  margin-top: 4px;
-  text-align: left;
-  margin-bottom: 15px;
+    color: red;
+    font-size: 12px;
+    margin-top: 4px;
+    text-align: left;
+    margin-bottom: 15px;
 }
 
 .goal-title-error {
-  text-align: center;
-  margin-bottom: 15px;
+    text-align: center;
+    margin-bottom: 15px;
 }
 
 .tab-buttons {
@@ -64,19 +65,21 @@
     border-radius: 6px;
     cursor: pointer;
     max-width: 150px;
+    font-weight: 600;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-.activity-tab {
-    background-color: #001B3A;
-    color: white;
-}
-
-.goal-tab {
+.tab.active {
     background-color: #B9E7F6;
     color: #001B3A;
 }
 
-.activity-tab:hover {
+.tab.inactive {
+    background-color: #001B3A;
+    color: #B9E7F6;
+}
+
+.tab.inactive:hover {
     background-color: #B9E7F6;
     color: #001B3A;
 }
@@ -113,26 +116,37 @@
 
 .row-inputs.hours {
     display: flex;
-    gap: 10px;
+    gap: 0;
     align-items: center;
-    margin-top: 4px;
+    margin: 0;
+    justify-content: flex-start;
+    width: 110px;
+}
+
+.hour-input {
+    padding-left: 2px;
+    padding-right: 2px;
+    width: 50px;
+    border: 2px solid black;
+    border-radius: 10px;
+    font-size: 14px;
+    text-align: center;
+    background-color: white;
+    color: black;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.row-inputs.hours .to-label {
+    margin-left: 15px;
+    margin-right: 15px;
+    flex-shrink: 0;
 }
 
 .time-block {
     display: flex;
     align-items: center;
     gap: 4px;
-}
-
-.hour-input {
-    padding: 8px 10px;
-    width: 60px;
-    border: 1px solid black;
-    border-radius: 10px;
-    font-size: 14px;
-    text-align: center;
-    background-color: white;
-    color: black;
 }
 
 .meridiem-select {
@@ -147,8 +161,10 @@
 
 .to-label {
     font-size: 14px;
-    color: black;
+    color: #001B3A;
     font-weight: 500;
+    margin-right: 12px;
+    white-space: nowrap;
 }
 
 .timeline-section {
@@ -157,8 +173,8 @@
 
 .timeline-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    justify-content: left;
+    align-items: left;
     margin-bottom: 4px;
 }
 
@@ -183,11 +199,11 @@
 }
 
 .timeline-error {
-  color: red;
-  font-size: 12px;
-  margin-top: 4px;
-  text-align: left;
-  margin-bottom: 4px;
+    color: red;
+    font-size: 12px;
+    margin-top: 4px;
+    text-align: left;
+    margin-bottom: 4px;
 }
 
 .remove-btn {
@@ -210,7 +226,7 @@
 
 .description-input {
     width: 100%;
-    height: 60px;
+    height: 70px;
     padding: 10px;
     border: 1px solid black;
     border-radius: 10px;
@@ -229,62 +245,41 @@
 
 .row-inputs-dates {
     display: flex;
-    gap: 12px;
     align-items: center;
-    justify-content: flex-start;
-}
-
-.row-inputs-dates input[type="date"] {
-    padding: 8px;
-    font-size: 14px;
-    border: 1px solid black;
-    border-radius: 8px;
-    background-color: white;
-    color: black;
-    width: 140px;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 30px;
-  height: 30px;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 2;
+    margin-bottom: 20px;
 }
 
 .date-wrapper {
-  position: relative;
-  display: inline-block;
+    position: relative;
+    display: inline-block;
+    width: 140px;
+    margin-right: 12px;
 }
 
 .custom-date-input {
-  padding-right: 36px;
-  background-color: #B9E7F6;
-  color: black;
-  border-radius: 8px;
-  border: 1px solid black;
-  width: 140px;
-  height: 20px;
+    padding: 6px 32px 6px 10px;
+    font-size: 14px;
+    background-color: white;
+    color: black;
+    border-radius: 8px;
+    border: 1px solid black;
+    width: 140px;
+    height: 36px;
+    box-sizing: border-box;
 }
 
 .calendar-icon {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 30px;
-  height: 30px;
-  pointer-events: none;
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
 }
 
 .calendar-icon img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
 }
 
 .add-timeline {
@@ -313,6 +308,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .update-btn {
     background-color: #B9E7F6;
+    color: #001B3A;
     padding: 10px 20px;
     border: none;
     border-radius: 4px;
@@ -321,6 +317,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .update-btn:hover {
     background-color: #001B3A;
+    color: #B9E7F6;
 }
 
 .cancel-btn {
@@ -329,12 +326,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    font-weight: 600;
+    color: #444;
 }
 
 .cancel-btn:hover {
     background-color: #8f8e8e;
+    color: white;
 }
 
 body.modal-open {
-  overflow: hidden;
+    overflow: hidden;
 }
