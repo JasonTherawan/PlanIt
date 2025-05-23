@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"
-import { PlanItLogo } from "../../assets";
+import { PlanItLogo } from "../assets/assets";
 import "./LoginCard.css"
 
 function LoginCard () {
@@ -59,27 +59,27 @@ function LoginCard () {
             <p>Plan Smarter. Work Better.</p>
         </div>
 
-        <form action="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" action="login-form" onSubmit={handleSubmit}>
         <div className="login-credential">
             <label>Username / Email</label>
-            <div className="username-login-textbox">
+            <div className="username-login">
                 <input 
                 type = "text" 
                 value = {username}
                 onChange = {handleUsernameInput}
                 placeholder = "Enter your username/email"
-                className = {errorUsername ? "Username error" : ""}
+                className = {errorUsername ? "username-login-error" : "username-login-textbox"}
                 />
                 {errorUsername && <p className="usernameError-message">{errorUsername}</p>}
             </div>
             <label>Password</label>
-            <div className="password-login-textbox">
+            <div className="password-login">
                 <input 
                 type="text" 
                 value = {password}
                 onChange = {handlePasswordInput}
                 placeholder = "Enter your password"
-                className = {errorPassword ? "Password error" : ""}
+                className = {errorPassword ? "password-login-error" : "password-login-textbox"}
                 />
                 {errorPassword && <p className="passwordError-message">{errorPassword}</p>}
             </div>
@@ -87,6 +87,11 @@ function LoginCard () {
             <button type="submit" className="login-button">Login</button>
             {error &&  <p className="loginError-message">{error}</p>}
         </form>
+
+        <div className="register-link">
+            <p>Don't have account yet?</p>
+            <button className="register-button" onClick={handleRegisterClick}>Register here</button>
+        </div>
 
         </>
     )
