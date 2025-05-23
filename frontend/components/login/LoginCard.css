@@ -42,10 +42,12 @@ form {
   display: block;
 }
 
-.username,
-.password {
+.username-login-textbox,
+.password-login-textbox {
   position: relative;
   margin-bottom: 1rem;
+  background-color: white;
+  border-radius : 4px;
 }
 
 input[type="text"],

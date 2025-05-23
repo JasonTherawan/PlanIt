@@ -62,7 +62,7 @@ function LoginCard () {
         <form action="login-form" onSubmit={handleSubmit}>
         <div className="login-credential">
             <label>Username / Email</label>
-            <div className="username">
+            <div className="username-login-textbox">
                 <input 
                 type = "text" 
                 value = {username}
@@ -73,7 +73,7 @@ function LoginCard () {
                 {errorUsername && <p className="usernameError-message">{errorUsername}</p>}
             </div>
             <label>Password</label>
-            <div className="password">
+            <div className="password-login-textbox">
                 <input 
                 type="text" 
                 value = {password}
