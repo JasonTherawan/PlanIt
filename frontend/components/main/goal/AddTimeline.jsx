@@ -51,14 +51,16 @@ const AddTimeline = forwardRef(({ id, index, title, onTitleChange, onRemove }, r
                 />
                 <div className="row-inputs-dates">
                     <div className="date-wrapper">
-                        <input type="date" onFocus={(e) => e.target.select()} className="custom-date-input" ref={fromRef} />
+                        <input type="date" className="custom-date-input" ref={fromRef} onFocus={(e) => e.target.select()} />
                         <span className="calendar-icon">
                             <img src={calendarIcon} alt="Calendar Icon" />
                         </span>
                     </div>
+
                     <span className="to-label">To</span>
+
                     <div className="date-wrapper">
-                        <input type="date" onFocus={(e) => e.target.select()} className="custom-date-input" ref={toRef} />
+                        <input type="date" className="custom-date-input" ref={toRef} onFocus={(e) => e.target.select()} />
                         <span className="calendar-icon">
                             <img src={calendarIcon} alt="Calendar Icon" />
                         </span>

@@ -1,71 +1,90 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useNavigate } from "react-router-dom"   // <-- import this
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react"
-import AddActivityModal from "./activity/AddActivityModal";
-import AddGoalModal from "./goal/AddGoalModal";
-import useModal from "../../hooks/useModal";
+import AddActivityModal from "./activity/AddActivityModal"
+import AddGoalModal from "./goal/AddGoalModal"
+import useModal from "../../hooks/useModal"
+import { AddIcon, TeamIcon } from '../../assets';
 
-const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
+const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
+  const navigate = useNavigate()
+  const handleTeamButtonClick = () => {
+    navigate('/teams')
+  }
+
   const {
     isOpen: isGoalModalOpen,
     openModal: openGoalModal,
     closeModal: closeGoalModal
-  } = useModal();
+  } = useModal()
 
   const {
     isOpen: isActivityModalOpen,
     openModal: openActivityModal,
     closeModal: closeActivityModal
-  } = useModal();
+  } = useModal()
 
-  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const switchToGoalModal = () => {
+    closeActivityModal()
+    setIsEditingGoal(false)
+    openGoalModal()
+  }
+
+  const switchToActivityModal = () => {
+    closeGoalModal()
+    openActivityModal()
+  }
+  const [isEditingGoal, setIsEditingGoal] = useState(false)
   const [viewDate, setViewDate] = useState(new Date(currentDate))
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
-  // Get the first day of the month
+  const dropdownRef = useRef(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isDropdownOpen])
+
+  // Date calculations (unchanged)
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1)
-  // Get the day of the week for the first day (0 = Sunday, 1 = Monday, etc.)
   const firstDayOfWeek = firstDayOfMonth.getDay()
-  // Get the number of days in the month
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()
 
-  // Get the previous month's days that appear in the first week
   const prevMonthDays = []
   if (firstDayOfWeek > 0) {
     const prevMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 0)
     const prevMonthDaysCount = prevMonth.getDate()
     for (let i = prevMonthDaysCount - firstDayOfWeek + 1; i <= prevMonthDaysCount; i++) {
-      prevMonthDays.push({
-        date: i,
-        month: "prev",
-      })
+      prevMonthDays.push({ date: i, month: "prev" })
     }
   }
 
-  // Current month days
   const currentMonthDays = []
   for (let i = 1; i <= daysInMonth; i++) {
-    currentMonthDays.push({
-      date: i,
-      month: "current",
-    })
+    currentMonthDays.push({ date: i, month: "current" })
   }
 
-  // Next month days to fill the remaining cells
   const nextMonthDays = []
-  const totalDaysDisplayed = 42 // 6 rows of 7 days
+  const totalDaysDisplayed = 42
   const remainingDays = totalDaysDisplayed - prevMonthDays.length - currentMonthDays.length
   for (let i = 1; i <= remainingDays; i++) {
-    nextMonthDays.push({
-      date: i,
-      month: "next",
-    })
+    nextMonthDays.push({ date: i, month: "next" })
   }
 
-  // Combine all days
   const allDays = [...prevMonthDays, ...currentMonthDays, ...nextMonthDays]
 
-  // Group days into weeks
   const weeks = []
   for (let i = 0; i < allDays.length; i += 7) {
     weeks.push(allDays.slice(i, i + 7))
@@ -98,7 +117,6 @@ const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
     )
   }
 
-  // Filter events for upcoming events (next 7 days)
   const today = new Date()
   const nextWeek = new Date(today)
   nextWeek.setDate(nextWeek.getDate() + 7)
@@ -107,35 +125,61 @@ const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
     .filter((event) => event.start >= today && event.start <= nextWeek)
     .sort((a, b) => a.start - b.start)
 
-  const formatEventTime = (date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
-
-  const formatEventDate = (date) => {
-    return date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })
-  }
+  const formatEventTime = (date) =>
+    date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  const formatEventDate = (date) =>
+    date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })
 
   return (
     <div className="w-56 bg-[#002147] text-white flex flex-col h-full">
-      <div className="p-4 flex items-center">
+      <div ref={dropdownRef} className="relative flex items-center px-4 py-3 bg-[#001f3f] rounded-md">
+        {/* Add button */}
         <button
-          className="w-8 h-8 rounded-full bg-white bg-opacity-10 flex items-center justify-center hover:bg-opacity-20"
-          onClick={() => {
-            // you can implement a dropdown or menu here
-            const choice = prompt("Add 'goal' or 'activity'?");
-            if (choice === "goal") {
-              setIsEditingGoal(false);
-              openGoalModal();
-            } else if (choice === "activity") {
-              openActivityModal();
-            }
-          }}
-
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="w-8 h-8 full bg-white bg-opacity-10 flex items-center justify-center hover:bg-opacity-20"
+          aria-label="Add"
         >
-          <Plus size={20} />
+          <img src={AddIcon} alt="Add" className="w-5 h-5" />
+        </button>
+
+        {/* Dropdown menu */}
+        {isDropdownOpen && (
+          <div className="absolute left-4 top-full mt-[-12px] bg-[#B9E7F6] shadow-lg w-32 z-50">
+            <button
+              className="block w-full px-4 py-2 text-left text-[#002b4c] font-semibold hover:bg-[#92D0F5]"
+              onClick={() => {
+                setIsDropdownOpen(false)
+                setIsEditingGoal(false)
+                openGoalModal()
+              }}
+            >
+              Goal
+            </button>
+            <button
+              className="block w-full px-4 py-2 text-left text-[#002b4c] font-semibold hover:bg-[#92D0F5]"
+              onClick={() => {
+                setIsDropdownOpen(false)
+                openActivityModal()
+              }}
+            >
+              Activity
+            </button>
+          </div>
+        )}
+
+        <div className="flex-grow" />
+
+        {/* Team button */}
+        <button
+          className="w-8 h-8 flex items-center justify-center hover:bg-opacity-20"
+          aria-label="Team"
+          onClick={handleTeamButtonClick}
+        >
+          <img src={TeamIcon} alt="Team" className="w-5 h-5" />
         </button>
       </div>
 
+      {/* Calendar header and navigation */}
       <div className="px-4 pb-4">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-lg font-bold">
@@ -151,19 +195,21 @@ const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
           </div>
         </div>
 
+        {/* Days of week */}
         <div className="grid grid-cols-7 text-center text-xs mb-1">
-          {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day, index) => (
-            <div key={index} className="h-6 flex items-center justify-center">
+          {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day, idx) => (
+            <div key={idx} className="h-6 flex items-center justify-center">
               {day}
             </div>
           ))}
         </div>
 
+        {/* Calendar days */}
         <div className="grid grid-cols-7 gap-1 text-center text-xs">
-          {weeks.map((week, weekIndex) =>
-            week.map((day, dayIndex) => (
+          {weeks.map((week, wIdx) =>
+            week.map((day, dIdx) => (
               <button
-                key={`${weekIndex}-${dayIndex}`}
+                key={`${wIdx}-${dIdx}`}
                 className={`w-6 h-6 rounded-full flex items-center justify-center
                   ${day.month !== "current" ? "text-gray-500" : ""}
                   ${isToday(day) ? "bg-blue-500" : ""}
@@ -178,11 +224,12 @@ const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
               >
                 {day.date}
               </button>
-            )),
+            ))
           )}
         </div>
       </div>
 
+      {/* Upcoming events */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         <h3 className="text-sm font-medium mb-2">Upcoming Events</h3>
         {upcomingEvents.length === 0 ? (
@@ -202,27 +249,32 @@ const ScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) => {
         )}
       </div>
 
-      {isGoalModalOpen && (
-        <AddGoalModal
-          isEditing={isEditingGoal}
-          onClose={closeGoalModal}
-          onSaveDraft={(draft) => {
-            localStorage.setItem("draftGoal", JSON.stringify(draft));
-            closeGoalModal();
-          }}
-          onCancelDraft={() => {
-            localStorage.removeItem("draftGoal");
-            closeGoalModal();
-          }}
-        />
-      )}
+      {/* Modals */}
+      {
+        isGoalModalOpen && (
+          <AddGoalModal
+            isEditing={isEditingGoal}
+            onClose={closeGoalModal}
+            onSwitchToActivity={switchToActivityModal}
+            onSaveDraft={(draft) => {
+              localStorage.setItem("draftGoal", JSON.stringify(draft))
+              closeGoalModal()
+            }}
+            onCancelDraft={() => {
+              localStorage.removeItem("draftGoal")
+              closeGoalModal()
+            }}
+          />
+        )
+      }
 
-      {isActivityModalOpen && (
-        <AddActivityModal onClose={closeActivityModal} />
-      )}
-
-    </div>
+      {isActivityModalOpen && 
+        <AddActivityModal
+          onClose={closeActivityModal} 
+          onSwitchToGoal={switchToGoalModal}
+          />}
+    </div >
   )
 }
 
-export default ScheduleSidebar
+export default MainScheduleSidebar
