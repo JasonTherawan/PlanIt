@@ -95,7 +95,7 @@ const TeamScheduleSidebar = ({ currentDate, setCurrentDate, teams, meetings, add
     }
 
     const handleTeamButtonClick = () => {
-        navigate('/')
+        navigate('/main')
     }
 
     return (

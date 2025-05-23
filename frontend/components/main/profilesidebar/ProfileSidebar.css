@@ -1,0 +1,258 @@
+.profile-sidebar-wrapper {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100vh;
+  background-color: #002244;
+  padding: 16px 20px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Segoe UI', sans-serif;
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.2);
+  color: white;
+  z-index: 1000;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.profile-picture-preview {
+  height: 80px;
+  width: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #e0e0e0;
+  cursor: pointer;
+}
+
+.profile-picture-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-picture-label:hover img {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.profile-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.username-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.profile-name-input {
+  padding: 10px;
+  border: 1px solid #444;
+  border-radius: 10px;
+  color: #888;
+}
+
+.profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-fields textarea,
+.profile-fields input {
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  resize: none;
+  background-color: white;
+  color: black;
+}
+
+.field-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.field-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ccc;
+  text-align: left;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+.password-input {
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background-color: white;
+  color: black;
+  height: 25px;
+  width: 93%;
+}
+
+.field-error {
+  color: #f44336;
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.button .icon {
+  font-size: 16px;
+}
+
+.profile-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.bottom-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  margin-bottom: 12px;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* Button variants */
+.primary {
+  background-color: #2196f3;
+  color: white;
+}
+
+.primary:hover {
+  background-color: #1976d2;
+}
+
+.secondary {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.secondary:hover {
+  background-color: #bbdefb;
+}
+
+.warning {
+  background-color: #2196f3;
+  color: white;
+}
+
+.warning:hover {
+  background-color: #1976d2;
+}
+
+.danger {
+  background-color: #ef5350;
+  color: white;
+}
+
+.danger:hover {
+  background-color: #e53935;
+}
+
+.disabled-button {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.icon-button.back-icon {
+  position: absolute;
+  top: 40px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #bbdefb;
+  font-size: 20px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.icon-button.back-icon:hover {
+  color: white;
+}
+
+/* Confirmation popup */
+.confirmation-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.confirmation-content {
+  background-color: #ffffff;
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.confirmation-content p {
+  font-size: 18px;
+  font-weight: 500;
+  color: #333333;
+  margin-bottom: 24px;
+}
+
+.confirmation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.confirmation-buttons .button {
+  min-width: 100px;
+}

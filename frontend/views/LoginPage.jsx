@@ -1,6 +1,6 @@
-import LoginCard from "../components/login/LoginCard";
+import LoginCard from "../components/auth/LoginCard";
 import { LoginPageImage } from "../assets";
-import "./LoginPage.css"
+import "./AuthPage.css"
 
 function LoginPage (){
 

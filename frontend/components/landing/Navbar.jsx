@@ -8,7 +8,7 @@ function Navbar (){
         <nav className="navbar">
             <ul className="navbar-links">
                 <li><Link to = "/aboutus">About us</Link></li>
-                <li><Link to = "/login">Login/Register</Link></li>
+                <li><Link to = "/login">Login</Link></li>
             </ul>
         </nav>
 

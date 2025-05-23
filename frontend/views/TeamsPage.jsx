@@ -1,7 +1,7 @@
 import { useState } from "react"
 import TeamScheduleSidebar from "../components/team/TeamScheduleSidebar"
 import CalendarGrid from "../components/main/CalendarGrid"
-import Header from "../components/main/Header"
+import MainHeader from "../components/main/MainHeader"
 // import AddTeamModal from "../components/team/AddTeamModal"
 
 function TeamsPage() {
@@ -68,7 +68,7 @@ function TeamsPage() {
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Fixed header */}
         <div className="flex-shrink-0">
-          <Header currentDate={currentDate} setCurrentDate={setCurrentDate} />
+          <MainHeader currentDate={currentDate} setCurrentDate={setCurrentDate} />
         </div>
 
         {/* Calendar grid */}

@@ -2,9 +2,9 @@
 
 import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { useState } from "react"
-import ProfileSidebar from "./ProfileSidebar"
+import ProfileSidebar from "./profilesidebar/ProfileSidebar"
 
-const Header = ({ currentDate, setCurrentDate }) => {
+const MainHeader = ({ currentDate, setCurrentDate }) => {
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false)
 
   const navigateToPreviousMonth = () => {
@@ -50,7 +50,6 @@ const Header = ({ currentDate, setCurrentDate }) => {
             className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden cursor-pointer"
             onClick={() => setIsProfileSidebarOpen(true)}
           >
-            <img src="/placeholder.svg?height=32&width=32" alt="Profile" className="w-full h-full object-cover" />
           </div>
         </div>
       </div>
@@ -61,11 +60,11 @@ const Header = ({ currentDate, setCurrentDate }) => {
             className="fixed inset-0 bg-opacity-50 z-30"
             onClick={() => setIsProfileSidebarOpen(false)}
           />
-          <ProfileSidebar />
+          <ProfileSidebar onClose={() => setIsProfileSidebarOpen(false)} />
         </>
       )}
     </>
   )
 }
 
-export default Header
+export default MainHeader

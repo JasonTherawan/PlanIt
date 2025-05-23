@@ -42,7 +42,6 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
 
   const dropdownRef = useRef(null)
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -57,7 +56,6 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isDropdownOpen])
 
-  // Date calculations (unchanged)
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1)
   const firstDayOfWeek = firstDayOfMonth.getDay()
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()
