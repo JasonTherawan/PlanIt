@@ -4,7 +4,7 @@ import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import ProfileSidebar from "./ProfileSidebar"
 
-const MainHeader = ({ currentDate, setCurrentDate }) => {
+const Header = ({ currentDate, setCurrentDate }) => {
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false)
 
   const navigateToPreviousMonth = () => {
@@ -68,4 +68,4 @@ const MainHeader = ({ currentDate, setCurrentDate }) => {
   )
 }
 
-export default MainHeader
+export default Header
