@@ -211,10 +211,16 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing, onSwitch
                     </div>
                 )}
 
-                <div className="tab-buttons">
-                    <button className="tab activity-tab inactive" onClick={onSwitchToActivity}>Activity</button>
-                    <button className="tab goal-tab active">Goal</button>
-                </div>
+                {isEditing ? (
+                    <div className="tab-buttons">
+                        <span className="tab active text-center w-full pointer-events-none">Goal</span>
+                    </div>
+                ) : (
+                    <div className="tab-buttons">
+                        <button className="tab activity-tab inactive" onClick={onSwitchToActivity}>Activity</button>
+                        <button className="tab goal-tab active">Goal</button>
+                    </div>
+                )}
 
                 <div className="form-group">
                     <input

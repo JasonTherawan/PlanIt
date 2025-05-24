@@ -1,0 +1,223 @@
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modal-box {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.25);
+    max-width: 700px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 2;
+}
+
+.close-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.team-title-input {
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    color: #666;
+    width: 100%;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.team-title-input::placeholder {
+    color: #999;
+    text-align: center;
+}
+
+.team-title-input.filled {
+    font-weight: bold;
+    color: #001B3A;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: #001B3A;
+    margin-bottom: 4px;
+    text-align: left;
+}
+
+.email-input {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid black;
+    margin-bottom: 16px;
+}
+
+.invited-list {
+    margin-bottom: 20px;
+}
+
+.invited-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 12px;
+}
+
+.invited-pic {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.invited-name {
+    flex-grow: 1;
+    font-weight: 500;
+    color: #001B3A;
+}
+
+.invited-status {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-accepted {
+    background-color: #d4f4dd;
+    color: #206a34;
+}
+
+.status-pending {
+    background-color: #fff2b0;
+    color: #856404;
+}
+
+.remove-invite-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.bin-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.row-inputs.hours {
+    display: flex;
+    gap: 0;
+    align-items: center;
+    margin: 0;
+    justify-content: flex-start;
+    width: 110px;
+}
+
+.hour-input {
+    padding-left: 2px;
+    padding-right: 2px;
+    width: 50px;
+    border: 2px solid black;
+    border-radius: 10px;
+    font-size: 14px;
+    text-align: center;
+    background-color: white;
+    color: black;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.to-label {
+    font-size: 14px;
+    color: #001B3A;
+    font-weight: 500;
+    margin: 0 15px;
+    white-space: nowrap;
+}
+
+.description-input {
+    width: 100%;
+    height: 70px;
+    padding: 10px;
+    border: 1px solid black;
+    border-radius: 10px;
+    font-size: 14px;
+    background-color: white;
+    color: black;
+    resize: none;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.description-input::placeholder {
+    color: #999;
+    text-align: left;
+}
+
+.button-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.update-btn {
+    background-color: #B9E7F6;
+    color: #001B3A;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.update-btn:hover {
+    background-color: #001B3A;
+    color: #B9E7F6;
+}
+
+.cancel-btn {
+    background-color: #ddd;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #444;
+}
+
+.cancel-btn:hover {
+    background-color: #8f8e8e;
+    color: white;
+}
+
+body.modal-open {
+    overflow: hidden;
+}

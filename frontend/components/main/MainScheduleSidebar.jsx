@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useNavigate } from "react-router-dom"   // <-- import this
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import AddActivityModal from "./activity/AddActivityModal"
 import AddGoalModal from "./goal/AddGoalModal"
 import useModal from "../../hooks/useModal"
@@ -26,20 +26,12 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
     closeModal: closeActivityModal
   } = useModal()
 
-  const switchToGoalModal = () => {
-    closeActivityModal()
-    setIsEditingGoal(false)
-    openGoalModal()
-  }
-
-  const switchToActivityModal = () => {
-    closeGoalModal()
-    openActivityModal()
-  }
   const [isEditingGoal, setIsEditingGoal] = useState(false)
+  const [isEditingActivity, setIsEditingActivity] = useState(false)
+  const [activityDraft, setActivityDraft] = useState(null)
+
   const [viewDate, setViewDate] = useState(new Date(currentDate))
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-
   const dropdownRef = useRef(null)
 
   useEffect(() => {
@@ -115,6 +107,18 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
     )
   }
 
+  const switchToGoalModal = () => {
+    closeActivityModal()
+    setIsEditingGoal(false)
+    openGoalModal()
+  }
+
+  const switchToActivityModal = () => {
+    closeGoalModal()
+    setIsEditingActivity(false)
+    openActivityModal()
+  }
+
   const today = new Date()
   const nextWeek = new Date(today)
   nextWeek.setDate(nextWeek.getDate() + 7)
@@ -142,7 +146,7 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
 
         {/* Dropdown menu */}
         {isDropdownOpen && (
-          <div className="absolute left-4 top-full mt-[-12px] bg-[#B9E7F6] shadow-lg w-32 z-50">
+          <div className="absolute left-4 top-full mt-[-12px] bg-[#B9E7F6] shadow-lg w-32 z-50 rounded-md">
             <button
               className="block w-full px-4 py-2 text-left text-[#002b4c] font-semibold hover:bg-[#92D0F5]"
               onClick={() => {
@@ -157,6 +161,20 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
               className="block w-full px-4 py-2 text-left text-[#002b4c] font-semibold hover:bg-[#92D0F5]"
               onClick={() => {
                 setIsDropdownOpen(false)
+                const saved = localStorage.getItem("draftActivity")
+                if (saved) {
+                  try {
+                    setActivityDraft(JSON.parse(saved))
+                    setIsEditingActivity(true)
+                  } catch {
+                    console.error("Invalid draftActivity format")
+                    setActivityDraft(null)
+                    setIsEditingActivity(false)
+                  }
+                } else {
+                  setActivityDraft(null)
+                  setIsEditingActivity(false)
+                }
                 openActivityModal()
               }}
             >
@@ -248,30 +266,39 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
       </div>
 
       {/* Modals */}
-      {
-        isGoalModalOpen && (
-          <AddGoalModal
-            isEditing={isEditingGoal}
-            onClose={closeGoalModal}
-            onSwitchToActivity={switchToActivityModal}
-            onSaveDraft={(draft) => {
-              localStorage.setItem("draftGoal", JSON.stringify(draft))
-              closeGoalModal()
-            }}
-            onCancelDraft={() => {
-              localStorage.removeItem("draftGoal")
-              closeGoalModal()
-            }}
-          />
-        )
-      }
+      {isGoalModalOpen && (
+        <AddGoalModal
+          isEditing={isEditingGoal}
+          onClose={closeGoalModal}
+          onSwitchToActivity={switchToActivityModal}
+          onSaveDraft={(draft) => {
+            localStorage.setItem("draftGoal", JSON.stringify(draft))
+            closeGoalModal()
+          }}
+          onCancelDraft={() => {
+            localStorage.removeItem("draftGoal")
+            closeGoalModal()
+          }}
+        />
+      )}
 
-      {isActivityModalOpen && 
+      {isActivityModalOpen && (
         <AddActivityModal
-          onClose={closeActivityModal} 
+          onClose={closeActivityModal}
           onSwitchToGoal={switchToGoalModal}
-          />}
-    </div >
+          isEditing={isEditingActivity}
+          existingData={activityDraft}
+          onSaveDraft={(draft) => {
+            localStorage.setItem("draftActivity", JSON.stringify(draft))
+            closeActivityModal()
+          }}
+          onCancelDraft={() => {
+            localStorage.removeItem("draftActivity")
+            closeActivityModal()
+          }}
+        />
+      )}
+    </div>
   )
 }
 
