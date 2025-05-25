@@ -123,7 +123,7 @@ function AddTeamModal({ onClose, onSaveDraft, onCancelDraft, isEditing, addTeam 
                         <div key={index} className="timeline-body" style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
                             <img src={person.pic} alt={person.name} style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '10px' }} />
                             <div style={{ flex: 1 }}>
-                                <strong>{person.name}</strong>
+                                <div className="invited-name">{person.name}</div>
                                 <div style={{ fontSize: '12px', color: person.status === 'Accepted' ? 'green' : 'orange' }}>{person.status}</div>
                             </div>
                             <button

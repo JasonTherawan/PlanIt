@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import AddTeamModal from "../AddTeamModal"
+import AddTeamModal from "./AddTeamModal"
 import useModal from "../../hooks/useModal"
 import { AddIcon, TeamIcon } from "../../assets"
 import { useNavigate } from "react-router-dom"
@@ -101,12 +101,7 @@ const TeamScheduleSidebar = ({ currentDate, setCurrentDate, teams, meetings, add
     }
 
     const handleOpenTeamModal = () => {
-        const saved = localStorage.getItem("draftTeam")
-        if (saved) {
-            setIsEditingTeam(true)
-        } else {
-            setIsEditingTeam(false)
-        }
+        setIsEditingTeam(false)
         openTeamModal()
     }
 

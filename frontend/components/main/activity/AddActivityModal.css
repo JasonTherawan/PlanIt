@@ -104,6 +104,10 @@
     text-align: left;
 }
 
+.activity-select-active {
+  color: #001B3A !important;
+}
+
 .time-label {
   color: #001B3A;
   font-weight: 600;

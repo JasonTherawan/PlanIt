@@ -98,7 +98,7 @@
 .invited-name {
     flex-grow: 1;
     font-weight: 500;
-    color: #001B3A;
+    color: black;
 }
 
 .invited-status {

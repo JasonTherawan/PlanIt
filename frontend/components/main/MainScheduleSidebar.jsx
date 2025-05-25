@@ -27,7 +27,6 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
   } = useModal()
 
   const [isEditingGoal, setIsEditingGoal] = useState(false)
-  const [isEditingActivity, setIsEditingActivity] = useState(false)
   const [activityDraft, setActivityDraft] = useState(null)
 
   const [viewDate, setViewDate] = useState(new Date(currentDate))
@@ -47,6 +46,21 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
     }
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isDropdownOpen])
+
+  const handleOpenActivityModal = () => {
+    const saved = localStorage.getItem("draftActivity")
+    if (saved) {
+      try {
+        setActivityDraft(JSON.parse(saved))
+      } catch {
+        console.error("Invalid draftActivity format")
+        setActivityDraft(null)
+      }
+    } else {
+      setActivityDraft(null)
+    }
+    openActivityModal()
+  }
 
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1)
   const firstDayOfWeek = firstDayOfMonth.getDay()
@@ -115,7 +129,7 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
 
   const switchToActivityModal = () => {
     closeGoalModal()
-    setIsEditingActivity(false)
+    setActivityDraft(null)
     openActivityModal()
   }
 
@@ -135,7 +149,6 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
   return (
     <div className="w-56 bg-[#002147] text-white flex flex-col h-full">
       <div ref={dropdownRef} className="relative flex items-center px-4 py-3 bg-[#001f3f] rounded-md">
-        {/* Add button */}
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className="w-8 h-8 full bg-white bg-opacity-10 flex items-center justify-center hover:bg-opacity-20"
@@ -144,9 +157,17 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
           <img src={AddIcon} alt="Add" className="w-5 h-5" />
         </button>
 
-        {/* Dropdown menu */}
         {isDropdownOpen && (
           <div className="absolute left-4 top-full mt-[-12px] bg-[#B9E7F6] shadow-lg w-32 z-50 rounded-md">
+            <button
+              className="block w-full px-4 py-2 text-left text-[#002b4c] font-semibold hover:bg-[#92D0F5]"
+              onClick={() => {
+                setIsDropdownOpen(false)
+                handleOpenActivityModal()
+              }}
+            >
+              Activity
+            </button>
             <button
               className="block w-full px-4 py-2 text-left text-[#002b4c] font-semibold hover:bg-[#92D0F5]"
               onClick={() => {
@@ -157,35 +178,10 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
             >
               Goal
             </button>
-            <button
-              className="block w-full px-4 py-2 text-left text-[#002b4c] font-semibold hover:bg-[#92D0F5]"
-              onClick={() => {
-                setIsDropdownOpen(false)
-                const saved = localStorage.getItem("draftActivity")
-                if (saved) {
-                  try {
-                    setActivityDraft(JSON.parse(saved))
-                    setIsEditingActivity(true)
-                  } catch {
-                    console.error("Invalid draftActivity format")
-                    setActivityDraft(null)
-                    setIsEditingActivity(false)
-                  }
-                } else {
-                  setActivityDraft(null)
-                  setIsEditingActivity(false)
-                }
-                openActivityModal()
-              }}
-            >
-              Activity
-            </button>
           </div>
         )}
 
         <div className="flex-grow" />
-
-        {/* Team button */}
         <button
           className="w-8 h-8 flex items-center justify-center hover:bg-opacity-20"
           aria-label="Team"
@@ -195,7 +191,6 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
         </button>
       </div>
 
-      {/* Calendar header and navigation */}
       <div className="px-4 pb-4">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-lg font-bold">
@@ -211,7 +206,6 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
           </div>
         </div>
 
-        {/* Days of week */}
         <div className="grid grid-cols-7 text-center text-xs mb-1">
           {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day, idx) => (
             <div key={idx} className="h-6 flex items-center justify-center">
@@ -220,7 +214,6 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
           ))}
         </div>
 
-        {/* Calendar days */}
         <div className="grid grid-cols-7 gap-1 text-center text-xs">
           {weeks.map((week, wIdx) =>
             week.map((day, dIdx) => (
@@ -245,7 +238,6 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
         </div>
       </div>
 
-      {/* Upcoming events */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         <h3 className="text-sm font-medium mb-2">Upcoming Events</h3>
         {upcomingEvents.length === 0 ? (
@@ -265,7 +257,6 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
         )}
       </div>
 
-      {/* Modals */}
       {isGoalModalOpen && (
         <AddGoalModal
           isEditing={isEditingGoal}
@@ -284,9 +275,9 @@ const MainScheduleSidebar = ({ currentDate, setCurrentDate, events, addEvent }) 
 
       {isActivityModalOpen && (
         <AddActivityModal
+          isEditing={false} // Always false for draft
           onClose={closeActivityModal}
           onSwitchToGoal={switchToGoalModal}
-          isEditing={isEditingActivity}
           existingData={activityDraft}
           onSaveDraft={(draft) => {
             localStorage.setItem("draftActivity", JSON.stringify(draft))

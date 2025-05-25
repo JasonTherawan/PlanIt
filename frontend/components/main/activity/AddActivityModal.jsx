@@ -127,7 +127,7 @@ function AddActivityModal({ onClose, onSwitchToGoal, onSaveDraft, onCancelDraft,
 
                 <div className="activity-form-group">
                     <select
-                        className="activity-select"
+                        className={`activity-select ${urgency ? 'activity-select-active' : ''}`}
                         value={urgency}
                         onChange={(e) => setUrgency(e.target.value)}
                     >
@@ -142,7 +142,7 @@ function AddActivityModal({ onClose, onSwitchToGoal, onSaveDraft, onCancelDraft,
 
                 <div className="activity-form-group">
                     <select
-                        className="activity-select"
+                        className={`activity-select ${category ? 'activity-select-active' : ''}`}
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
                     >
