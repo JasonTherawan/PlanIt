@@ -8,16 +8,33 @@ function AddTeamModal({ onClose, onSaveDraft, onCancelDraft, isEditing, addTeam 
     const dailyHoursRef = useRef();
     const descriptionRef = useRef();
 
+    const statusStyles = {
+        Accepted: { color: "green", label: "Accepted" },
+        Pending: { color: "#FF4500", label: "Pending" },
+        Rejected: { color: "red", label: "Rejected" },
+        NotFound: { color: "gray", label: "Not Found" },
+    };
+
     const [people, setPeople] = useState([
         {
-            name: 'Alice Smith',
+            name: 'Revaldo',
             status: 'Accepted',
-            pic: '/images/alice.jpg'
+            pic: '/images/test1.jpg'
         },
         {
-            name: 'Bob Johnson',
+            name: 'Hizkia',
             status: 'Pending',
-            pic: '/images/bob.jpg'
+            pic: '/images/test1.jpg'
+        },
+        {
+            name: 'Albert',
+            status: 'NotFound',
+            pic: '/images/test1.jpg'
+        },
+        {
+            name: 'Jacky',
+            status: 'Rejected',
+            pic: '/images/test1.jpg'
         }
     ]);
 
@@ -69,17 +86,8 @@ function AddTeamModal({ onClose, onSaveDraft, onCancelDraft, isEditing, addTeam 
 
     const handleClose = () => {
         const draft = getDraftData();
-        const isEmpty =
-            !draft.title &&
-            !draft.description &&
-            (!draft.people || draft.people.length === 0) &&
-            draft.dailyHours.start == null &&
-            draft.dailyHours.end == null;
-
-        if (!isEmpty && onSaveDraft) {
+        if (onSaveDraft) {
             onSaveDraft(draft);
-        } else {
-            onClose();
         }
     };
 
@@ -119,21 +127,49 @@ function AddTeamModal({ onClose, onSaveDraft, onCancelDraft, isEditing, addTeam 
                 {/* People Invited List */}
                 <label className="form-label" style={{ marginTop: '20px' }}>People Invited</label>
                 <div className="timeline-section">
-                    {people.map((person, index) => (
-                        <div key={index} className="timeline-body" style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                            <img src={person.pic} alt={person.name} style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '10px' }} />
-                            <div style={{ flex: 1 }}>
-                                <div className="invited-name">{person.name}</div>
-                                <div style={{ fontSize: '12px', color: person.status === 'Accepted' ? 'green' : 'orange' }}>{person.status}</div>
-                            </div>
-                            <button
-                                className="remove-btn"
-                                onClick={() => setPeople(prev => prev.filter((_, i) => i !== index))}
+                    {people.length === 0 ? (
+                        <p className="text-gray-500 text-sm italic mb-3.5">No members yet</p>
+                    ) : (
+                        people.map((person, index) => (
+                            <div
+                                key={index}
+                                className="timeline-body"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    marginBottom: '10px'
+                                }}
                             >
-                                <img src={closeIcon} alt="Remove" className="bin-icon" />
-                            </button>
-                        </div>
-                    ))}
+                                <img
+                                    src={person.pic}
+                                    alt={person.name}
+                                    style={{
+                                        width: '30px',
+                                        height: '30px',
+                                        borderRadius: '50%',
+                                        marginRight: '10px'
+                                    }}
+                                />
+                                <div style={{ flex: 1 }}>
+                                    <div className="invited-name">{person.name}</div>
+                                    <div style={{
+                                        fontSize: '12px',
+                                        color: statusStyles[person.status]?.color || 'gray'
+                                    }}>
+                                        {statusStyles[person.status]?.label || person.status}
+                                    </div>
+                                </div>
+                                <button
+                                    className="remove-btn"
+                                    onClick={() =>
+                                        setPeople(prev => prev.filter((_, i) => i !== index))
+                                    }
+                                >
+                                    <img src={closeIcon} alt="Remove" className="bin-icon" />
+                                </button>
+                            </div>
+                        ))
+                    )}
                 </div>
 
                 {/* Working Hours */}

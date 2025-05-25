@@ -71,6 +71,17 @@
     text-align: center;
 }
 
+.activity-title:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.activity-title.filled {
+  font-weight: bold;
+  color: #001B3A;
+}
+
 .activity-select {
     width: 100%;
     padding: 10px;

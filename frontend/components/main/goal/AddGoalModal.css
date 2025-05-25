@@ -173,8 +173,8 @@
 
 .timeline-header {
     display: flex;
-    justify-content: left;
-    align-items: left;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 4px;
 }
 
@@ -192,6 +192,15 @@
     outline: none;
     background-color: transparent;
     width: 100%;
+    padding: 0 10px;
+}
+
+.goal-title:focus,
+.timeline-title-input:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background-color: transparent;
 }
 
 .timeline-title-input::placeholder {
@@ -214,6 +223,7 @@
 }
 
 .bin-icon {
+    margin-top: 12px;
     width: 18px;
     height: 18px;
     object-fit: contain;
@@ -244,16 +254,17 @@
 }
 
 .row-inputs-dates {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .date-wrapper {
-    position: relative;
-    display: inline-block;
-    width: 140px;
-    margin-right: 12px;
+  position: relative;
+  width: 140px;
+  display: flex;
+  align-items: center;
 }
 
 .custom-date-input {

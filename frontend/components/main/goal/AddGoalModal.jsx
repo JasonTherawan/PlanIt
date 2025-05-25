@@ -184,18 +184,8 @@ function AddGoalModal({ onClose, onSaveDraft, onCancelDraft, isEditing, onSwitch
                 <button className="close-btn" onClick={() => {
                     const draft = getDraftData();
 
-                    const isEmpty =
-                        !draft.goalTitle &&
-                        draft.timelines.every(t =>
-                            !t.title && !t.description && !t.from && !t.to
-                        ) &&
-                        draft.dailyHours.start === null &&
-                        draft.dailyHours.end === null;
-
-                    if (!isEmpty && onSaveDraft) {
+                    if (onSaveDraft) {
                         onSaveDraft(draft);
-                    } else {
-                        onClose();
                     }
                 }}>
                     <img src={closeIcon} alt="Close" className="close-icon" />
