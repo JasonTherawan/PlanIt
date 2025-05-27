@@ -10,10 +10,13 @@ import toprightshape from "../assets/toprightshape.png"
 const LoginPage = () => {
   const [credentials, setCredentials] = useState({
     username: "",
+    email: "",
     password: "",
   })
   const [errors, setErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [apiError, setApiError] = useState("")
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -34,29 +37,60 @@ const LoginPage = () => {
   const validateForm = () => {
     const newErrors = {}
 
-    if (!credentials.username.trim()) {
-      newErrors.username = "Email is required"
+    if (!credentials.email.trim()) {
+      newErrors.email = "Email is required"
     }
 
     if (!credentials.password) {
       newErrors.password = "Password is required"
-    } else if (credentials.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters"
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (validateForm()) {
-      // Here you would typically make an API call to authenticate
-      console.log("Login submitted:", credentials)
+      setIsLoading(true)
+      setApiError("")
 
-      // For demo purposes, navigate to calendar
-      navigate("/")
+      try {
+        // Make API call to login
+        const response = await fetch("http://localhost:5000/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: credentials.email,
+            password: credentials.password,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          // Login successful
+          console.log("Login successful:", data)
+
+          // Store user data in localStorage
+          localStorage.setItem("user", JSON.stringify(data.user))
+
+          // Navigate to calendar
+          navigate("/")
+        } else {
+          // Login failed
+          console.error("Login failed:", data)
+          setApiError(data.message || "Invalid email or password")
+        }
+      } catch (error) {
+        console.error("Error during login:", error)
+        setApiError("Network error. Please check your connection and try again.")
+      } finally {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -98,21 +132,21 @@ const LoginPage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="username" className="block text-white mb-2">
+                <label htmlFor="email" className="block text-white mb-2">
                   Email
                 </label>
                 <div className="relative">
                   <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={credentials.username}
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={credentials.email}
                     onChange={handleChange}
-                    className={`w-full p-3 pr-10 rounded bg-white ${errors.username ? "border-2 border-red-500" : ""}`}
+                    className={`w-full p-3 pr-10 rounded bg-white ${errors.email ? "border-2 border-red-500" : ""}`}
                     placeholder="Enter your email"
                   />
                   <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
-                  {errors.username && <p className="text-red-300 text-sm mt-1">{errors.username}</p>}
+                  {errors.email && <p className="text-red-300 text-sm mt-1">{errors.email}</p>}
                 </div>
               </div>
 
@@ -141,11 +175,16 @@ const LoginPage = () => {
                 </div>
               </div>
 
+              {apiError && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">{apiError}</div>
+              )}
+
               <button
                 type="submit"
-                className="w-full bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200"
+                disabled={isLoading}
+                className="w-full bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 disabled:opacity-70"
               >
-                Login
+                {isLoading ? "Logging in..." : "Login"}
               </button>
             </form>
 

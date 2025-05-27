@@ -17,6 +17,8 @@ const RegisterPage = () => {
   const [errors, setErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [apiError, setApiError] = useState("")
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -61,15 +63,53 @@ const RegisterPage = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (validateForm()) {
-      // Here you would typically make an API call to register the user
-      console.log("Registration submitted:", formData)
+      setIsLoading(true)
+      setApiError("")
 
-      // For demo purposes, navigate to calendar
-      navigate("/")
+      try {
+        // Prepare the data for the API
+        const apiData = {
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          // You can add dob here if you collect it in your form
+        }
+
+        // Make the API call to your Flask backend
+        const response = await fetch("http://localhost:5000/api/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(apiData),
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          // Registration successful
+          console.log("Registration successful:", data)
+
+          // Show success message (you could use a toast notification here)
+          alert("Registration successful! Please log in.")
+
+          // Navigate to login page
+          navigate("/login")
+        } else {
+          // Registration failed
+          console.error("Registration failed:", data)
+          setApiError(data.message || "Registration failed. Please try again.")
+        }
+      } catch (error) {
+        console.error("Error during registration:", error)
+        setApiError("Network error. Please check your connection and try again.")
+      } finally {
+        setIsLoading(false)
+      }
     }
   }
 
