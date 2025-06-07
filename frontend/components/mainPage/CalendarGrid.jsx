@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useEffect, useState } from "react"
+import { Edit2 } from "lucide-react"
 
 const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }) => {
   const gridRef = useRef(null)
@@ -10,6 +11,9 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
   const [activities, setActivities] = useState([])
   const [goals, setGoals] = useState([])
   const [teams, setTeams] = useState([])
+  const [highlightedItem, setHighlightedItem] = useState(null)
+  const [showInfoModal, setShowInfoModal] = useState(false)
+  const [infoModalContent, setInfoModalContent] = useState(null)
 
   // Urgency color mapping
   const urgencyColors = {
@@ -92,6 +96,46 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
       }
     }, 100)
   }, [currentDate])
+
+  // Add event listener for highlighting items from sidebar
+  useEffect(() => {
+    const handleHighlightItem = (event) => {
+      const { id, type, timelineId } = event.detail
+      setHighlightedItem({ id, type, timelineId })
+
+      setTimeout(() => {
+        const highlightedElement = document.querySelector(".highlighted-calendar-item")
+        if (highlightedElement && horizontalScrollRef.current && gridRef.current) {
+          const container = horizontalScrollRef.current
+          const timeLabelContainer = gridRef.current
+
+          const rect = highlightedElement.getBoundingClientRect()
+          const containerRect = container.getBoundingClientRect()
+
+          const verticalOffset = (rect.top - containerRect.top) + container.scrollTop - container.clientHeight / 2 + rect.height / 2
+          const horizontalOffset = (rect.left - containerRect.left) + container.scrollLeft - container.clientWidth / 2 + rect.width / 2
+
+          container.scrollTo({
+            top: verticalOffset,
+            left: horizontalOffset,
+            behavior: "smooth"
+          })
+
+          timeLabelContainer.scrollTo({
+            top: verticalOffset,
+            behavior: "smooth"
+          })
+        }
+      }, 200)
+
+      setTimeout(() => {
+        setHighlightedItem(null)
+      }, 3000)
+    }
+
+    window.addEventListener("highlightCalendarItem", handleHighlightItem)
+    return () => window.removeEventListener("highlightCalendarItem", handleHighlightItem)
+  }, [])
 
   // Generate time slots for 24 hours
   const timeSlots = []
@@ -267,6 +311,188 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
       date.getFullYear() === today.getFullYear()
     )
   }
+  
+  // Info modal component
+  const InfoModal = ({ item, onClose }) => {
+    if (!item) return null
+
+    const handleEdit = () => {
+      onClose()
+
+      // For goals, we need to reconstruct the complete goal object with all timelines
+      if (item.type === "goal") {
+        // Find the complete goal data from the goals array
+        const completeGoal = goals.find((goal) => goal.goalid === item.id)
+        if (completeGoal) {
+          const editItem = {
+            ...completeGoal,
+            type: "goal",
+            id: completeGoal.goalid,
+          }
+          const event = new CustomEvent("editCalendarItem", {
+            detail: { id: item.id, type: item.type, item: editItem },
+          })
+          window.dispatchEvent(event)
+        }
+      } else {
+        const event = new CustomEvent("editCalendarItem", {
+          detail: { id: item.id, type: item.type, item: item },
+        })
+        window.dispatchEvent(event)
+      }
+    }
+
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50" onClick={onClose}>
+        <div className="bg-white rounded-lg border-1 shadow-2xl w-full max-w-md p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">
+              {item.type === "activity"
+                ? item.activitytitle
+                : item.type === "goal"
+                  ? `${item.goaltitle} - ${item.timelinetitle}`
+                  : item.meetingtitle}
+            </h3>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleEdit}
+                className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                title="Edit"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {/* Date and Time */}
+            <div className="text-sm">
+              <span className="font-medium">Date: </span>
+              {item.type === "activity"
+                ? item.activitydate
+                : item.type === "goal"
+                  ? `${item.timelinestartdate} to ${item.timelineenddate}`
+                  : item.meetingdate}
+            </div>
+
+            {/* Time */}
+            {item.type === "activity" && (item.activitystarttime || item.activityendtime) && (
+              <div className="text-sm">
+                <span className="font-medium">Time: </span>
+                {item.activitystarttime && item.activityendtime
+                  ? `${item.activitystarttime} to ${item.activityendtime}`
+                  : item.activitystarttime || item.activityendtime}
+              </div>
+            )}
+
+            {item.type === "goal" && (item.timelinestarttime || item.timelineendtime) && (
+              <div className="text-sm">
+                <span className="font-medium">Time: </span>
+                {item.timelinestarttime && item.timelineendtime
+                  ? `${item.timelinestarttime} to ${item.timelineendtime}`
+                  : item.timelinestarttime || item.timelineendtime}
+              </div>
+            )}
+
+            {item.type === "meeting" && (item.meetingstarttime || item.meetingendtime) && (
+              <div className="text-sm">
+                <span className="font-medium">Time: </span>
+                {item.meetingstarttime && item.meetingendtime
+                  ? `${item.meetingstarttime} to ${item.meetingendtime}`
+                  : item.meetingstarttime || item.meetingendtime}
+              </div>
+            )}
+
+            {/* Description */}
+            {item.type === "activity" && item.activitydescription && (
+              <div className="text-sm">
+                <span className="font-medium">Description: </span>
+                {item.activitydescription}
+              </div>
+            )}
+
+            {item.type === "goal" && item.goaldescription && (
+              <div className="text-sm">
+                <span className="font-medium">Description: </span>
+                {item.goaldescription}
+              </div>
+            )}
+
+            {item.type === "meeting" && item.meetingdescription && (
+              <div className="text-sm">
+                <span className="font-medium">Description: </span>
+                {item.meetingdescription}
+              </div>
+            )}
+
+            {/* Category */}
+            {item.type === "activity" && item.activitycategory && (
+              <div className="text-sm">
+                <span className="font-medium">Category: </span>
+                {item.activitycategory}
+              </div>
+            )}
+
+            {item.type === "goal" && item.goalcategory && (
+              <div className="text-sm">
+                <span className="font-medium">Category: </span>
+                {item.goalcategory}
+              </div>
+            )}
+
+            {/* Urgency for activities */}
+            {item.type === "activity" && item.activityurgency && (
+              <div className="text-sm">
+                <span className="font-medium">Urgency: </span>
+                <span
+                  className={`
+                ${item.activityurgency === "low" ? "text-green-600" : ""}
+                ${item.activityurgency === "medium" ? "text-yellow-600" : ""}
+                ${item.activityurgency === "high" ? "text-red-600" : ""}
+                ${item.activityurgency === "urgent" ? "text-red-700 font-bold" : ""}
+              `}
+                >
+                  {item.activityurgency.charAt(0).toUpperCase() + item.activityurgency.slice(1)}
+                </span>
+              </div>
+            )}
+
+            {/* Progress for goals */}
+            {item.type === "goal" && item.goalprogress && (
+              <div className="text-sm">
+                <span className="font-medium">Progress: </span>
+                {item.goalprogress.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+              </div>
+            )}
+
+            {/* Team name for meetings */}
+            {item.type === "meeting" && item.teamname && (
+              <div className="text-sm">
+                <span className="font-medium">Team: </span>
+                {item.teamname}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const goalTimelines = getGoalTimelinesForMonth()
 
@@ -331,28 +557,62 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
           >
             <div className="flex relative" style={{ minWidth: `${daysInMonth.length * 100}px` }}>
               {/* Goal timeline blocks */}
-              {goalTimelines.map((timelineBlock, index) => (
-                <div
-                  key={`goal-timeline-${timelineBlock.goal.goalid}-${timelineBlock.timelineIndex}`}
-                  className="absolute bg-purple-100 border-l-4 border-purple-500 rounded p-1 text-xs overflow-hidden z-15"
-                  style={{
-                    left: `${timelineBlock.startDayIndex * 100 + 4}px`,
-                    width: `${timelineBlock.spanDays * 100 - 8}px`,
-                    top: `${timelineBlock.topPosition}px`,
-                    height: `${timelineBlock.height}px`,
-                  }}
-                >
-                  <div className="font-medium text-purple-800 truncate">
-                    {timelineBlock.goal.goaltitle} - {timelineBlock.timeline.timelinetitle}
-                  </div>
-                  {timelineBlock.timeline.timelinestarttime && (
-                    <div className="text-purple-600 text-xs">
-                      {timelineBlock.timeline.timelinestarttime}
-                      {timelineBlock.timeline.timelineendtime && ` - ${timelineBlock.timeline.timelineendtime}`}
+              {goalTimelines.map((timelineBlock, index) => {
+                const isHighlighted =
+                  highlightedItem &&
+                  highlightedItem.type === "goal" &&
+                  highlightedItem.id === timelineBlock.goal.goalid &&
+                  highlightedItem.timelineId === timelineBlock.timeline.timelineid
+
+                return (
+                  <div
+                    key={`goal-timeline-${timelineBlock.goal.goalid}-${timelineBlock.timelineIndex}`}
+                    className={`absolute bg-purple-100 border-l-4 border-purple-500 rounded p-1 text-xs overflow-hidden
+                 transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
+                 ${isHighlighted ? "highlighted-calendar-item ring-2 ring-purple-500 z-30 scale-[1.03]" : ""}`}
+                    style={{
+                      left: `${timelineBlock.startDayIndex * 100 + 4}px`,
+                      width: `${timelineBlock.spanDays * 100 - 8}px`,
+                      top: `${timelineBlock.topPosition}px`,
+                      height: `${timelineBlock.height}px`,
+                      zIndex: isHighlighted ? 30 : 15,
+                    }}
+                    onClick={(e) => {
+                      const item = {
+                        id: timelineBlock.goal.goalid,
+                        type: "goal",
+                        timelineId: timelineBlock.timeline.timelineid,
+                        goaltitle: timelineBlock.goal.goaltitle,
+                        timelinetitle: timelineBlock.timeline.timelinetitle,
+                        timelinestartdate: timelineBlock.timeline.timelinestartdate,
+                        timelineenddate: timelineBlock.timeline.timelineenddate,
+                        timelinestarttime: timelineBlock.timeline.timelinestarttime,
+                        timelineendtime: timelineBlock.timeline.timelineendtime,
+                        goaldescription: timelineBlock.goal.goaldescription,
+                        goalcategory: timelineBlock.goal.goalcategory,
+                        goalprogress: timelineBlock.goal.goalprogress,
+                      }
+                      // Single click - show info modal and highlight in sidebar
+                      setInfoModalContent(item)
+                      setShowInfoModal(true)
+                      const event = new CustomEvent("highlightSidebarItem", {
+                        detail: { id: item.id, type: item.type, timelineId: item.timelineId },
+                      })
+                      window.dispatchEvent(event)
+                    }}
+                  >
+                    <div className="font-medium text-purple-800 truncate">
+                      {timelineBlock.goal.goaltitle} - {timelineBlock.timeline.timelinetitle}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {timelineBlock.timeline.timelinestarttime && (
+                      <div className="text-purple-600 text-xs">
+                        {timelineBlock.timeline.timelinestarttime}
+                        {timelineBlock.timeline.timelineendtime && ` - ${timelineBlock.timeline.timelineendtime}`}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
 
               {daysInMonth.map((day, dayIndex) => {
                 const dayActivities = getActivitiesForDay(day)
@@ -369,15 +629,42 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                       const topPosition = startHour * 56 + 2 // 56px per hour (14px * 4 quarters) + 2px for goal space
                       const height = duration * 56 - 6 // Subtract 6px for border
 
+                      const isHighlighted =
+                        highlightedItem &&
+                        highlightedItem.type === "activity" &&
+                        highlightedItem.id === activity.activityid
+
                       return (
                         <div
                           key={`activity-${activity.activityid}`}
-                          className="absolute left-1 right-1 bg-blue-50 border-l-4 rounded p-1 text-xs overflow-hidden"
+                          className={`absolute left-1 right-1 bg-blue-50 border-l-4 rounded p-1 text-xs overflow-hidden
+                          transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
+                          ${isHighlighted ? "highlighted-calendar-item ring-2 ring-blue-700 z-30 scale-[1.03]" : ""}`}
                           style={{
                             borderLeftColor: urgencyColors[activity.activityurgency],
                             top: `${topPosition}px`,
                             height: `${height}px`,
-                            zIndex: 15,
+                            zIndex: isHighlighted ? 30 : 15,
+                          }}
+                          onClick={(e) => {
+                            const item = {
+                              id: activity.activityid,
+                              type: "activity",
+                              activitytitle: activity.activitytitle,
+                              activitydate: activity.activitydate,
+                              activitystarttime: activity.activitystarttime,
+                              activityendtime: activity.activityendtime,
+                              activitydescription: activity.activitydescription,
+                              activitycategory: activity.activitycategory,
+                              activityurgency: activity.activityurgency,
+                            }
+                            // Single click - show info modal and highlight in sidebar
+                            setInfoModalContent(item)
+                            setShowInfoModal(true)
+                            const event = new CustomEvent("highlightSidebarItem", {
+                              detail: { id: item.id, type: item.type },
+                            })
+                            window.dispatchEvent(event)
                           }}
                         >
                           <div className="font-medium text-blue-800 truncate">{activity.activitytitle}</div>
@@ -397,14 +684,40 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                       const topPosition = startHour * 56 + 24 // 56px per hour + 24px for goal space
                       const height = duration * 56 - 2 // Subtract 2px for border
 
+                      const isHighlighted =
+                        highlightedItem &&
+                        highlightedItem.type === "meeting" &&
+                        highlightedItem.id === meeting.teammeetingid
+
                       return (
                         <div
                           key={`meeting-${meeting.teammeetingid}`}
-                          className="absolute left-1 right-1 bg-orange-50 border-l-4 border-orange-500 rounded p-1 text-xs overflow-hidden"
+                          className={`absolute left-1 right-1 bg-orange-50 border-l-4 border-orange-500 rounded p-1 text-xs overflow-hidden
+                          transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
+                          ${isHighlighted ? "highlighted-calendar-item ring-2 ring-orange-500 z-30 scale-[1.03]" : ""}`}
                           style={{
                             top: `${topPosition}px`,
                             height: `${height}px`,
-                            zIndex: 15,
+                            zIndex: isHighlighted ? 30 : 15,
+                          }}
+                          onClick={(e) => {
+                            const item = {
+                              id: meeting.teammeetingid,
+                              type: "meeting",
+                              meetingtitle: meeting.meetingtitle,
+                              meetingdate: meeting.meetingdate,
+                              meetingstarttime: meeting.meetingstarttime,
+                              meetingendtime: meeting.meetingendtime,
+                              meetingdescription: meeting.meetingdescription,
+                              teamname: meeting.teamname,
+                            }
+                            // Single click - show info modal and highlight in sidebar
+                            setInfoModalContent(item)
+                            setShowInfoModal(true)
+                            const event = new CustomEvent("highlightSidebarItem", {
+                              detail: { id: item.id, type: item.type },
+                            })
+                            window.dispatchEvent(event)
                           }}
                         >
                           <div className="font-medium text-orange-800 truncate">{meeting.meetingtitle}</div>
@@ -458,6 +771,16 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
           </div>
         </div>
       </div>
+      {/* Info Modal */}
+      {showInfoModal && (
+        <InfoModal
+          item={infoModalContent}
+          onClose={() => {
+            setShowInfoModal(false)
+            setInfoModalContent(null)
+          }}
+        />
+      )}
     </div>
   )
 }

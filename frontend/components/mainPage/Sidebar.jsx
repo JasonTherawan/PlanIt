@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Plus, ChevronLeft, ChevronRight, Edit2, Trash2 } from "lucide-react"
 import AddEventModal from "./AddEventModal"
 import AddItemModal from "./AddItemModal"
@@ -16,6 +16,8 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
   const [goals, setGoals] = useState([])
   const [teams, setTeams] = useState([])
   const [activeTab, setActiveTab] = useState("upcoming")
+  const [highlightedSidebarItem, setHighlightedSidebarItem] = useState(null)
+  const scrollContainerRef = useRef(null)
 
   // Urgency color mapping
   const urgencyColors = {
@@ -296,6 +298,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
               deadline: timelineEndDate,
               title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
               id: goal.goalid,
+              timelineId: timeline.timelineid,
             })
           }
         })
@@ -546,17 +549,82 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
         ? `${item.type}-${item.id}-${item.timelineId}-${item.deadline.toDateString()}`
         : `${item.type}-${item.id || index}`
 
+    // Function to scroll to the item on the calendar grid
+    const scrollToItemOnGrid = () => {
+      // Find the date of the item
+      let itemDate
+      if (item.type === "activity") {
+        itemDate = new Date(item.activitydate)
+      } else if (item.type === "meeting") {
+        itemDate = new Date(item.meetingdate)
+      } else if (item.type === "goal" && item.timeline) {
+        itemDate = new Date(item.timeline.timelinestartdate)
+      } else {
+        itemDate = item.deadline
+      }
+
+      // Set the current date to the item's date to navigate to that day
+      setCurrentDate(new Date(itemDate))
+
+      // Dispatch a custom event that CalendarGrid can listen for
+      const event = new CustomEvent("highlightCalendarItem", {
+        detail: {
+          id: item.id,
+          type: item.type,
+          timelineId: item.timelineId || (item.timeline ? item.timeline.timelineid : null),
+        },
+      })
+      window.dispatchEvent(event)
+    }
+
+    // Check if this item is highlighted
+    const isHighlighted =
+      highlightedSidebarItem &&
+      highlightedSidebarItem.id === item.id &&
+      highlightedSidebarItem.type === item.type &&
+      (item.type !== "goal" ||
+      highlightedSidebarItem.timelineId === (item.timelineId || (item.timeline ? item.timeline.timelineid : null)))
+
     return (
       <div
         key={uniqueKey}
-        className="relative group rounded p-2 -m-2 transition-colors"
+        className={`relative group rounded p-2 -m-2 transition-colors ${
+          isHighlighted ? "bg-blue-900 bg-opacity-10" : ""
+        }`}
+        data-item-id={`${item.type}-${item.id}${
+          item.type === "goal" && (item.timelineId || (item.timeline && item.timeline.timelineid))
+            ? `-${item.timelineId || item.timeline.timelineid}`
+            : ""
+        }`}
       >
-        {/* Edit and Delete buttons - show on card hover */}
+        {/* Action buttons - show on card hover */}
         {showEditDelete && (
           <div className="absolute top-2 right-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            {/* Eye icon to locate on calendar */}
+            <button
+              onClick={scrollToItemOnGrid}
+              className="w-4 h-4 bg-gray-500 hover:bg-gray-600 rounded flex items-center justify-center"
+              title="Find on calendar"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="8"
+                height="8"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
             <button
               onClick={() => handleEdit(item)}
               className="w-4 h-4 bg-blue-500 hover:bg-blue-600 rounded flex items-center justify-center"
+              title="Edit"
             >
               <Edit2 size={8} />
             </button>
@@ -571,6 +639,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
                 }
               }}
               className="w-4 h-4 bg-red-500 hover:bg-red-600 rounded flex items-center justify-center"
+              title="Delete"
             >
               <Trash2 size={8} />
             </button>
@@ -604,6 +673,41 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
       </div>
     )
   }
+
+  useEffect(() => {
+    const handleHighlightSidebarItem = (event) => {
+      const { id, type, timelineId } = event.detail
+      setHighlightedSidebarItem({ id, type, timelineId })
+
+      // Scroll to the highlighted item in sidebar
+      setTimeout(() => {
+        // Updated selector to match the data-item-id format
+        const itemSelector = `[data-item-id="${type}-${id}${type === "goal" && timelineId ? `-${timelineId}` : ""}"]`
+        const itemElement = document.querySelector(itemSelector)
+        if (itemElement && scrollContainerRef.current) {
+          itemElement.scrollIntoView({ behavior: "smooth", block: "center" })
+        }
+      }, 100)
+
+      // Clear highlight after 3 seconds
+      setTimeout(() => {
+        setHighlightedSidebarItem(null)
+      }, 3000)
+    }
+
+    const handleEditCalendarItem = (event) => {
+      const { item } = event.detail
+      handleEdit(item)
+    }
+
+    window.addEventListener("highlightSidebarItem", handleHighlightSidebarItem)
+    window.addEventListener("editCalendarItem", handleEditCalendarItem)
+
+    return () => {
+      window.removeEventListener("highlightSidebarItem", handleHighlightSidebarItem)
+      window.removeEventListener("editCalendarItem", handleEditCalendarItem)
+    }
+  }, [activities, goals, teams])
 
   const upcomingItems = getUpcomingItems()
   const pastItems = getPastItems()
@@ -763,7 +867,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
       </div>
 
       {/* Scrollable Events Content */}
-      <div className="flex-1 overflow-y-auto px-3.5 pb-4 pt-4">
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4" ref={scrollContainerRef}>
         {activeTab === "upcoming"
           ? // Upcoming events content (without ongoing items)
           (() => {
@@ -891,7 +995,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
                         {dayLabel} {dateLabel}
                       </h3>
                       <div className="space-y-3">
-                        {items.map((item, index) => renderEventItem(item, index, false))}
+                        {items.map((item, index) => renderEventItem(item, index, true))}
                       </div>
                     </div>
                   )
