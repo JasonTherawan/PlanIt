@@ -945,5 +945,225 @@ def delete_meeting(meeting_id):
         if conn:
             conn.close()
 
+@app.route('/api/users/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    """Get user details"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Get user by ID
+        cur.execute(
+            """
+            SELECT UserId, UserName, UserEmail, UserDOB, UserBio, UserProfilePicture
+            FROM Users 
+            WHERE UserId = %s
+            """,
+            (user_id,)
+        )
+        
+        user = cur.fetchone()
+        
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        # Format user data
+        user_data = {
+            'userid': user[0],
+            'username': user[1],
+            'useremail': user[2],
+            'userdob': user[3].isoformat() if user[3] else None,
+            'userbio': user[4],
+            'userprofilepicture': user[5]
+        }
+        
+        return jsonify({
+            'success': True,
+            'user': user_data
+        }), 200
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to fetch user data', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/users/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    """Update user details"""
+    # Get data from request
+    data = request.get_json()
+    
+    # Extract user information
+    username = data.get('username')
+    bio = data.get('bio')
+    dob = data.get('dob') or None
+    profile_picture = data.get('profilePicture')
+    
+    # Validate required fields
+    if not username:
+        return jsonify({'success': False, 'message': 'Username is required'}), 400
+    
+    # Connect to database
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Update user
+        cur.execute(
+            """
+            UPDATE Users 
+            SET UserName = %s, UserBio = %s, UserDOB = %s, UserProfilePicture = %s
+            WHERE UserId = %s
+            RETURNING UserId, UserName, UserEmail, UserDOB, UserBio, UserProfilePicture
+            """,
+            (username, bio, dob, profile_picture, user_id)
+        )
+        
+        # Check if user exists
+        updated_user = cur.fetchone()
+        if not updated_user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        # Format user data
+        user_data = {
+            'userid': updated_user[0],
+            'username': updated_user[1],
+            'useremail': updated_user[2],
+            'userdob': updated_user[3].isoformat() if updated_user[3] else None,
+            'userbio': updated_user[4],
+            'userprofilepicture': updated_user[5]
+        }
+        
+        # Commit the transaction
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'User updated successfully',
+            'user': user_data
+        }), 200
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to update user', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/users/<int:user_id>/password', methods=['PUT'])
+def update_password(user_id):
+    """Update user password"""
+    # Get data from request
+    data = request.get_json()
+    
+    # Extract password information
+    current_password = data.get('currentPassword')
+    new_password = data.get('newPassword')
+    
+    # Validate required fields
+    if not current_password or not new_password:
+        return jsonify({'success': False, 'message': 'Current and new passwords are required'}), 400
+    
+    # Connect to database
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Get current password hash
+        cur.execute("SELECT UserPassword FROM Users WHERE UserId = %s", (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        # Verify current password
+        if not check_password_hash(user[0], current_password):
+            return jsonify({'success': False, 'message': 'Current password is incorrect'}), 401
+        
+        # Hash new password
+        hashed_password = generate_password_hash(new_password)
+        
+        # Update password
+        cur.execute(
+            "UPDATE Users SET UserPassword = %s WHERE UserId = %s",
+            (hashed_password, user_id)
+        )
+        
+        # Commit the transaction
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Password updated successfully'
+        }), 200
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to update password', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    """Delete user account"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # First, delete user's activities
+        cur.execute("DELETE FROM Activity WHERE UserId = %s", (user_id,))
+        
+        # Delete user's timelines and goals
+        cur.execute(
+            """
+            DELETE FROM Timeline 
+            WHERE GoalId IN (SELECT GoalId FROM Goal WHERE UserId = %s)
+            """, 
+            (user_id,)
+        )
+        cur.execute("DELETE FROM Goal WHERE UserId = %s", (user_id,))
+        
+        # Delete user's team memberships
+        cur.execute("DELETE FROM TeamMembers WHERE UserId = %s", (user_id,))
+        
+        # Delete user
+        cur.execute("DELETE FROM Users WHERE UserId = %s", (user_id,))
+        
+        # Check if any rows were affected
+        if cur.rowcount == 0:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        # Commit the transaction
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'User account deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to delete user account', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
 if __name__ == '__main__':
     app.run(debug=True)
