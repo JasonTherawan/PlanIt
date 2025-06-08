@@ -137,6 +137,21 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     return () => window.removeEventListener("highlightCalendarItem", handleHighlightItem)
   }, [])
 
+  // Add this useEffect after the existing useEffect for highlighting items
+  useEffect(() => {
+    const handleShowInfoModal = (event) => {
+      const { item } = event.detail
+      setInfoModalContent(item)
+      setShowInfoModal(true)
+    }
+
+    window.addEventListener("showInfoModal", handleShowInfoModal)
+
+    return () => {
+      window.removeEventListener("showInfoModal", handleShowInfoModal)
+    }
+  }, [])
+  
   // Generate time slots for 24 hours
   const timeSlots = []
   for (let i = 0; i < 24; i++) {
