@@ -8,6 +8,11 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
   const [apiError, setApiError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
 
+  // State for existing data to check overlaps
+  const [activities, setActivities] = useState([])
+  const [goals, setGoals] = useState([])
+  const [teams, setTeams] = useState([])
+
   // Activity form state
   const [activity, setActivity] = useState({
     activityTitle: "",
@@ -38,6 +43,48 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
       timelineEndTime: "",
     },
   ])
+
+  // Get user ID from localStorage
+  const getUserId = () => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}")
+    return user.id || 1
+  }
+
+  // Fetch existing data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchExistingData()
+    }
+  }, [isOpen])
+
+  const fetchExistingData = async () => {
+    try {
+      const userId = getUserId()
+
+      // Fetch activities
+      const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
+      if (activitiesResponse.ok) {
+        const activitiesData = await activitiesResponse.json()
+        setActivities(activitiesData.activities || [])
+      }
+
+      // Fetch goals
+      const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
+      if (goalsResponse.ok) {
+        const goalsData = await goalsResponse.json()
+        setGoals(goalsData.goals || [])
+      }
+
+      // Fetch teams
+      const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+      if (teamsResponse.ok) {
+        const teamsData = await teamsResponse.json()
+        setTeams(teamsData.teams || [])
+      }
+    } catch (error) {
+      console.error("Error fetching existing data:", error)
+    }
+  }
 
   // Initialize form data when item changes
   useEffect(() => {
@@ -129,6 +176,203 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     }
   }
 
+  // Check for activity overlaps (excluding current item)
+  const checkActivityOverlaps = (newActivity) => {
+    if (!newActivity.activityStartTime || !newActivity.activityEndTime) {
+      return []
+    }
+
+    const newStart = new Date(`${newActivity.activityDate}T${newActivity.activityStartTime}`)
+    const newEnd = new Date(`${newActivity.activityDate}T${newActivity.activityEndTime}`)
+
+    const overlaps = []
+
+    // Check against existing activities (excluding current one)
+    activities.forEach((existingActivity) => {
+      if (existingActivity.activityid === item.id) return // Skip current item
+      if (existingActivity.activitydate !== newActivity.activityDate) return
+      if (!existingActivity.activitystarttime || !existingActivity.activityendtime) return
+
+      const existingStart = new Date(`${existingActivity.activitydate}T${existingActivity.activitystarttime}`)
+      const existingEnd = new Date(`${existingActivity.activitydate}T${existingActivity.activityendtime}`)
+
+      if (newStart < existingEnd && newEnd > existingStart) {
+        overlaps.push({
+          type: "activity",
+          title: existingActivity.activitytitle,
+          time: `${existingActivity.activitystarttime} - ${existingActivity.activityendtime}`,
+        })
+      }
+    })
+
+    // Check against goal timelines
+    goals.forEach((goal) => {
+      if (goal.timelines) {
+        goal.timelines.forEach((timeline) => {
+          const timelineStart = new Date(timeline.timelinestartdate)
+          const timelineEnd = new Date(timeline.timelineenddate)
+          const activityDate = new Date(newActivity.activityDate)
+
+          if (activityDate >= timelineStart && activityDate <= timelineEnd) {
+            if (timeline.timelinestarttime && timeline.timelineendtime) {
+              const timelineStartTime = new Date(`${newActivity.activityDate}T${timeline.timelinestarttime}`)
+              const timelineEndTime = new Date(`${newActivity.activityDate}T${timeline.timelineendtime}`)
+
+              if (newStart < timelineEndTime && newEnd > timelineStartTime) {
+                overlaps.push({
+                  type: "goal",
+                  title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
+                  time: `${timeline.timelinestarttime} - ${timeline.timelineendtime}`,
+                })
+              }
+            } else {
+              overlaps.push({
+                type: "goal",
+                title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
+                time: "All day",
+              })
+            }
+          }
+        })
+      }
+    })
+
+    // Check against team meetings
+    teams.forEach((team) => {
+      if (team.meetings) {
+        team.meetings.forEach((meeting) => {
+          if (meeting.meetingdate !== newActivity.activityDate) return
+          if (!meeting.meetingstarttime || !meeting.meetingendtime) return
+
+          const meetingStart = new Date(`${meeting.meetingdate}T${meeting.meetingstarttime}`)
+          const meetingEnd = new Date(`${meeting.meetingdate}T${meeting.meetingendtime}`)
+
+          if (newStart < meetingEnd && newEnd > meetingStart) {
+            overlaps.push({
+              type: "meeting",
+              title: meeting.meetingtitle,
+              time: `${meeting.meetingstarttime} - ${meeting.meetingendtime}`,
+            })
+          }
+        })
+      }
+    })
+
+    return overlaps
+  }
+
+  // Check for goal timeline overlaps (excluding current item)
+  const checkGoalTimelineOverlaps = (newTimeline) => {
+    const overlaps = []
+
+    if (!newTimeline.timelineStartDate || !newTimeline.timelineEndDate) {
+      return overlaps
+    }
+
+    const newStart = new Date(newTimeline.timelineStartDate)
+    const newEnd = new Date(newTimeline.timelineEndDate)
+
+    // Check against existing activities
+    activities.forEach((activity) => {
+      const activityDate = new Date(activity.activitydate)
+
+      if (activityDate >= newStart && activityDate <= newEnd) {
+        if (
+          newTimeline.timelineStartTime &&
+          newTimeline.timelineEndTime &&
+          activity.activitystarttime &&
+          activity.activityendtime
+        ) {
+          const timelineStartTime = new Date(`${activity.activitydate}T${newTimeline.timelineStartTime}`)
+          const timelineEndTime = new Date(`${activity.activitydate}T${newTimeline.timelineEndTime}`)
+          const activityStart = new Date(`${activity.activitydate}T${activity.activitystarttime}`)
+          const activityEnd = new Date(`${activity.activitydate}T${activity.activityendtime}`)
+
+          if (timelineStartTime < activityEnd && timelineEndTime > activityStart) {
+            overlaps.push({
+              type: "activity",
+              title: activity.activitytitle,
+              time: `${activity.activitystarttime} - ${activity.activityendtime}`,
+              date: activity.activitydate,
+            })
+          }
+        } else {
+          overlaps.push({
+            type: "activity",
+            title: activity.activitytitle,
+            time: activity.activitystarttime
+              ? `${activity.activitystarttime} - ${activity.activityendtime}`
+              : "All day",
+            date: activity.activitydate,
+          })
+        }
+      }
+    })
+
+    // Check against other goal timelines (excluding current goal)
+    goals.forEach((goal) => {
+      if (goal.goalid === item.id) return // Skip current goal
+      if (goal.timelines) {
+        goal.timelines.forEach((timeline) => {
+          const existingStart = new Date(timeline.timelinestartdate)
+          const existingEnd = new Date(timeline.timelineenddate)
+
+          if (newStart <= existingEnd && newEnd >= existingStart) {
+            overlaps.push({
+              type: "goal",
+              title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
+              time: timeline.timelinestarttime
+                ? `${timeline.timelinestarttime} - ${timeline.timelineendtime}`
+                : "All day",
+              date: `${timeline.timelinestartdate} to ${timeline.timelineenddate}`,
+            })
+          }
+        })
+      }
+    })
+
+    // Check against team meetings
+    teams.forEach((team) => {
+      if (team.meetings) {
+        team.meetings.forEach((meeting) => {
+          const meetingDate = new Date(meeting.meetingdate)
+
+          if (meetingDate >= newStart && meetingDate <= newEnd) {
+            if (
+              newTimeline.timelineStartTime &&
+              newTimeline.timelineEndTime &&
+              meeting.meetingstarttime &&
+              meeting.meetingendtime
+            ) {
+              const timelineStartTime = new Date(`${meeting.meetingdate}T${newTimeline.timelineStartTime}`)
+              const timelineEndTime = new Date(`${meeting.meetingdate}T${newTimeline.timelineEndTime}`)
+              const meetingStart = new Date(`${meeting.meetingdate}T${meeting.meetingstarttime}`)
+              const meetingEnd = new Date(`${meeting.meetingdate}T${meeting.meetingendtime}`)
+
+              if (timelineStartTime < meetingEnd && timelineEndTime > meetingStart) {
+                overlaps.push({
+                  type: "meeting",
+                  title: meeting.meetingtitle,
+                  time: `${meeting.meetingstarttime} - ${meeting.meetingendtime}`,
+                  date: meeting.meetingdate,
+                })
+              }
+            } else {
+              overlaps.push({
+                type: "meeting",
+                title: meeting.meetingtitle,
+                time: meeting.meetingstarttime ? `${meeting.meetingstarttime} - ${meeting.meetingendtime}` : "All day",
+                date: meeting.meetingdate,
+              })
+            }
+          }
+        })
+      }
+    })
+
+    return overlaps
+  }
+
   // Validate activity form
   const validateActivityForm = () => {
     if (!activity.activityTitle.trim()) {
@@ -149,7 +393,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
       return false
     }
 
-    // Check if at least one timeline has title and dates
     const validTimeline = timelines.some(
       (timeline) => timeline.timelineTitle.trim() && timeline.timelineStartDate && timeline.timelineEndDate,
     )
@@ -175,6 +418,22 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
         if (!validateActivityForm()) {
           setIsLoading(false)
           return
+        }
+        
+        // Check for overlaps
+        const overlaps = checkActivityOverlaps(activity)
+        if (overlaps.length > 0) {
+          const overlapDetails = overlaps
+            .map((overlap) => `• ${overlap.title} (${overlap.time}) [${overlap.type}]`)
+            .join("\n")
+
+          const confirmOverlap = window.confirm(
+            `This activity intersects with the following items:\n\n${overlapDetails}\n\nDo you want to continue?`,
+          )
+          if (!confirmOverlap) {
+            setIsLoading(false)
+            return
+          }
         }
 
         // Prepare activity data for API
@@ -216,6 +475,39 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
         if (!validateGoalForm()) {
           setIsLoading(false)
           return
+        }
+        
+        // Check for overlaps in all timelines
+        const allOverlaps = []
+        timelines.forEach((timeline, index) => {
+          if (timeline.timelineTitle.trim() && timeline.timelineStartDate && timeline.timelineEndDate) {
+            const overlaps = checkGoalTimelineOverlaps(timeline)
+            if (overlaps.length > 0) {
+              allOverlaps.push({
+                timelineIndex: index + 1,
+                timelineTitle: timeline.timelineTitle,
+                overlaps: overlaps,
+              })
+            }
+          }
+        })
+
+        if (allOverlaps.length > 0) {
+          let overlapMessage = "The following goal timelines have intersections:\n\n"
+          allOverlaps.forEach(({ timelineIndex, timelineTitle, overlaps }) => {
+            overlapMessage += `Timeline ${timelineIndex} (${timelineTitle}):\n`
+            overlaps.forEach((overlap) => {
+              overlapMessage += `  • ${overlap.title} (${overlap.time}) [${overlap.type}]\n`
+            })
+            overlapMessage += "\n"
+          })
+          overlapMessage += "Do you want to continue?"
+
+          const confirmOverlap = window.confirm(overlapMessage)
+          if (!confirmOverlap) {
+            setIsLoading(false)
+            return
+          }
         }
 
         // Prepare goal data for API
@@ -270,6 +562,30 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           return
         }
 
+        // Check for overlaps if meeting has times
+        if (item.meetingstarttime && item.meetingendtime) {
+          const meetingData = {
+            meetingDate: item.meetingdate,
+            meetingStartTime: item.meetingstarttime,
+            meetingEndTime: item.meetingendtime,
+          }
+
+          const overlaps = checkMeetingOverlaps(meetingData)
+          if (overlaps.length > 0) {
+            const overlapDetails = overlaps
+              .map((overlap) => `• ${overlap.title} (${overlap.time}) [${overlap.type}]`)
+              .join("\n")
+
+            const confirmOverlap = window.confirm(
+              `This meeting intersects with the following items:\n\n${overlapDetails}\n\nDo you want to continue?`,
+            )
+            if (!confirmOverlap) {
+              setIsLoading(false)
+              return
+            }
+          }
+        }
+
         // Prepare meeting data for API
         const meetingData = {
           meetingTitle: item.meetingtitle,
@@ -309,6 +625,91 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     } finally {
       setIsLoading(false)
     }
+  }
+  
+  // Check for meeting overlaps (excluding current item)
+  const checkMeetingOverlaps = (newMeeting) => {
+    if (!newMeeting.meetingStartTime || !newMeeting.meetingEndTime) {
+      return []
+    }
+
+    const newStart = new Date(`${newMeeting.meetingDate}T${newMeeting.meetingStartTime}`)
+    const newEnd = new Date(`${newMeeting.meetingDate}T${newMeeting.meetingEndTime}`)
+
+    const overlaps = []
+
+    // Check against existing activities
+    activities.forEach((activity) => {
+      if (activity.activitydate !== newMeeting.meetingDate) return
+      if (!activity.activitystarttime || !activity.activityendtime) return
+
+      const activityStart = new Date(`${activity.activitydate}T${activity.activitystarttime}`)
+      const activityEnd = new Date(`${activity.activitydate}T${activity.activityendtime}`)
+
+      if (newStart < activityEnd && newEnd > activityStart) {
+        overlaps.push({
+          type: "activity",
+          title: activity.activitytitle,
+          time: `${activity.activitystarttime} - ${activity.activityendtime}`,
+        })
+      }
+    })
+
+    // Check against goal timelines
+    goals.forEach((goal) => {
+      if (goal.timelines) {
+        goal.timelines.forEach((timeline) => {
+          const timelineStart = new Date(timeline.timelinestartdate)
+          const timelineEnd = new Date(timeline.timelineenddate)
+          const meetingDate = new Date(newMeeting.meetingDate)
+
+          if (meetingDate >= timelineStart && meetingDate <= timelineEnd) {
+            if (timeline.timelinestarttime && timeline.timelineendtime) {
+              const timelineStartTime = new Date(`${newMeeting.meetingDate}T${timeline.timelinestarttime}`)
+              const timelineEndTime = new Date(`${newMeeting.meetingDate}T${timeline.timelineendtime}`)
+
+              if (newStart < timelineEndTime && newEnd > timelineStartTime) {
+                overlaps.push({
+                  type: "goal",
+                  title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
+                  time: `${timeline.timelinestarttime} - ${timeline.timelineendtime}`,
+                })
+              }
+            } else {
+              overlaps.push({
+                type: "goal",
+                title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
+                time: "All day",
+              })
+            }
+          }
+        })
+      }
+    })
+
+    // Check against other team meetings (excluding current one)
+    teams.forEach((team) => {
+      if (team.meetings) {
+        team.meetings.forEach((meeting) => {
+          if (meeting.teammeetingid === item.id) return // Skip current meeting
+          if (meeting.meetingdate !== newMeeting.meetingDate) return
+          if (!meeting.meetingstarttime || !meeting.meetingendtime) return
+
+          const meetingStart = new Date(`${meeting.meetingdate}T${meeting.meetingstarttime}`)
+          const meetingEnd = new Date(`${meeting.meetingdate}T${meeting.meetingendtime}`)
+
+          if (newStart < meetingEnd && newEnd > meetingStart) {
+            overlaps.push({
+              type: "meeting",
+              title: meeting.meetingtitle,
+              time: `${meeting.meetingstarttime} - ${meeting.meetingendtime}`,
+            })
+          }
+        })
+      }
+    })
+
+    return overlaps
   }
 
   const [editingItem, setEditingItem] = useState(item)

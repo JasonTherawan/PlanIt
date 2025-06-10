@@ -21,7 +21,7 @@ const LandingPage = () => {
             About us
           </Link>
           <Link to="/login" className="hover:underline">
-            Login/Register
+            Login
           </Link>
         </nav>
       </header>
@@ -42,7 +42,7 @@ const LandingPage = () => {
           </h2>
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
             <Link
-              to="/signup"
+              to="/register"
               className="px-8 py-3 border border-white text-white hover:bg-white hover:bg-opacity-10 transition-colors duration-300"
             >
               Sign up for free

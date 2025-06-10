@@ -18,9 +18,9 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
   // Urgency color mapping
   const urgencyColors = {
     low: "#10B981", // green
-    medium: "#F59E0B", // yellow
-    high: "#EF4444", // red
-    urgent: "#DC2626", // dark red
+    medium: "#FFDD00", // yellow
+    high: "#FF4D6D", // red
+    urgent: "#EF4444", // dark red
   }
 
   // Get user ID from localStorage
@@ -607,7 +607,18 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                         goalcategory: timelineBlock.goal.goalcategory,
                         goalprogress: timelineBlock.goal.goalprogress,
                       }
-                      // Single click - show info modal and highlight in sidebar
+                      
+                      // Check if item is in past and switch sidebar tab accordingly
+                      const itemDate = new Date(timelineBlock.timeline.timelineenddate)
+                      const now = new Date()
+                      const isItemInPast = itemDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+                      // Dispatch event to switch sidebar tab if needed
+                      const switchTabEvent = new CustomEvent("switchSidebarTab", {
+                        detail: { isPast: isItemInPast },
+                      })
+                      window.dispatchEvent(switchTabEvent)
+
                       setInfoModalContent(item)
                       setShowInfoModal(true)
                       const event = new CustomEvent("highlightSidebarItem", {
@@ -644,51 +655,80 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                       const topPosition = startHour * 56 + 2 // 56px per hour (14px * 4 quarters) + 2px for goal space
                       const height = duration * 56 - 6 // Subtract 6px for border
 
+                      // Check for overlaps with other activities on the same day
+                      const overlappingActivities = dayActivities.filter((otherActivity, otherIndex) => {
+                        if (otherIndex >= actIndex) return false // Only count previous activities
+                        const { startHour: otherStart, duration: otherDuration } = getActivityTimeSpan(otherActivity)
+                        const otherEnd = otherStart + otherDuration
+                        const currentEnd = startHour + duration
+                        return startHour < otherEnd && currentEnd > otherStart
+                      })
+
+                      const overlapCount = overlappingActivities.length
+                      const zIndexBase = 15
+                      const leftOffset = overlapCount * 4 // 4px offset per overlap
+                      const shadowLayers = overlapCount
+
                       const isHighlighted =
                         highlightedItem &&
                         highlightedItem.type === "activity" &&
                         highlightedItem.id === activity.activityid
 
                       return (
-                        <div
-                          key={`activity-${activity.activityid}`}
-                          className={`absolute left-1 right-1 bg-blue-50 border-l-4 rounded p-1 text-xs overflow-hidden
-                          transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
-                          ${isHighlighted ? "highlighted-calendar-item ring-2 ring-blue-700 z-30 scale-[1.03]" : ""}`}
-                          style={{
-                            borderLeftColor: urgencyColors[activity.activityurgency],
-                            top: `${topPosition}px`,
-                            height: `${height}px`,
-                            zIndex: isHighlighted ? 30 : 15,
-                          }}
-                          onClick={(e) => {
-                            const item = {
-                              id: activity.activityid,
-                              type: "activity",
-                              activitytitle: activity.activitytitle,
-                              activitydate: activity.activitydate,
-                              activitystarttime: activity.activitystarttime,
-                              activityendtime: activity.activityendtime,
-                              activitydescription: activity.activitydescription,
-                              activitycategory: activity.activitycategory,
-                              activityurgency: activity.activityurgency,
-                            }
-                            // Single click - show info modal and highlight in sidebar
-                            setInfoModalContent(item)
-                            setShowInfoModal(true)
-                            const event = new CustomEvent("highlightSidebarItem", {
-                              detail: { id: item.id, type: item.type },
-                            })
-                            window.dispatchEvent(event)
-                          }}
-                        >
-                          <div className="font-medium text-blue-800 truncate">{activity.activitytitle}</div>
-                          {activity.activitystarttime && (
-                            <div className="text-blue-600 text-xs">
-                              {activity.activitystarttime}
-                              {activity.activityendtime && ` - ${activity.activityendtime}`}
-                            </div>
-                          )}
+                        <div key={`activity-${activity.activityid}`} className="relative">
+                          {/* Main activity block */}
+                          <div
+                            className={`absolute bg-blue-50 border-l-4 rounded p-1 text-xs overflow-hidden
+                            transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
+                            ${isHighlighted ? "highlighted-calendar-item ring-2 ring-blue-700 z-30 scale-[1.03]" : ""}`}
+                            style={{
+                              borderLeftColor: urgencyColors[activity.activityurgency],
+                              top: `${topPosition}px`,
+                              height: `${height}px`,
+                              left: `${4 + leftOffset}px`,
+                              right: "4px",
+                              zIndex: isHighlighted ? 30 : zIndexBase + overlapCount + 1,
+                            }}
+                            onClick={(e) => {
+                              const item = {
+                                id: activity.activityid,
+                                type: "activity",
+                                activitytitle: activity.activitytitle,
+                                activitydate: activity.activitydate,
+                                activitystarttime: activity.activitystarttime,
+                                activityendtime: activity.activityendtime,
+                                activitydescription: activity.activitydescription,
+                                activitycategory: activity.activitycategory,
+                                activityurgency: activity.activityurgency,
+                              }
+                              
+                              // Check if item is in past and switch sidebar tab accordingly
+                              const itemDate = new Date(activity.activitydate)
+                              const now = new Date()
+                              const isItemInPast = itemDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+                              // Dispatch event to switch sidebar tab if needed
+                              const switchTabEvent = new CustomEvent("switchSidebarTab", {
+                                detail: { isPast: isItemInPast },
+                              })
+                              window.dispatchEvent(switchTabEvent)
+
+                              setInfoModalContent(item)
+                              setShowInfoModal(true)
+                              const event = new CustomEvent("highlightSidebarItem", {
+                                detail: { id: item.id, type: item.type },
+                              })
+                              window.dispatchEvent(event)
+                            }}
+                          >
+                            <div className="font-medium text-blue-800 truncate">{activity.activitytitle}</div>
+                            {activity.activitystarttime && (
+                              <div className="text-blue-600 text-xs">
+                                {activity.activitystarttime}
+                                {activity.activityendtime && ` - ${activity.activityendtime}`}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )
                     })}
@@ -696,8 +736,22 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                     {/* Team meeting blocks */}
                     {dayMeetings.map((meeting, meetingIndex) => {
                       const { startHour, duration } = getMeetingTimeSpan(meeting)
-                      const topPosition = startHour * 56 + 24 // 56px per hour + 24px for goal space
-                      const height = duration * 56 - 2 // Subtract 2px for border
+                      const topPosition = startHour * 56 + 2 // 56px per hour (14px * 4 quarters) + 2px for goal space
+                      const height = duration * 56 - 6 // Subtract 6px for border
+                      
+                      // Check for overlaps with other meetings on the same day
+                      const overlappingMeetings = dayMeetings.filter((otherMeeting, otherIndex) => {
+                        if (otherIndex >= meetingIndex) return false
+                        const { startHour: otherStart, duration: otherDuration } = getMeetingTimeSpan(otherMeeting)
+                        const otherEnd = otherStart + otherDuration
+                        const currentEnd = startHour + duration
+                        return startHour < otherEnd && currentEnd > otherStart
+                      })
+
+                      const overlapCount = overlappingMeetings.length
+                      const zIndexBase = 15
+                      const leftOffset = overlapCount * 4
+                      const shadowLayers = overlapCount
 
                       const isHighlighted =
                         highlightedItem &&
@@ -705,44 +759,59 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                         highlightedItem.id === meeting.teammeetingid
 
                       return (
-                        <div
-                          key={`meeting-${meeting.teammeetingid}`}
-                          className={`absolute left-1 right-1 bg-orange-50 border-l-4 border-orange-500 rounded p-1 text-xs overflow-hidden
-                          transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
-                          ${isHighlighted ? "highlighted-calendar-item ring-2 ring-orange-500 z-30 scale-[1.03]" : ""}`}
-                          style={{
-                            top: `${topPosition}px`,
-                            height: `${height}px`,
-                            zIndex: isHighlighted ? 30 : 15,
-                          }}
-                          onClick={(e) => {
-                            const item = {
-                              id: meeting.teammeetingid,
-                              type: "meeting",
-                              meetingtitle: meeting.meetingtitle,
-                              meetingdate: meeting.meetingdate,
-                              meetingstarttime: meeting.meetingstarttime,
-                              meetingendtime: meeting.meetingendtime,
-                              meetingdescription: meeting.meetingdescription,
-                              teamname: meeting.teamname,
-                            }
-                            // Single click - show info modal and highlight in sidebar
-                            setInfoModalContent(item)
-                            setShowInfoModal(true)
-                            const event = new CustomEvent("highlightSidebarItem", {
-                              detail: { id: item.id, type: item.type },
-                            })
-                            window.dispatchEvent(event)
-                          }}
-                        >
-                          <div className="font-medium text-orange-800 truncate">{meeting.meetingtitle}</div>
-                          <div className="text-orange-600 text-xs truncate">Team: {meeting.teamname}</div>
-                          {meeting.meetingstarttime && (
-                            <div className="text-orange-600 text-xs">
-                              {meeting.meetingstarttime}
-                              {meeting.meetingendtime && ` - ${meeting.meetingendtime}`}
-                            </div>
-                          )}
+                        <div key={`meeting-${meeting.teammeetingid}`} className="relative">
+                          {/* Main meeting block */}
+                          <div
+                            className={`absolute bg-orange-50 border-l-4 border-orange-500 rounded p-1 text-xs overflow-hidden
+                              transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
+                              ${isHighlighted ? "highlighted-calendar-item ring-2 ring-orange-500 z-30 scale-[1.03]" : ""}`}
+                            style={{
+                              top: `${topPosition}px`,
+                              height: `${height}px`,
+                              left: `${4 + leftOffset}px`,
+                              right: "4px",
+                              zIndex: isHighlighted ? 30 : zIndexBase + overlapCount + 1,
+                            }}
+                            onClick={(e) => {
+                              const item = {
+                                id: meeting.teammeetingid,
+                                type: "meeting",
+                                meetingtitle: meeting.meetingtitle,
+                                meetingdate: meeting.meetingdate,
+                                meetingstarttime: meeting.meetingstarttime,
+                                meetingendtime: meeting.meetingendtime,
+                                meetingdescription: meeting.meetingdescription,
+                                teamname: meeting.teamname,
+                              }
+
+                              // Check if item is in past and switch sidebar tab accordingly
+                              const itemDate = new Date(meeting.meetingdate)
+                              const now = new Date()
+                              const isItemInPast = itemDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+                              // Dispatch event to switch sidebar tab if needed
+                              const switchTabEvent = new CustomEvent("switchSidebarTab", {
+                                detail: { isPast: isItemInPast },
+                              })
+                              window.dispatchEvent(switchTabEvent)
+
+                              setInfoModalContent(item)
+                              setShowInfoModal(true)
+                              const event = new CustomEvent("highlightSidebarItem", {
+                                detail: { id: item.id, type: item.type },
+                              })
+                              window.dispatchEvent(event)
+                            }}
+                          >
+                            <div className="font-medium text-orange-800 truncate">{meeting.meetingtitle}</div>
+                            <div className="text-orange-600 text-xs truncate">Team: {meeting.teamname}</div>
+                            {meeting.meetingstarttime && (
+                              <div className="text-orange-600 text-xs">
+                                {meeting.meetingstarttime}
+                                {meeting.meetingendtime && ` - ${meeting.meetingendtime}`}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )
                     })}

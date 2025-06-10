@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Plus, ChevronLeft, ChevronRight, Edit2, Trash2 } from "lucide-react"
-import AddEventModal from "./AddEventModal"
 import AddItemModal from "./AddItemModal"
 import EditItemModal from "./EditItemModal"
 
@@ -681,7 +680,6 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
 
       // Scroll to the highlighted item in sidebar
       setTimeout(() => {
-        // Updated selector to match the data-item-id format
         const itemSelector = `[data-item-id="${type}-${id}${type === "goal" && timelineId ? `-${timelineId}` : ""}"]`
         const itemElement = document.querySelector(itemSelector)
         if (itemElement && scrollContainerRef.current) {
@@ -700,14 +698,24 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
       handleEdit(item)
     }
 
+    const handleSwitchSidebarTab = (event) => {
+      const { isPast } = event.detail
+      if (isPast && activeTab === "upcoming") {
+        setActiveTab("past")
+      } else if (!isPast && activeTab === "past") {
+        setActiveTab("upcoming")
+      }
+    }
+
     window.addEventListener("highlightSidebarItem", handleHighlightSidebarItem)
     window.addEventListener("editCalendarItem", handleEditCalendarItem)
+    window.addEventListener("switchSidebarTab", handleSwitchSidebarTab)
 
     return () => {
       window.removeEventListener("highlightSidebarItem", handleHighlightSidebarItem)
       window.removeEventListener("editCalendarItem", handleEditCalendarItem)
     }
-  }, [activities, goals, teams])
+  }, [activities, goals, teams, activeTab])
 
   const upcomingItems = getUpcomingItems()
   const pastItems = getPastItems()
@@ -1006,15 +1014,6 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
             )
           })()}
       </div>
-
-      {isEventModalOpen && (
-        <AddEventModal
-          isOpen={isEventModalOpen}
-          onClose={() => setIsEventModalOpen(false)}
-          onAddEvent={addEvent}
-          currentDate={currentDate}
-        />
-      )}
 
       {isItemModalOpen && (
         <AddItemModal

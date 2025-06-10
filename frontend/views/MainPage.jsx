@@ -1,8 +1,9 @@
 import { useState } from "react"
-import Sidebar from "../components/mainPage/Sidebar"
-import CalendarGrid from "../components/mainPage/CalendarGrid"
-import Header from "../components/mainPage/Header"
-import ProfileSidebar from "../components/mainPage/ProfileSidebar"
+import Sidebar from "../components/Sidebar"
+import CalendarGrid from "../components/CalendarGrid"
+import Header from "../components/Header"
+import ProfileSidebar from "../components/ProfileSidebar"
+import ProtectedRoute from "../components/ProtectedRoute"
 
 export default function MainPage(){
     const [currentDate, setCurrentDate] = useState(new Date())
@@ -19,40 +20,42 @@ export default function MainPage(){
     }
 
     return (
-        <div className="flex h-screen w-full overflow-hidden">
-            {/* Fixed sidebar */}
-            <div className="w-56 flex-shrink-0">
-                <Sidebar
-                    currentDate={currentDate}
-                    setCurrentDate={setCurrentDate}
-                    events={events}
-                    addEvent={addEvent}
-                    onDataUpdate={handleDataUpdate}
-                />
-            </div>
-
-            {/* Main content */}
-            <div className="flex flex-col flex-1 overflow-hidden">
-                {/* Fixed header */}
-                <div className="flex-shrink-0">
-                    <Header
+        <ProtectedRoute>
+            <div className="flex h-screen w-full overflow-hidden">
+                {/* Fixed sidebar */}
+                <div className="w-56 flex-shrink-0">
+                    <Sidebar
                         currentDate={currentDate}
                         setCurrentDate={setCurrentDate}
-                        onProfileClick={() => setIsProfileSidebarOpen(true)}
+                        events={events}
+                        addEvent={addEvent}
+                        onDataUpdate={handleDataUpdate}
                     />
                 </div>
 
-                {/* Calendar grid */}
-                <CalendarGrid
-                    currentDate={currentDate}
-                    events={events}
-                    setCurrentDate={setCurrentDate}
-                    dataUpdateTrigger={dataUpdateTrigger}
-                />
-                
-                {/* Profile Sidebar */}
-                <ProfileSidebar isOpen={isProfileSidebarOpen} onClose={() => setIsProfileSidebarOpen(false)} />
+                {/* Main content */}
+                <div className="flex flex-col flex-1 overflow-hidden">
+                    {/* Fixed header */}
+                    <div className="flex-shrink-0">
+                        <Header
+                            currentDate={currentDate}
+                            setCurrentDate={setCurrentDate}
+                            onProfileClick={() => setIsProfileSidebarOpen(true)}
+                        />
+                    </div>
+
+                    {/* Calendar grid */}
+                    <CalendarGrid
+                        currentDate={currentDate}
+                        events={events}
+                        setCurrentDate={setCurrentDate}
+                        dataUpdateTrigger={dataUpdateTrigger}
+                    />
+                    
+                    {/* Profile Sidebar */}
+                    <ProfileSidebar isOpen={isProfileSidebarOpen} onClose={() => setIsProfileSidebarOpen(false)} />
+                </div>
             </div>
-        </div>
+        </ProtectedRoute>
     )
 }
