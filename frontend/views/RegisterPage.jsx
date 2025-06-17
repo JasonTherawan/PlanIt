@@ -6,6 +6,7 @@ import { Calendar, User, Eye, EyeOff, Mail } from "lucide-react"
 import loginpageimage from "../assets/loginpageimage.png"
 import bottomleftshape from "../assets/bottomleftshape.png"
 import toprightshape from "../assets/toprightshape.png"
+import GoogleSignInButton from "../components/GoogleSignInButton"
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -241,13 +242,24 @@ const RegisterPage = () => {
                 </div>
               </div>
 
+              {apiError && (
+                <div className="col-span-2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                  {apiError}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 mt-6"
+                disabled={isLoading}
+                className="w-full mb-4 bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 mt-6 disabled:opacity-70"
               >
-                Register
+                {isLoading ? "Registering..." : "Register"}
               </button>
             </form>
+
+            <div className="mt-4">
+              <GoogleSignInButton mode="signup" className="w-full" />
+            </div>
 
             <div className="mt-6 text-center">
               <p className="text-white text-sm">

@@ -40,21 +40,26 @@ def register():
     email = data.get('email')
     password = data.get('password')
     dob = data.get('dob')  # Optional
+    google_id = data.get('googleId')
     
     # Validate required fields
-    if not username or not email or not password:
-        return jsonify({'success': False, 'message': 'Username, email, and password are required'}), 400
+    if not username or not email:
+        return jsonify({'success': False, 'message': 'Username and email are required'}), 400
+    
+    # For non-Google users, password is required
+    if not google_id and not password:
+        return jsonify({'success': False, 'message': 'Password is required for non-Google users'}), 400
     
     # Validate email format (basic check)
     if '@' not in email or '.' not in email:
         return jsonify({'success': False, 'message': 'Invalid email format'}), 400
     
-    # Validate password length
-    if len(password) < 6:
+    # Validate password length for non-Google users
+    if not google_id and len(password) < 6:
         return jsonify({'success': False, 'message': 'Password must be at least 6 characters long'}), 400
     
-    # Hash the password for security
-    hashed_password = generate_password_hash(password)
+    # Hash the password for security (only for non-Google users)
+    hashed_password = generate_password_hash(password) if password else None
     
     # Parse date of birth if provided
     parsed_dob = None
@@ -75,15 +80,35 @@ def register():
         if cur.fetchone():
             return jsonify({'success': False, 'message': 'Email already registered'}), 409
         
-        # Insert new user
-        cur.execute(
-            """
-            INSERT INTO Users (UserName, UserEmail, UserPassword, UserDOB)
-            VALUES (%s, %s, %s, %s)
-            RETURNING UserId
-            """,
-            (username, email, hashed_password, parsed_dob)
-        )
+        # Check if Google ID already exists (for Google users)
+        if google_id:
+            cur.execute("SELECT GoogleId FROM Users WHERE GoogleId = %s", (google_id,))
+            if cur.fetchone():
+                return jsonify({'success': False, 'message': 'Google account already registered'}), 409
+        
+        # Get max existing UserId (cast to int), default to 0
+        cur.execute("SELECT COALESCE(MAX(CAST(UserId AS INTEGER)), 0) + 1 FROM Users")
+        next_user_id = str(cur.fetchone()[0])  # Ensure it's a string
+
+        # Insert with generated UserId
+        if google_id:
+            cur.execute(
+                """
+                INSERT INTO Users (UserId, UserName, UserEmail, UserDOB, GoogleId)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING UserId
+                """,
+                (next_user_id, username, email, parsed_dob, google_id)
+            )
+        else:
+            cur.execute(
+                """
+                INSERT INTO Users (UserId, UserName, UserEmail, UserPassword, UserDOB)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING UserId
+                """,
+                (next_user_id, username, email, hashed_password, parsed_dob)
+            )
         
         # Get the new user ID
         user_id = cur.fetchone()[0]
@@ -97,14 +122,22 @@ def register():
         return jsonify({
             'success': True,
             'message': 'User registered successfully',
-            'userId': user_id
+            'userId': str(user_id),  # Convert to string to handle large numbers
+            'user': {
+                'id': str(user_id),  # Use actual database UserId
+                'userId': str(user_id),
+                'username': username,
+                'email': email,
+                'googleId': google_id if google_id else None,
+                'isGoogleUser': bool(google_id)
+            }
         }), 201
         
     except psycopg2.errors.UniqueViolation:
-        # Handle duplicate email (though we already check above)
+        # Handle duplicate email or Google ID
         if conn:
             conn.rollback()
-        return jsonify({'success': False, 'message': 'Email already registered'}), 409
+        return jsonify({'success': False, 'message': 'Email or Google account already registered'}), 409
     
     except Exception as e:
         # Handle other errors
@@ -127,10 +160,14 @@ def login():
     # Extract login credentials
     email = data.get('email')
     password = data.get('password')
+    google_id = data.get('googleId')
     
-    # Validate required fields
-    if not email or not password:
-        return jsonify({'success': False, 'message': 'Email and password are required'}), 400
+    # Either googleId OR password must be provided, but not both
+    if google_id and password:
+        return jsonify({'success': False, 'message': 'Cannot provide both Google ID and password'}), 400
+
+    if not google_id and not password:
+        return jsonify({'success': False, 'message': 'Either Google authentication or password is required'}), 400
     
     # Connect to database
     conn = None
@@ -138,24 +175,47 @@ def login():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Get user by email
-        cur.execute("SELECT UserId, UserName, UserEmail, UserPassword FROM Users WHERE UserEmail = %s", (email,))
-        user = cur.fetchone()
-        
-        # Check if user exists and password is correct
-        if user and check_password_hash(user[3], password):
-            # Return user info (excluding password)
-            return jsonify({
-                'success': True,
-                'message': 'Login successful',
-                'user': {
-                    'id': user[0],
-                    'username': user[1],
-                    'email': user[2]
-                }
-            }), 200
+        if google_id:
+            # Google OAuth login
+            cur.execute("SELECT UserId, UserName, UserEmail FROM Users WHERE GoogleId = %s", (google_id,))
+            user = cur.fetchone()
+            
+            if user:
+                return jsonify({
+                    'success': True,
+                    'message': 'Login successful',
+                    'user': {
+                        'id': str(user[0]),  # Use actual UserId from database
+                        'userId': str(user[0]),
+                        'username': user[1],
+                        'email': user[2],
+                        'googleId': google_id,  # Keep googleId for reference
+                        'isGoogleUser': True
+                    }
+                }), 200
+            else:
+                return jsonify({'success': False, 'message': 'Google account not found. Please register first.'}), 401
         else:
-            return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
+            # Regular email/password login
+            cur.execute("SELECT UserId, UserName, UserEmail, UserPassword FROM Users WHERE UserEmail = %s", (email,))
+            user = cur.fetchone()
+            
+            # Check if user exists and password is correct
+            if user and user[3] and check_password_hash(user[3], password):
+                # Return user info (excluding password)
+                return jsonify({
+                    'success': True,
+                    'message': 'Login successful',
+                    'user': {
+                        'id': str(user[0]),  # Convert to string to handle large numbers
+                        'userId': str(user[0]),
+                        'username': user[1],
+                        'email': user[2],
+                        'isGoogleUser': False
+                    }
+                }), 200
+            else:
+                return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
         
     except Exception as e:
         print(f"Error: {str(e)}")
@@ -181,6 +241,7 @@ def create_activity():
     date = data.get('activityDate')
     start_time = data.get('activityStartTime')
     end_time = data.get('activityEndTime')
+    google_id = data.get('googleId')
     
     # Validate required fields
     if not user_id or not title or not date:
@@ -191,17 +252,28 @@ def create_activity():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+
+        if google_id:
+            cur.execute("SELECT UserId FROM Users WHERE GoogleId = %s", (user_id,))
+        else:
+            cur.execute("SELECT UserId FROM Users WHERE UserId = %s", (user_id,))
+        
+        user_row = cur.fetchone()
+        if not user_row:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
+        internal_user_id = user_row[0]
         
         # Insert new activity
         cur.execute(
             """
             INSERT INTO Activity (ActivityTitle, ActivityDescription, ActivityCategory, 
-                                 ActivityUrgency, ActivityDate, ActivityStartTime, 
-                                 ActivityEndTime, UserId)
+                                  ActivityUrgency, ActivityDate, ActivityStartTime, 
+                                  ActivityEndTime, UserId)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING ActivityId
             """,
-            (title, description, category, urgency, date, start_time, end_time, user_id)
+            (title, description, category, urgency, date, start_time, end_time, internal_user_id)
         )
         
         # Get the new activity ID
@@ -716,7 +788,7 @@ def create_team():
                     user_result = cur.fetchone()
                     
                     if user_result:
-                        user_id = user_result[0]
+                        user_id = str(user_result[0])
                         # Add user to team if not already a member
                         cur.execute(
                             """
@@ -788,7 +860,7 @@ def get_teams():
                     'teamdescription': row[2],
                     'teamstartworkinghour': str(row[3]) if row[3] else None,
                     'teamendworkinghour': str(row[4]) if row[4] else None,
-                    'createdbyuserid': row[5],
+                    'createdbyuserid': str(row[5]),
                     'meetings': []
                 }
             
@@ -945,7 +1017,7 @@ def delete_meeting(meeting_id):
         if conn:
             conn.close()
 
-@app.route('/api/users/<int:user_id>', methods=['GET'])
+@app.route('/api/users/<user_id>', methods=['GET'])
 def get_user(user_id):
     """Get user details"""
     conn = None
@@ -953,11 +1025,11 @@ def get_user(user_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Get user by ID
+        # Get user details
         cur.execute(
             """
-            SELECT UserId, UserName, UserEmail, UserDOB, UserBio, UserProfilePicture
-            FROM Users 
+            SELECT UserId, UserName, UserEmail, UserDOB, UserBio, UserProfilePicture, GoogleId
+            FROM Users
             WHERE UserId = %s
             """,
             (user_id,)
@@ -970,12 +1042,13 @@ def get_user(user_id):
         
         # Format user data
         user_data = {
-            'userid': user[0],
+            'userid': str(user[0]),
             'username': user[1],
             'useremail': user[2],
             'userdob': user[3].isoformat() if user[3] else None,
             'userbio': user[4],
-            'userprofilepicture': user[5]
+            'userprofilepicture': user[5],
+            'isgoogleuser': user[6] is not None
         }
         
         return jsonify({
@@ -985,27 +1058,35 @@ def get_user(user_id):
         
     except Exception as e:
         print(f"Error: {str(e)}")
-        return jsonify({'success': False, 'message': 'Failed to fetch user data', 'error': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Failed to fetch user', 'error': str(e)}), 500
     
     finally:
         if conn:
             conn.close()
 
-@app.route('/api/users/<int:user_id>', methods=['PUT'])
+@app.route('/api/users/<user_id>', methods=['PUT'])
 def update_user(user_id):
-    """Update user details"""
+    """Update user profile"""
     # Get data from request
     data = request.get_json()
     
     # Extract user information
     username = data.get('username')
     bio = data.get('bio')
-    dob = data.get('dob') or None
+    dob = data.get('dob')
     profile_picture = data.get('profilePicture')
     
     # Validate required fields
     if not username:
         return jsonify({'success': False, 'message': 'Username is required'}), 400
+    
+    # Parse date of birth if provided
+    parsed_dob = None
+    if dob:
+        try:
+            parsed_dob = datetime.strptime(dob, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'success': False, 'message': 'Invalid date format for date of birth'}), 400
     
     # Connect to database
     conn = None
@@ -1013,38 +1094,49 @@ def update_user(user_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Update user
+        # Update user profile
         cur.execute(
             """
             UPDATE Users 
             SET UserName = %s, UserBio = %s, UserDOB = %s, UserProfilePicture = %s
             WHERE UserId = %s
-            RETURNING UserId, UserName, UserEmail, UserDOB, UserBio, UserProfilePicture
             """,
-            (username, bio, dob, profile_picture, user_id)
+            (username, bio, parsed_dob, profile_picture, user_id)
         )
         
-        # Check if user exists
-        updated_user = cur.fetchone()
-        if not updated_user:
+        # Check if any rows were affected
+        if cur.rowcount == 0:
             return jsonify({'success': False, 'message': 'User not found'}), 404
         
-        # Format user data
-        user_data = {
-            'userid': updated_user[0],
-            'username': updated_user[1],
-            'useremail': updated_user[2],
-            'userdob': updated_user[3].isoformat() if updated_user[3] else None,
-            'userbio': updated_user[4],
-            'userprofilepicture': updated_user[5]
-        }
+        # Fetch updated user data
+        cur.execute(
+            """
+            SELECT UserId, UserName, UserEmail, UserDOB, UserBio, UserProfilePicture, GoogleId
+            FROM Users
+            WHERE UserId = %s
+            """,
+            (user_id,)
+        )
+        
+        user = cur.fetchone()
+        
+        if user:
+            user_data = {
+                'userid': str(user[0]),
+                'username': user[1],
+                'useremail': user[2],
+                'userdob': user[3].isoformat() if user[3] else None,
+                'userbio': user[4],
+                'userprofilepicture': user[5],
+                'isgoogleuser': user[6] is not None
+            }
         
         # Commit the transaction
         conn.commit()
         
         return jsonify({
             'success': True,
-            'message': 'User updated successfully',
+            'message': 'Profile updated successfully',
             'user': user_data
         }), 200
         
@@ -1052,15 +1144,15 @@ def update_user(user_id):
         if conn:
             conn.rollback()
         print(f"Error: {str(e)}")
-        return jsonify({'success': False, 'message': 'Failed to update user', 'error': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Failed to update profile', 'error': str(e)}), 500
     
     finally:
         if conn:
             conn.close()
 
-@app.route('/api/users/<int:user_id>/password', methods=['PUT'])
-def update_password(user_id):
-    """Update user password"""
+@app.route('/api/users/<user_id>/password', methods=['PUT'])
+def change_password(user_id):
+    """Change user password"""
     # Get data from request
     data = request.get_json()
     
@@ -1070,7 +1162,11 @@ def update_password(user_id):
     
     # Validate required fields
     if not current_password or not new_password:
-        return jsonify({'success': False, 'message': 'Current and new passwords are required'}), 400
+        return jsonify({'success': False, 'message': 'Current password and new password are required'}), 400
+    
+    # Validate password length
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': 'Password must be at least 6 characters long'}), 400
     
     # Connect to database
     conn = None
@@ -1078,24 +1174,28 @@ def update_password(user_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Get current password hash
-        cur.execute("SELECT UserPassword FROM Users WHERE UserId = %s", (user_id,))
+        # Get current user data
+        cur.execute("SELECT UserPassword, GoogleId FROM Users WHERE UserId = %s", (user_id,))
         user = cur.fetchone()
         
         if not user:
             return jsonify({'success': False, 'message': 'User not found'}), 404
         
+        # Check if this is a Google user
+        if user[1]:  # GoogleId exists
+            return jsonify({'success': False, 'message': 'Cannot change password for Google users'}), 400
+        
         # Verify current password
-        if not check_password_hash(user[0], current_password):
+        if not user[0] or not check_password_hash(user[0], current_password):
             return jsonify({'success': False, 'message': 'Current password is incorrect'}), 401
         
         # Hash new password
-        hashed_password = generate_password_hash(new_password)
+        hashed_new_password = generate_password_hash(new_password)
         
         # Update password
         cur.execute(
             "UPDATE Users SET UserPassword = %s WHERE UserId = %s",
-            (hashed_password, user_id)
+            (hashed_new_password, user_id)
         )
         
         # Commit the transaction
@@ -1103,20 +1203,20 @@ def update_password(user_id):
         
         return jsonify({
             'success': True,
-            'message': 'Password updated successfully'
+            'message': 'Password changed successfully'
         }), 200
         
     except Exception as e:
         if conn:
             conn.rollback()
         print(f"Error: {str(e)}")
-        return jsonify({'success': False, 'message': 'Failed to update password', 'error': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Failed to change password', 'error': str(e)}), 500
     
     finally:
         if conn:
             conn.close()
 
-@app.route('/api/users/<int:user_id>', methods=['DELETE'])
+@app.route('/api/users/<user_id>', methods=['DELETE'])
 def delete_user(user_id):
     """Delete user account"""
     conn = None
@@ -1124,26 +1224,41 @@ def delete_user(user_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # First, delete user's activities
-        cur.execute("DELETE FROM Activity WHERE UserId = %s", (user_id,))
-        
-        # Delete user's timelines and goals
+        # Delete user's data in order (due to foreign key constraints)
+        # Delete timelines first
         cur.execute(
             """
             DELETE FROM Timeline 
             WHERE GoalId IN (SELECT GoalId FROM Goal WHERE UserId = %s)
-            """, 
+            """,
             (user_id,)
         )
-        cur.execute("DELETE FROM Goal WHERE UserId = %s", (user_id,))
         
-        # Delete user's team memberships
+        # Delete team meetings for teams created by user
+        cur.execute(
+            """
+            DELETE FROM TeamMeeting 
+            WHERE TeamId IN (SELECT TeamId FROM Team WHERE CreatedByUserId = %s)
+            """,
+            (user_id,)
+        )
+        
+        # Delete team members
         cur.execute("DELETE FROM TeamMembers WHERE UserId = %s", (user_id,))
         
-        # Delete user
+        # Delete teams created by user
+        cur.execute("DELETE FROM Team WHERE CreatedByUserId = %s", (user_id,))
+        
+        # Delete goals
+        cur.execute("DELETE FROM Goal WHERE UserId = %s", (user_id,))
+        
+        # Delete activities
+        cur.execute("DELETE FROM Activity WHERE UserId = %s", (user_id,))
+        
+        # Finally delete user
         cur.execute("DELETE FROM Users WHERE UserId = %s", (user_id,))
         
-        # Check if any rows were affected
+        # Check if user was deleted
         if cur.rowcount == 0:
             return jsonify({'success': False, 'message': 'User not found'}), 404
         
@@ -1152,14 +1267,14 @@ def delete_user(user_id):
         
         return jsonify({
             'success': True,
-            'message': 'User account deleted successfully'
+            'message': 'Account deleted successfully'
         }), 200
         
     except Exception as e:
         if conn:
             conn.rollback()
         print(f"Error: {str(e)}")
-        return jsonify({'success': False, 'message': 'Failed to delete user account', 'error': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Failed to delete account', 'error': str(e)}), 500
     
     finally:
         if conn:

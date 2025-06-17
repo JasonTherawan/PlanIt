@@ -10,11 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
     "@tailwindcss/vite": "^4.1.7",
     "date-fns": "^4.1.0",
+    "google-auth-library": "^10.0.0",
+    "googleapis": "^150.0.1",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-feather": "^2.0.10",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.0",
     "tailwindcss": "^4.1.7"

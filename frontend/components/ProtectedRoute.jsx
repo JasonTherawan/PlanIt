@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import googleAuthService from "../services/googleAuth"
 
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -9,25 +10,32 @@ const ProtectedRoute = ({ children }) => {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
+        // Check localStorage first
         const user = localStorage.getItem("user")
         if (user) {
           const userData = JSON.parse(user)
-          // Check if user data has required fields
           if (userData.id && userData.email) {
             setIsAuthenticated(true)
-          } else {
-            // Invalid user data, clear it and redirect
-            localStorage.removeItem("user")
-            navigate("/login")
+            return
           }
-        } else {
-          // No user data, redirect to login
-          navigate("/login")
         }
+
+        // Check Google authentication
+        await googleAuthService.initialize()
+        if (googleAuthService.isSignedIn()) {
+          const googleUser = googleAuthService.getCurrentUser()
+          if (googleUser) {
+            setIsAuthenticated(true)
+            return
+          }
+        }
+
+        // No authentication found
+        navigate("/login")
       } catch (error) {
-        // Invalid JSON in localStorage, clear it and redirect
+        console.error("Auth check error:", error)
         localStorage.removeItem("user")
         navigate("/login")
       } finally {

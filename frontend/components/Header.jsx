@@ -2,38 +2,133 @@
 
 import { Search, ChevronLeft, ChevronRight, User, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
+import googleAuthService from "../services/googleAuth"
 
 const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
-  const [user, setUser] = useState({})
+  const [user, setUser] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState([])
   const [showResults, setShowResults] = useState(false)
   const [activities, setActivities] = useState([])
   const [goals, setGoals] = useState([])
   const [teams, setTeams] = useState([])
+  const [userProfileData, setUserProfileData] = useState(null)
   const searchRef = useRef(null)
   const resultsRef = useRef(null)
 
-  // Get user ID from localStorage
+  // Get user ID from localStorage or Google Auth
   const getUserId = () => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}")
-    return user.id || 1
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+    return storedUser.id || storedUser.userId || 1
+  }
+
+  // Get user info
+  const fetchUser = async () => {
+    try {
+      // First try to get from Google Auth service
+      const currentUser = googleAuthService.getCurrentUser()
+      if (currentUser) {
+        setUser(currentUser)
+        return currentUser
+      }
+
+      // Fallback to localStorage
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+      if (storedUser.id || storedUser.email) {
+        setUser(storedUser)
+        return storedUser
+      }
+
+      // If no user found, try to restore from existing auth
+      const restoredUser = await googleAuthService.checkExistingAuth()
+      if (restoredUser) {
+        setUser(restoredUser)
+        return restoredUser
+      }
+
+      console.log("No user found in storage or auth service")
+      return null
+    } catch (error) {
+      console.error("Error fetching user in Header:", error)
+      return null
+    }
   }
 
   // Fetch all data for search
   useEffect(() => {
+    fetchUser()
     fetchAllData()
+  }, [])
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+        if (storedUser.id) {
+          // Check if Google user
+          const isGoogleUser = !!storedUser.googleId || !!storedUser.accessToken
+
+          if (isGoogleUser) {
+            // For Google users, try to get from API first, fallback to stored data
+            try {
+              const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
+              if (response.ok) {
+                const userData = await response.json()
+                // If user has custom profile picture, use it; otherwise use Google's
+                setUserProfileData({
+                  imageUrl: userData.user.userprofilepicture || storedUser.imageUrl,
+                  username: userData.user.username,
+                  isGoogleUser: true,
+                })
+              } else {
+                // Fallback to stored Google data
+                setUserProfileData({
+                  imageUrl: storedUser.imageUrl,
+                  username: storedUser.username || storedUser.name,
+                  isGoogleUser: true,
+                })
+              }
+            } catch (error) {
+              // Fallback to stored Google data
+              setUserProfileData({
+                imageUrl: storedUser.imageUrl,
+                username: storedUser.username || storedUser.name,
+                isGoogleUser: true,
+              })
+            }
+          } else {
+            // For regular users, fetch from API
+            const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
+            if (response.ok) {
+              const userData = await response.json()
+              setUserProfileData({
+                imageUrl: userData.user.userprofilepicture,
+                username: userData.user.username,
+                isGoogleUser: false,
+              })
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error)
+      }
+    }
+
+    fetchUserProfile()
   }, [])
 
   const fetchAllData = async () => {
     try {
       const userId = getUserId()
+      console.log("Fetching data for user ID:", userId)
 
       // Fetch activities
       const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
+      } else {
+        console.error("Failed to fetch activities:", activitiesResponse.status)
       }
 
       // Fetch goals
@@ -41,6 +136,8 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
+      } else {
+        console.error("Failed to fetch goals:", goalsResponse.status)
       }
 
       // Fetch teams
@@ -48,6 +145,8 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
         setTeams(teamsData.teams || [])
+      } else {
+        console.error("Failed to fetch teams:", teamsResponse.status)
       }
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -67,7 +166,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
 
     // Search activities
     activities.forEach((activity) => {
-      if (activity.activitytitle.toLowerCase().includes(lowerQuery)) {
+      if (activity.activitytitle?.toLowerCase().includes(lowerQuery)) {
         results.push({
           id: activity.activityid,
           type: "activity",
@@ -95,8 +194,8 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
           const goalTimelineTitle = `${goal.goaltitle} - ${timeline.timelinetitle}`
           if (
             goalTimelineTitle.toLowerCase().includes(lowerQuery) ||
-            goal.goaltitle.toLowerCase().includes(lowerQuery) ||
-            timeline.timelinetitle.toLowerCase().includes(lowerQuery)
+            goal.goaltitle?.toLowerCase().includes(lowerQuery) ||
+            timeline.timelinetitle?.toLowerCase().includes(lowerQuery)
           ) {
             results.push({
               id: goal.goalid,
@@ -129,7 +228,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
     teams.forEach((team) => {
       if (team.meetings) {
         team.meetings.forEach((meeting) => {
-          if (meeting.meetingtitle.toLowerCase().includes(lowerQuery)) {
+          if (meeting.meetingtitle?.toLowerCase().includes(lowerQuery)) {
             results.push({
               id: meeting.teammeetingid,
               type: "meeting",
@@ -276,34 +375,6 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
     return currentDate.toLocaleString("default", { month: "long", year: "numeric" })
   }
 
-  const fetchUser = async () => {
-    try {
-      const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
-
-      if (!storedUser.id) return
-
-      const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
-      if (!response.ok) throw new Error("Failed to fetch user")
-
-      const data = await response.json()
-      setUser(data.user)
-
-      // Optionally update localStorage with new user data
-      localStorage.setItem("user", JSON.stringify({ ...storedUser, ...data.user }))
-    } catch (err) {
-      console.error("Error fetching user in Header:", err)
-    }
-  }
-
-  useEffect(() => {
-    fetchUser()
-
-    // Optional: sync changes across tabs
-    const handleStorageChange = () => fetchUser()
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
-  }, [])
-
   const clearSearch = () => {
     setSearchQuery("")
     setSearchResults([])
@@ -375,11 +446,24 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
           onClick={onProfileClick}
           className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-blue-500"
         >
-          {user.userprofilepicture ? (
-            <img src={user.userprofilepicture} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            <User size={20} className="text-gray-600" />
-          )}
+          {userProfileData?.imageUrl ? (
+            <img
+              src={userProfileData.imageUrl}
+              alt="Profile"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback to default avatar if image fails to load
+                e.target.style.display = "none"
+                e.target.nextSibling.style.display = "flex"
+              }}
+            />
+          ) : null}
+          <div
+            className="w-full h-full flex items-center justify-center bg-blue-900"
+            style={{ display: userProfileData?.imageUrl ? "none" : "flex" }}
+          >
+            <User size={20} className="text-blue-300" />
+          </div>
         </button>
       </div>
     </div>

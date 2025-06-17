@@ -13,6 +13,8 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [isGoogleUser, setIsGoogleUser] = useState(false)
+  const [googleProfilePicture, setGoogleProfilePicture] = useState("")
 
   // Form states
   const [editedUser, setEditedUser] = useState({
@@ -46,23 +48,81 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
         return
       }
 
-      // Fetch full user data from API
-      const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
+      // Check if this is a Google user and store their Google profile picture
+      const isGoogleUser = !!storedUser.googleId || !!storedUser.accessToken
+      setIsGoogleUser(isGoogleUser)
 
-      if (response.ok) {
-        const userData = await response.json()
-        setUser(userData.user)
+      if (isGoogleUser && storedUser.imageUrl) {
+        setGoogleProfilePicture(storedUser.imageUrl)
+      }
 
-        // Initialize edit form with user data
-        setEditedUser({
-          username: userData.user.username || "",
-          bio: userData.user.userbio || "",
-          dob: userData.user.userdob ? userData.user.userdob.split("T")[0] : "",
-          profilePicture: userData.user.userprofilepicture || "",
-        })
-      } else {
-        console.error("Failed to fetch user data")
-        navigate("/login")
+      // Always fetch from API for the most up-to-date data
+      try {
+        const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
+
+        if (response.ok) {
+          const userData = await response.json()
+          setUser(userData.user)
+
+          // Initialize edit form with user data
+          setEditedUser({
+            username: userData.user.username || "",
+            bio: userData.user.userbio || "",
+            dob: userData.user.userdob ? userData.user.userdob.split("T")[0] : "",
+            // For Google users, if no custom profile picture, use empty string (will show Google's)
+            profilePicture: userData.user.userprofilepicture || "",
+          })
+        } else {
+          console.error("Failed to fetch user data")
+          // For Google users, if API fails, use stored data as fallback
+          if (isGoogleUser) {
+            const userData = {
+              userid: storedUser.id,
+              username: storedUser.username || storedUser.name,
+              useremail: storedUser.email,
+              userprofilepicture: null, // Google users start with null in DB
+              userbio: "",
+              userdob: null,
+              isgoogleuser: true,
+            }
+            setUser(userData)
+
+            // Initialize edit form with user data
+            setEditedUser({
+              username: userData.username || "",
+              bio: userData.userbio || "",
+              dob: userData.userdob ? userData.userdob.split("T")[0] : "",
+              profilePicture: "",
+            })
+          } else {
+            navigate("/login")
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error)
+        // For Google users, use stored data as fallback
+        if (isGoogleUser) {
+          const userData = {
+            userid: storedUser.id,
+            username: storedUser.username || storedUser.name,
+            useremail: storedUser.email,
+            userprofilepicture: null,
+            userbio: "",
+            userdob: null,
+            isgoogleuser: true,
+          }
+          setUser(userData)
+
+          // Initialize edit form with user data
+          setEditedUser({
+            username: userData.username || "",
+            bio: userData.userbio || "",
+            dob: userData.userdob ? userData.userdob.split("T")[0] : "",
+            profilePicture: "",
+          })
+        } else {
+          navigate("/login")
+        }
       }
     } catch (error) {
       console.error("Error fetching user data:", error)
@@ -230,11 +290,27 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem("user")
-    navigate("/login")
+  // Update the handleLogout function to handle both Google and non-Google users
+  const handleLogout = async () => {
+    try {
+      // Sign out from Google if it's a Google user
+      if (isGoogleUser && window.googleAuthService) {
+        await window.googleAuthService.signOut()
+      }
+
+      localStorage.removeItem("user")
+      localStorage.removeItem("googleAccessToken")
+      navigate("/login")
+    } catch (error) {
+      console.error("Error during logout:", error)
+      // Still navigate to login even if Google signout fails
+      localStorage.removeItem("user")
+      localStorage.removeItem("googleAccessToken")
+      navigate("/login")
+    }
   }
 
+  // Update the handleDeleteAccount function to handle both Google and non-Google users
   const handleDeleteAccount = async () => {
     if (!window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       return
@@ -256,7 +332,13 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
       })
 
       if (response.ok) {
+        // Sign out from Google if it's a Google user
+        if (isGoogleUser && window.googleAuthService) {
+          await window.googleAuthService.signOut()
+        }
+
         localStorage.removeItem("user")
+        localStorage.removeItem("googleAccessToken")
         navigate("/login")
       } else {
         const errorData = await response.json()
@@ -280,6 +362,25 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
       month: "long",
       day: "numeric",
     })
+  }
+  
+  // Get the profile picture to display
+  const getDisplayProfilePicture = () => {
+    if (isEditing && editedUser.profilePicture) {
+      return editedUser.profilePicture
+    }
+
+    // If user has custom profile picture, use it
+    if (user?.userprofilepicture) {
+      return user.userprofilepicture
+    }
+
+    // For Google users, use their Google profile picture if no custom one
+    if (isGoogleUser && googleProfilePicture) {
+      return googleProfilePicture
+    }
+
+    return null
   }
 
   if (!isOpen) return null
@@ -312,21 +413,28 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
 
           {user ? (
             <>
-              {/* Profile Picture */}
+              {/* Profile Picture and Name Section */}
               <div className="flex flex-col items-center mb-6">
                 <div className="relative">
                   <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-700 mb-2">
-                    {(isEditing ? editedUser.profilePicture : user.userprofilepicture) ? (
+                    {getDisplayProfilePicture() ? (
                       <img
-                        src={isEditing ? editedUser.profilePicture : user.userprofilepicture}
+                        src={getDisplayProfilePicture() || "/placeholder.svg"}
                         alt="Profile"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to default avatar if image fails to load
+                          e.target.style.display = "none"
+                          e.target.nextSibling.style.display = "flex"
+                        }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-blue-900">
-                        <User size={40} className="text-blue-300" />
-                      </div>
-                    )}
+                    ) : null}
+                    <div
+                      className="w-full h-full flex items-center justify-center bg-blue-900"
+                      style={{ display: getDisplayProfilePicture() ? "none" : "flex" }}
+                    >
+                      <User size={40} className="text-blue-300" />
+                    </div>
                   </div>
 
                   {isEditing && (
@@ -347,6 +455,10 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
                   />
                 ) : (
                   <h3 className="text-lg font-medium mt-2">{user.username}</h3>
+                )}
+
+                {isGoogleUser && (
+                  <span className="text-xs px-2 py-1 rounded bg-green-900 text-green-300 mt-1">Google Account</span>
                 )}
               </div>
 
@@ -523,7 +635,7 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
                   </button>
                 )}
 
-                {!isEditing && !isChangingPassword && (
+                {!isEditing && !isChangingPassword && !isGoogleUser && (
                   <button
                     onClick={() => setIsChangingPassword(true)}
                     className="w-full flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md"

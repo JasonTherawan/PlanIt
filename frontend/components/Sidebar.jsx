@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Plus, ChevronLeft, ChevronRight, Edit2, Trash2 } from "lucide-react"
+import { Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Mail } from "lucide-react"
 import AddItemModal from "./AddItemModal"
 import EditItemModal from "./EditItemModal"
+import GmailInbox from "./GmailInbox"
 
 const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }) => {
   const [isEventModalOpen, setIsEventModalOpen] = useState(false)
@@ -16,6 +17,8 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
   const [teams, setTeams] = useState([])
   const [activeTab, setActiveTab] = useState("upcoming")
   const [highlightedSidebarItem, setHighlightedSidebarItem] = useState(null)
+  const [isGmailInboxOpen, setIsGmailInboxOpen] = useState(false)
+  const [isGoogleUser, setIsGoogleUser] = useState(false)
   const scrollContainerRef = useRef(null)
 
   // Urgency color mapping
@@ -31,6 +34,13 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
     const user = JSON.parse(localStorage.getItem("user") || "{}")
     return user.id || 1
   }
+
+  // Check if user is Google user
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}")
+    const isGoogleUser = !!user.googleId || !!user.accessToken
+    setIsGoogleUser(isGoogleUser)
+  }, [])
 
   // Fetch activities, goals, and teams
   useEffect(() => {
@@ -476,10 +486,14 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
           const getOrdinal = (day) => {
             if (day > 3 && day < 21) return day + "th"
             switch (day % 10) {
-              case 1: return day + "st"
-              case 2: return day + "nd"
-              case 3: return day + "rd"
-              default: return day + "th"
+              case 1:
+                return day + "st"
+              case 2:
+                return day + "nd"
+              case 3:
+                return day + "rd"
+              default:
+                return day + "th"
             }
           }
 
@@ -524,7 +538,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
         case "high":
           return "#EF4444"
         case "medium":
-          return "#F59E0B"
+          return '#F59E0B"E0B'
         case "low":
           return "#10B981"
         default:
@@ -582,7 +596,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
       highlightedSidebarItem.id === item.id &&
       highlightedSidebarItem.type === item.type &&
       (item.type !== "goal" ||
-      highlightedSidebarItem.timelineId === (item.timelineId || (item.timeline ? item.timeline.timelineid : null)))
+        highlightedSidebarItem.timelineId === (item.timelineId || (item.timeline ? item.timeline.timelineid : null)))
 
     return (
       <div
@@ -707,13 +721,20 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
       }
     }
 
+    const handleRefreshCalendarData = () => {
+      fetchAllData()
+    }
+
     window.addEventListener("highlightSidebarItem", handleHighlightSidebarItem)
     window.addEventListener("editCalendarItem", handleEditCalendarItem)
     window.addEventListener("switchSidebarTab", handleSwitchSidebarTab)
+    window.addEventListener("refreshCalendarData", handleRefreshCalendarData)
 
     return () => {
       window.removeEventListener("highlightSidebarItem", handleHighlightSidebarItem)
       window.removeEventListener("editCalendarItem", handleEditCalendarItem)
+      window.removeEventListener("switchSidebarTab", handleSwitchSidebarTab)
+      window.removeEventListener("refreshCalendarData", handleRefreshCalendarData)
     }
   }, [activities, goals, teams, activeTab])
 
@@ -722,12 +743,24 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
 
   return (
     <div className="w-56 bg-[#002147] text-white flex flex-col h-full">
-      <div className="p-4 pb-2 flex items-center">
+      <div className="p-4 pb-2 flex items-center justify-between">
         <button
           className="w-8 h-8 rounded-full bg-black bg-opacity-10 flex items-center justify-center hover:bg-opacity-20"
           onClick={() => setIsItemModalOpen(true)}
         >
           <Plus size={20} />
+        </button>
+        <button
+          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            isGoogleUser
+              ? "bg-black bg-opacity-10 hover:bg-opacity-20 text-white cursor-pointer"
+              : "bg-gray-600 text-gray-400 cursor-not-allowed"
+          }`}
+          onClick={() => isGoogleUser && setIsGmailInboxOpen(true)}
+          title={isGoogleUser ? "Gmail Inbox" : "Gmail access requires Google account"}
+          disabled={!isGoogleUser}
+        >
+          <Mail size={20} />
         </button>
       </div>
 
@@ -858,15 +891,17 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
       <div className="px-3.5">
         <div className="flex justify-evenly border-b border-gray-600 items-center">
           <button
-            className={`min-w-[98px] text-center px-3 py-2 text-sm font-medium ${activeTab === "upcoming" ? "text-white border-b-2 border-blue-400" : "text-gray-400 hover:text-gray-300"
-              }`}
+            className={`min-w-[98px] text-center px-3 py-2 text-sm font-medium ${
+              activeTab === "upcoming" ? "text-white border-b-2 border-blue-400" : "text-gray-400 hover:text-gray-300"
+            }`}
             onClick={() => setActiveTab("upcoming")}
           >
             Upcoming
           </button>
           <button
-            className={`min-w-[98px] text-center px-3 py-2 text-sm font-medium ${activeTab === "past" ? "text-white border-b-2 border-blue-400" : "text-gray-400 hover:text-gray-300"
-              }`}
+            className={`min-w-[98px] text-center px-3 py-2 text-sm font-medium ${
+              activeTab === "past" ? "text-white border-b-2 border-blue-400" : "text-gray-400 hover:text-gray-300"
+            }`}
             onClick={() => setActiveTab("past")}
           >
             Past
@@ -878,141 +913,140 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4" ref={scrollContainerRef}>
         {activeTab === "upcoming"
           ? // Upcoming events content (without ongoing items)
-          (() => {
-            // Group upcoming items by date (excluding ongoing items)
-            const groupedItems = {}
-            const now = new Date()
+            (() => {
+              // Group upcoming items by date (excluding ongoing items)
+              const groupedItems = {}
+              const now = new Date()
 
+              upcomingItems.forEach((item) => {
+                // Check if item is ongoing
+                const isOngoing = (() => {
+                  const today = now.toDateString()
+                  const itemDate = item.deadline.toDateString()
 
-            upcomingItems.forEach((item) => {
-              // Check if item is ongoing
-              const isOngoing = (() => {
-                const today = now.toDateString()
-                const itemDate = item.deadline.toDateString()
+                  if (itemDate !== today) return false
 
-                if (itemDate !== today) return false
+                  const currentTime = now.getHours() * 60 + now.getMinutes()
 
-                const currentTime = now.getHours() * 60 + now.getMinutes()
+                  let startTime, endTime
 
-                let startTime, endTime
-
-                if (item.type === "activity") {
-                  if (item.activitystarttime && item.activityendtime) {
-                    const [startHour, startMin] = item.activitystarttime.split(":").map(Number)
-                    const [endHour, endMin] = item.activityendtime.split(":").map(Number)
-                    startTime = startHour * 60 + startMin
-                    endTime = endHour * 60 + endMin
-                  } else {
-                    // If no time specified, don't consider it ongoing
-                    return false
+                  if (item.type === "activity") {
+                    if (item.activitystarttime && item.activityendtime) {
+                      const [startHour, startMin] = item.activitystarttime.split(":").map(Number)
+                      const [endHour, endMin] = item.activityendtime.split(":").map(Number)
+                      startTime = startHour * 60 + startMin
+                      endTime = endHour * 60 + endMin
+                    } else {
+                      // If no time specified, don't consider it ongoing
+                      return false
+                    }
+                  } else if (item.type === "meeting") {
+                    if (item.meetingstarttime && item.meetingendtime) {
+                      const [startHour, startMin] = item.meetingstarttime.split(":").map(Number)
+                      const [endHour, endMin] = item.meetingendtime.split(":").map(Number)
+                      startTime = startHour * 60 + startMin
+                      endTime = endHour * 60 + endMin
+                    } else {
+                      return false
+                    }
+                  } else if (item.type === "goal" && item.timeline) {
+                    if (item.timeline.timelinestarttime && item.timeline.timelineendtime) {
+                      const [startHour, startMin] = item.timeline.timelinestarttime.split(":").map(Number)
+                      const [endHour, endMin] = item.timeline.timelineendtime.split(":").map(Number)
+                      startTime = startHour * 60 + startMin
+                      endTime = endHour * 60 + endMin
+                    } else {
+                      // If no time specified for goal timeline, don't consider it ongoing
+                      return false
+                    }
                   }
-                } else if (item.type === "meeting") {
-                  if (item.meetingstarttime && item.meetingendtime) {
-                    const [startHour, startMin] = item.meetingstarttime.split(":").map(Number)
-                    const [endHour, endMin] = item.meetingendtime.split(":").map(Number)
-                    startTime = startHour * 60 + startMin
-                    endTime = endHour * 60 + endMin
-                  } else {
-                    return false
-                  }
-                } else if (item.type === "goal" && item.timeline) {
-                  if (item.timeline.timelinestarttime && item.timeline.timelineendtime) {
-                    const [startHour, startMin] = item.timeline.timelinestarttime.split(":").map(Number)
-                    const [endHour, endMin] = item.timeline.timelineendtime.split(":").map(Number)
-                    startTime = startHour * 60 + startMin
-                    endTime = endHour * 60 + endMin
-                  } else {
-                    // If no time specified for goal timeline, don't consider it ongoing
-                    return false
-                  }
-                }
-
-                return (
-                  startTime !== undefined &&
-                  endTime !== undefined &&
-                  currentTime >= startTime &&
-                  currentTime <= endTime
-                )
-              })()
-
-              // Only add to grouped items if not ongoing
-              if (!isOngoing) {
-                const dateKey = item.deadline.toDateString()
-                if (!groupedItems[dateKey]) {
-                  groupedItems[dateKey] = []
-                }
-                groupedItems[dateKey].push(item)
-              }
-            })
-
-            return (
-              <>
-                {/* Daily Grouped Events */}
-                {Object.entries(groupedItems).map(([dateKey, items]) => {
-                  const date = new Date(dateKey)
-                  const dayLabel = getDayLabel(date)
-                  const dateLabel = date.toLocaleDateString("en-US", {
-                    month: "numeric",
-                    day: "numeric",
-                    year: "numeric",
-                  })
 
                   return (
-                    <div key={dateKey} className="mb-6">
-                      <h3 className="text-sm font-bold mb-3 text-gray-300">
-                        {dayLabel} {dateLabel}
-                      </h3>
-                      <div className="space-y-3">{items.map((item, index) => renderEventItem(item, index))}</div>
-                    </div>
+                    startTime !== undefined &&
+                    endTime !== undefined &&
+                    currentTime >= startTime &&
+                    currentTime <= endTime
                   )
-                })}
+                })()
 
-                {Object.keys(groupedItems).length === 0 && (
-                  <p className="text-xs text-gray-400 mb-4">No upcoming events</p>
-                )}
-              </>
-            )
-          })()
-          : // Past events content with same grouping logic
-          (() => {
-            // Group past items by date
-            const groupedPastItems = {}
+                // Only add to grouped items if not ongoing
+                if (!isOngoing) {
+                  const dateKey = item.deadline.toDateString()
+                  if (!groupedItems[dateKey]) {
+                    groupedItems[dateKey] = []
+                  }
+                  groupedItems[dateKey].push(item)
+                }
+              })
 
-            pastItems.forEach((item) => {
-              const dateKey = item.deadline.toDateString()
-              if (!groupedPastItems[dateKey]) {
-                groupedPastItems[dateKey] = []
-              }
-              groupedPastItems[dateKey].push(item)
-            })
+              return (
+                <>
+                  {/* Daily Grouped Events */}
+                  {Object.entries(groupedItems).map(([dateKey, items]) => {
+                    const date = new Date(dateKey)
+                    const dayLabel = getDayLabel(date)
+                    const dateLabel = date.toLocaleDateString("en-US", {
+                      month: "numeric",
+                      day: "numeric",
+                      year: "numeric",
+                    })
 
-            return (
-              <>
-                {Object.entries(groupedPastItems).map(([dateKey, items]) => {
-                  const date = new Date(dateKey)
-                  const dayLabel = getDayLabel(date)
-                  const dateLabel = date.toLocaleDateString("en-US", {
-                    month: "numeric",
-                    day: "numeric",
-                    year: "numeric",
-                  })
-
-                  return (
-                    <div key={dateKey} className="mb-6">
-                      <h3 className="text-sm font-bold mb-3 text-gray-300">
-                        {dayLabel} {dateLabel}
-                      </h3>
-                      <div className="space-y-3">
-                        {items.map((item, index) => renderEventItem(item, index, true))}
+                    return (
+                      <div key={dateKey} className="mb-6">
+                        <h3 className="text-sm font-bold mb-3 text-gray-300">
+                          {dayLabel} {dateLabel}
+                        </h3>
+                        <div className="space-y-3">{items.map((item, index) => renderEventItem(item, index))}</div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
 
-                {pastItems.length === 0 && <p className="text-xs text-gray-400 mb-4">No past events</p>}
-              </>
-            )
-          })()}
+                  {Object.keys(groupedItems).length === 0 && (
+                    <p className="text-xs text-gray-400 mb-4">No upcoming events</p>
+                  )}
+                </>
+              )
+            })()
+          : // Past events content with same grouping logic
+            (() => {
+              // Group past items by date
+              const groupedPastItems = {}
+
+              pastItems.forEach((item) => {
+                const dateKey = item.deadline.toDateString()
+                if (!groupedPastItems[dateKey]) {
+                  groupedPastItems[dateKey] = []
+                }
+                groupedPastItems[dateKey].push(item)
+              })
+
+              return (
+                <>
+                  {Object.entries(groupedPastItems).map(([dateKey, items]) => {
+                    const date = new Date(dateKey)
+                    const dayLabel = getDayLabel(date)
+                    const dateLabel = date.toLocaleDateString("en-US", {
+                      month: "numeric",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+
+                    return (
+                      <div key={dateKey} className="mb-6">
+                        <h3 className="text-sm font-bold mb-3 text-gray-300">
+                          {dayLabel} {dateLabel}
+                        </h3>
+                        <div className="space-y-3">
+                          {items.map((item, index) => renderEventItem(item, index, true))}
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  {pastItems.length === 0 && <p className="text-xs text-gray-400 mb-4">No past events</p>}
+                </>
+              )
+            })()}
       </div>
 
       {isItemModalOpen && (
@@ -1036,6 +1070,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
           item={editingItem}
         />
       )}
+      {isGmailInboxOpen && <GmailInbox isOpen={isGmailInboxOpen} onClose={() => setIsGmailInboxOpen(false)} />}
     </div>
   )
 }

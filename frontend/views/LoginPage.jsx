@@ -6,6 +6,7 @@ import { Calendar, User, Eye, EyeOff } from "lucide-react"
 import loginpageimage from "../assets/loginpageimage.png"
 import bottomleftshape from "../assets/bottomleftshape.png"
 import toprightshape from "../assets/toprightshape.png"
+import GoogleSignInButton from "../components/GoogleSignInButton"
 
 const LoginPage = () => {
   const [credentials, setCredentials] = useState({
@@ -182,11 +183,19 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 disabled:opacity-70"
+                className="w-full mb-4 bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 disabled:opacity-70"
               >
                 {isLoading ? "Logging in..." : "Login"}
               </button>
             </form>
+
+            <GoogleSignInButton className="w-full" />
+
+            <div className="flex items-center my-4">
+              <div className="flex-1 border-t border-gray-300"></div>
+              <div className="px-4 text-sm text-gray-500">or</div>
+              <div className="flex-1 border-t border-gray-300"></div>
+            </div>
 
             <div className="mt-6 text-center">
               <p className="text-white text-sm">
