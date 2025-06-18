@@ -40,7 +40,7 @@ def register():
     email = data.get('email')
     password = data.get('password')
     dob = data.get('dob')  # Optional
-    google_id = data.get('googleId')
+    google_id = data.get('googleId')  # For Google OAuth users
     
     # Validate required fields
     if not username or not email:
@@ -86,28 +86,26 @@ def register():
             if cur.fetchone():
                 return jsonify({'success': False, 'message': 'Google account already registered'}), 409
         
-        # Get max existing UserId (cast to int), default to 0
-        cur.execute("SELECT COALESCE(MAX(CAST(UserId AS INTEGER)), 0) + 1 FROM Users")
-        next_user_id = str(cur.fetchone()[0])  # Ensure it's a string
-
-        # Insert with generated UserId
+        # Insert new user with Google ID support
         if google_id:
+            # For Google users, password can be NULL
             cur.execute(
                 """
-                INSERT INTO Users (UserId, UserName, UserEmail, UserDOB, GoogleId)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO Users (UserName, UserEmail, UserDOB, GoogleId)
+                VALUES (%s, %s, %s, %s)
                 RETURNING UserId
                 """,
-                (next_user_id, username, email, parsed_dob, google_id)
+                (username, email, parsed_dob, google_id)
             )
         else:
+            # For regular users, password is required
             cur.execute(
                 """
-                INSERT INTO Users (UserId, UserName, UserEmail, UserPassword, UserDOB)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO Users (UserName, UserEmail, UserPassword, UserDOB)
+                VALUES (%s, %s, %s, %s)
                 RETURNING UserId
                 """,
-                (next_user_id, username, email, hashed_password, parsed_dob)
+                (username, email, hashed_password, parsed_dob)
             )
         
         # Get the new user ID
@@ -122,15 +120,7 @@ def register():
         return jsonify({
             'success': True,
             'message': 'User registered successfully',
-            'userId': str(user_id),  # Convert to string to handle large numbers
-            'user': {
-                'id': str(user_id),  # Use actual database UserId
-                'userId': str(user_id),
-                'username': username,
-                'email': email,
-                'googleId': google_id if google_id else None,
-                'isGoogleUser': bool(google_id)
-            }
+            'userId': str(user_id)  # Convert to string to handle large numbers
         }), 201
         
     except psycopg2.errors.UniqueViolation:
@@ -160,8 +150,12 @@ def login():
     # Extract login credentials
     email = data.get('email')
     password = data.get('password')
-    google_id = data.get('googleId')
+    google_id = data.get('googleId')  # For Google OAuth users
     
+    # Validate required fields
+    if not email:
+        return jsonify({'success': False, 'message': 'Email is required'}), 400
+
     # Either googleId OR password must be provided, but not both
     if google_id and password:
         return jsonify({'success': False, 'message': 'Cannot provide both Google ID and password'}), 400
@@ -185,11 +179,10 @@ def login():
                     'success': True,
                     'message': 'Login successful',
                     'user': {
-                        'id': str(user[0]),  # Use actual UserId from database
+                        'id': str(user[0]),  # Convert to string to handle large numbers
                         'userId': str(user[0]),
                         'username': user[1],
                         'email': user[2],
-                        'googleId': google_id,  # Keep googleId for reference
                         'isGoogleUser': True
                     }
                 }), 200
@@ -241,7 +234,6 @@ def create_activity():
     date = data.get('activityDate')
     start_time = data.get('activityStartTime')
     end_time = data.get('activityEndTime')
-    google_id = data.get('googleId')
     
     # Validate required fields
     if not user_id or not title or not date:
@@ -252,28 +244,17 @@ def create_activity():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-
-        if google_id:
-            cur.execute("SELECT UserId FROM Users WHERE GoogleId = %s", (user_id,))
-        else:
-            cur.execute("SELECT UserId FROM Users WHERE UserId = %s", (user_id,))
         
-        user_row = cur.fetchone()
-        if not user_row:
-            return jsonify({'success': False, 'message': 'User not found'}), 404
-
-        internal_user_id = user_row[0]
-        
-        # Insert new activity
+        # Insert new activity - use string user_id directly
         cur.execute(
             """
             INSERT INTO Activity (ActivityTitle, ActivityDescription, ActivityCategory, 
-                                  ActivityUrgency, ActivityDate, ActivityStartTime, 
-                                  ActivityEndTime, UserId)
+                                 ActivityUrgency, ActivityDate, ActivityStartTime, 
+                                 ActivityEndTime, UserId)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING ActivityId
             """,
-            (title, description, category, urgency, date, start_time, end_time, internal_user_id)
+            (title, description, category, urgency, date, start_time, end_time, user_id)
         )
         
         # Get the new activity ID
@@ -311,7 +292,7 @@ def get_activities():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Get activities for the user
+        # Get activities for the user - use string comparison for user_id
         cur.execute(
             """
             SELECT ActivityId, ActivityTitle, ActivityDescription, ActivityCategory,
@@ -468,7 +449,7 @@ def create_goal():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Insert new goal
+        # Insert new goal - use string user_id directly
         cur.execute(
             """
             INSERT INTO Goal (GoalTitle, GoalDescription, GoalCategory, GoalProgress, UserId)
@@ -535,7 +516,7 @@ def get_goals():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Get goals for the user
+        # Get goals for the user - use string comparison for user_id
         cur.execute(
             """
             SELECT g.GoalId, g.GoalTitle, g.GoalDescription, g.GoalCategory, g.GoalProgress,
@@ -708,7 +689,7 @@ def delete_goal(goal_id):
 
 @app.route('/api/teams', methods=['POST'])
 def create_team():
-    """Create a new team with meetings"""
+    """Create a new team with meetings and invitations"""
     # Get data from request
     data = request.get_json()
     
@@ -733,7 +714,7 @@ def create_team():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Insert new team
+        # Insert new team - use string user_id directly
         cur.execute(
             """
             INSERT INTO Team (TeamName, TeamDescription, TeamStartWorkingHour, 
@@ -759,12 +740,13 @@ def create_team():
         # Insert meetings and handle invitations
         meeting_ids = []
         for meeting in meetings:
-            # Insert meeting
+            # Insert meeting with invitation type
+            invitation_type = meeting.get('invitationType', 'mandatory')
             cur.execute(
                 """
                 INSERT INTO TeamMeeting (MeetingTitle, MeetingDescription, MeetingDate,
-                                        MeetingStartTime, MeetingEndTime, TeamId)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                                        MeetingStartTime, MeetingEndTime, TeamId, InvitationType)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING TeamMeetingId
                 """,
                 (
@@ -773,7 +755,8 @@ def create_team():
                     meeting.get('meetingDate'),
                     meeting.get('meetingStartTime'),
                     meeting.get('meetingEndTime'),
-                    team_id
+                    team_id,
+                    invitation_type
                 )
             )
             meeting_id = cur.fetchone()[0]
@@ -788,7 +771,7 @@ def create_team():
                     user_result = cur.fetchone()
                     
                     if user_result:
-                        user_id = str(user_result[0])
+                        user_id = str(user_result[0])  # Convert to string
                         # Add user to team if not already a member
                         cur.execute(
                             """
@@ -800,6 +783,42 @@ def create_team():
                             """,
                             (team_id, user_id, team_id, user_id)
                         )
+                        
+                        # Create meeting invitation
+                        cur.execute(
+                            """
+                            INSERT INTO MeetingInvitations (MeetingId, UserId, InvitationType, Status)
+                            VALUES (%s, %s, %s, %s)
+                            """,
+                            (meeting_id, user_id, invitation_type, 'accepted' if invitation_type == 'mandatory' else 'pending')
+                        )
+                        
+                        # Create notification for request invitations
+                        if invitation_type == 'request':
+                            # Get meeting details for notification
+                            meeting_time_info = ""
+                            if meeting.get('meetingStartTime') and meeting.get('meetingEndTime'):
+                                meeting_time_info = f" on {meeting.get('meetingDate')} from {meeting.get('meetingStartTime')} to {meeting.get('meetingEndTime')}"
+                            elif meeting.get('meetingDate'):
+                                meeting_time_info = f" on {meeting.get('meetingDate')}"
+                            
+                            notification_message = f'You have been invited to join the meeting "{meeting.get("meetingTitle")}"{meeting_time_info} in team "{team_name}"'
+                            if meeting.get('meetingDescription'):
+                                notification_message += f'. Description: {meeting.get("meetingDescription")}'
+                            
+                            cur.execute(
+                                """
+                                INSERT INTO Notifications (UserId, Type, Title, Message, RelatedId)
+                                VALUES (%s, %s, %s, %s, %s)
+                                """,
+                                (
+                                    user_id,
+                                    'meeting_invitation',
+                                    f'Meeting Invitation: {meeting.get("meetingTitle")}',
+                                    notification_message,
+                                    meeting_id
+                                )
+                            )
         
         # Commit the transaction
         conn.commit()
@@ -823,7 +842,7 @@ def create_team():
 
 @app.route('/api/teams', methods=['GET'])
 def get_teams():
-    """Get teams and meetings for a user"""
+    """Get teams and meetings for a user (only accepted meetings)"""
     user_id = request.args.get('userId')
     
     if not user_id:
@@ -834,20 +853,22 @@ def get_teams():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Get teams where user is a member
+        # Get teams where user is a member with accepted meetings only
         cur.execute(
             """
             SELECT DISTINCT t.TeamId, t.TeamName, t.TeamDescription, 
                    t.TeamStartWorkingHour, t.TeamEndWorkingHour, t.CreatedByUserId,
                    tm.MeetingTitle, tm.MeetingDescription, tm.MeetingDate,
-                   tm.MeetingStartTime, tm.MeetingEndTime, tm.TeamMeetingId
+                   tm.MeetingStartTime, tm.MeetingEndTime, tm.TeamMeetingId, tm.InvitationType
             FROM Team t
             INNER JOIN TeamMembers tmem ON t.TeamId = tmem.TeamId
             LEFT JOIN TeamMeeting tm ON t.TeamId = tm.TeamId
-            WHERE tmem.UserId = %s
+            LEFT JOIN MeetingInvitations mi ON tm.TeamMeetingId = mi.MeetingId AND mi.UserId = %s
+            WHERE tmem.UserId = %s 
+            AND (tm.TeamMeetingId IS NULL OR mi.Status = 'accepted' OR t.CreatedByUserId = %s)
             ORDER BY t.TeamId, tm.MeetingDate, tm.MeetingStartTime
             """,
-            (user_id,)
+            (user_id, user_id, user_id)
         )
         
         teams_dict = {}
@@ -860,7 +881,7 @@ def get_teams():
                     'teamdescription': row[2],
                     'teamstartworkinghour': str(row[3]) if row[3] else None,
                     'teamendworkinghour': str(row[4]) if row[4] else None,
-                    'createdbyuserid': str(row[5]),
+                    'createdbyuserid': str(row[5]),  # Convert to string
                     'meetings': []
                 }
             
@@ -871,7 +892,8 @@ def get_teams():
                     'meetingdescription': row[7],
                     'meetingdate': row[8].isoformat() if row[8] else None,
                     'meetingstarttime': str(row[9]) if row[9] else None,
-                    'meetingendtime': str(row[10]) if row[10] else None
+                    'meetingendtime': str(row[10]) if row[10] else None,
+                    'invitationtype': row[12]
                 })
         
         teams = list(teams_dict.values())
@@ -889,6 +911,268 @@ def get_teams():
         if conn:
             conn.close()
 
+@app.route('/api/teams/<int:team_id>', methods=['GET'])
+def get_team_details(team_id):
+    """Get detailed team information including all meetings and members"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Get team details
+        cur.execute(
+            """
+            SELECT TeamId, TeamName, TeamDescription, TeamStartWorkingHour, 
+                   TeamEndWorkingHour, CreatedByUserId
+            FROM Team
+            WHERE TeamId = %s
+            """,
+            (team_id,)
+        )
+        
+        team_row = cur.fetchone()
+        if not team_row:
+            return jsonify({'success': False, 'message': 'Team not found'}), 404
+        
+        team_data = {
+            'teamid': team_row[0],
+            'teamname': team_row[1],
+            'teamdescription': team_row[2],
+            'teamstartworkinghour': str(team_row[3]) if team_row[3] else None,
+            'teamendworkinghour': str(team_row[4]) if team_row[4] else None,
+            'createdbyuserid': str(team_row[5])
+        }
+        
+        # Get all meetings for this team
+        cur.execute(
+            """
+            SELECT TeamMeetingId, MeetingTitle, MeetingDescription, MeetingDate,
+                   MeetingStartTime, MeetingEndTime, InvitationType
+            FROM TeamMeeting
+            WHERE TeamId = %s
+            ORDER BY MeetingDate, MeetingStartTime
+            """,
+            (team_id,)
+        )
+        
+        meetings = []
+        for meeting_row in cur.fetchall():
+            meeting_data = {
+                'teammeetingid': meeting_row[0],
+                'meetingtitle': meeting_row[1],
+                'meetingdescription': meeting_row[2],
+                'meetingdate': meeting_row[3].isoformat() if meeting_row[3] else None,
+                'meetingstarttime': str(meeting_row[4]) if meeting_row[4] else None,
+                'meetingendtime': str(meeting_row[5]) if meeting_row[5] else None,
+                'invitationtype': meeting_row[6],
+                'members': []
+            }
+            
+            # Get members for this specific meeting
+            cur.execute(
+                """
+                SELECT u.UserId, u.UserName, u.UserEmail, u.UserProfilePicture,
+                       mi.Status, mi.InvitationType
+                FROM MeetingInvitations mi
+                JOIN Users u ON mi.UserId = u.UserId
+                WHERE mi.MeetingId = %s
+                ORDER BY u.UserName
+                """,
+                (meeting_row[0],)
+            )
+            
+            for member_row in cur.fetchall():
+                meeting_data['members'].append({
+                    'userid': str(member_row[0]),
+                    'username': member_row[1],
+                    'useremail': member_row[2],
+                    'userprofilepicture': member_row[3],
+                    'status': member_row[4],
+                    'invitationtype': member_row[5]
+                })
+            
+            meetings.append(meeting_data)
+        
+        team_data['meetings'] = meetings
+        
+        return jsonify({
+            'success': True,
+            'team': team_data
+        }), 200
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to fetch team details', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/teams/<int:team_id>', methods=['PUT'])
+def update_team(team_id):
+    """Update team information"""
+    data = request.get_json()
+    
+    team_name = data.get('teamName')
+    team_description = data.get('teamDescription')
+    team_start_working_hour = data.get('teamStartWorkingHour')
+    team_end_working_hour = data.get('teamEndWorkingHour')
+    
+    if not team_name:
+        return jsonify({'success': False, 'message': 'Team name is required'}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Update team
+        cur.execute(
+            """
+            UPDATE Team 
+            SET TeamName = %s, TeamDescription = %s, TeamStartWorkingHour = %s, TeamEndWorkingHour = %s
+            WHERE TeamId = %s
+            """,
+            (team_name, team_description, team_start_working_hour, team_end_working_hour, team_id)
+        )
+        
+        if cur.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Team not found'}), 404
+        
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Team updated successfully'
+        }), 200
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to update team', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/teams/<int:team_id>/meetings', methods=['POST'])
+def add_team_meeting(team_id):
+    """Add a new meeting to an existing team"""
+    data = request.get_json()
+    
+    meeting_title = data.get('meetingTitle')
+    meeting_description = data.get('meetingDescription')
+    meeting_date = data.get('meetingDate')
+    meeting_start_time = data.get('meetingStartTime')
+    meeting_end_time = data.get('meetingEndTime')
+    invitation_type = data.get('invitationType', 'mandatory')
+    invited_emails = data.get('invitedEmails', [])
+    
+    if not meeting_title or not meeting_date:
+        return jsonify({'success': False, 'message': 'Meeting title and date are required'}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Get team name for notifications
+        cur.execute("SELECT TeamName FROM Team WHERE TeamId = %s", (team_id,))
+        team_result = cur.fetchone()
+        if not team_result:
+            return jsonify({'success': False, 'message': 'Team not found'}), 404
+        
+        team_name = team_result[0]
+        
+        # Insert new meeting
+        cur.execute(
+            """
+            INSERT INTO TeamMeeting (MeetingTitle, MeetingDescription, MeetingDate,
+                                    MeetingStartTime, MeetingEndTime, TeamId, InvitationType)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING TeamMeetingId
+            """,
+            (meeting_title, meeting_description, meeting_date, meeting_start_time, meeting_end_time, team_id, invitation_type)
+        )
+        
+        meeting_id = cur.fetchone()[0]
+        
+        # Handle invited emails
+        for email in invited_emails:
+            if email.strip():
+                # Check if user exists
+                cur.execute("SELECT UserId FROM Users WHERE UserEmail = %s", (email.strip(),))
+                user_result = cur.fetchone()
+                
+                if user_result:
+                    user_id = str(user_result[0])
+                    
+                    # Add user to team if not already a member
+                    cur.execute(
+                        """
+                        INSERT INTO TeamMembers (TeamId, UserId)
+                        SELECT %s, %s
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM TeamMembers WHERE TeamId = %s AND UserId = %s
+                        )
+                        """,
+                        (team_id, user_id, team_id, user_id)
+                    )
+                    
+                    # Create meeting invitation
+                    cur.execute(
+                        """
+                        INSERT INTO MeetingInvitations (MeetingId, UserId, InvitationType, Status)
+                        VALUES (%s, %s, %s, %s)
+                        """,
+                        (meeting_id, user_id, invitation_type, 'accepted' if invitation_type == 'mandatory' else 'pending')
+                    )
+                    
+                    # Create notification for request invitations
+                    if invitation_type == 'request':
+                        meeting_time_info = ""
+                        if meeting_start_time and meeting_end_time:
+                            meeting_time_info = f" on {meeting_date} from {meeting_start_time} to {meeting_end_time}"
+                        elif meeting_date:
+                            meeting_time_info = f" on {meeting_date}"
+                        
+                        notification_message = f'You have been invited to join the meeting "{meeting_title}"{meeting_time_info} in team "{team_name}"'
+                        if meeting_description:
+                            notification_message += f'. Description: {meeting_description}'
+                        
+                        cur.execute(
+                            """
+                            INSERT INTO Notifications (UserId, Type, Title, Message, RelatedId)
+                            VALUES (%s, %s, %s, %s, %s)
+                            """,
+                            (
+                                user_id,
+                                'meeting_invitation',
+                                f'Meeting Invitation: {meeting_title}',
+                                notification_message,
+                                meeting_id
+                            )
+                        )
+        
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Meeting added successfully',
+            'meetingId': meeting_id
+        }), 201
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to add meeting', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
 @app.route('/api/teams/<int:team_id>', methods=['DELETE'])
 def delete_team(team_id):
     """Delete a team and all its meetings and members"""
@@ -897,7 +1181,26 @@ def delete_team(team_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Delete team meetings first (due to foreign key constraint)
+        # Delete meeting invitations first
+        cur.execute(
+            """
+            DELETE FROM MeetingInvitations 
+            WHERE MeetingId IN (SELECT TeamMeetingId FROM TeamMeeting WHERE TeamId = %s)
+            """,
+            (team_id,)
+        )
+        
+        # Delete notifications related to team meetings
+        cur.execute(
+            """
+            DELETE FROM Notifications 
+            WHERE RelatedId IN (SELECT TeamMeetingId FROM TeamMeeting WHERE TeamId = %s)
+            AND Type = 'meeting_invitation'
+            """,
+            (team_id,)
+        )
+        
+        # Delete team meetings
         cur.execute("DELETE FROM TeamMeeting WHERE TeamId = %s", (team_id,))
         
         # Delete team members
@@ -940,6 +1243,8 @@ def update_meeting(meeting_id):
     date = data.get('meetingDate')
     start_time = data.get('meetingStartTime')
     end_time = data.get('meetingEndTime')
+    invitation_type = data.get('invitationType', 'mandatory')
+    invited_emails = data.get('invitedEmails', [])
     
     # Validate required fields
     if not title or not date:
@@ -951,20 +1256,93 @@ def update_meeting(meeting_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
+        # Get team info for the meeting
+        cur.execute(
+            """
+            SELECT t.TeamId, t.TeamName 
+            FROM TeamMeeting tm
+            JOIN Team t ON tm.TeamId = t.TeamId
+            WHERE tm.TeamMeetingId = %s
+            """,
+            (meeting_id,)
+        )
+        
+        team_result = cur.fetchone()
+        if not team_result:
+            return jsonify({'success': False, 'message': 'Meeting not found'}), 404
+        
+        team_id, team_name = team_result
+        
         # Update meeting
         cur.execute(
             """
             UPDATE TeamMeeting 
             SET MeetingTitle = %s, MeetingDescription = %s, MeetingDate = %s,
-                MeetingStartTime = %s, MeetingEndTime = %s
+                MeetingStartTime = %s, MeetingEndTime = %s, InvitationType = %s
             WHERE TeamMeetingId = %s
             """,
-            (title, description, date, start_time, end_time, meeting_id)
+            (title, description, date, start_time, end_time, invitation_type, meeting_id)
         )
         
-        # Check if any rows were affected
-        if cur.rowcount == 0:
-            return jsonify({'success': False, 'message': 'Meeting not found'}), 404
+        # Delete existing invitations for this meeting
+        cur.execute("DELETE FROM MeetingInvitations WHERE MeetingId = %s", (meeting_id,))
+        
+        # Handle new invited emails
+        for email in invited_emails:
+            if email.strip():
+                # Check if user exists
+                cur.execute("SELECT UserId FROM Users WHERE UserEmail = %s", (email.strip(),))
+                user_result = cur.fetchone()
+                
+                if user_result:
+                    user_id = str(user_result[0])
+                    
+                    # Add user to team if not already a member
+                    cur.execute(
+                        """
+                        INSERT INTO TeamMembers (TeamId, UserId)
+                        SELECT %s, %s
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM TeamMembers WHERE TeamId = %s AND UserId = %s
+                        )
+                        """,
+                        (team_id, user_id, team_id, user_id)
+                    )
+                    
+                    # Create meeting invitation
+                    cur.execute(
+                        """
+                        INSERT INTO MeetingInvitations (MeetingId, UserId, InvitationType, Status)
+                        VALUES (%s, %s, %s, %s)
+                        """,
+                        (meeting_id, user_id, invitation_type, 'accepted' if invitation_type == 'mandatory' else 'pending')
+                    )
+                    
+                    # Create notification for request invitations
+                    if invitation_type == 'request':
+                        meeting_time_info = ""
+                        if start_time and end_time:
+                            meeting_time_info = f" on {date} from {start_time} to {end_time}"
+                        elif date:
+                            meeting_time_info = f" on {date}"
+                        
+                        notification_message = f'You have been invited to join the updated meeting "{title}"{meeting_time_info} in team "{team_name}"'
+                        if description:
+                            notification_message += f'. Description: {description}'
+                        
+                        cur.execute(
+                            """
+                            INSERT INTO Notifications (UserId, Type, Title, Message, RelatedId)
+                            VALUES (%s, %s, %s, %s, %s)
+                            """,
+                            (
+                                user_id,
+                                'meeting_invitation',
+                                f'Meeting Updated: {title}',
+                                notification_message,
+                                meeting_id
+                            )
+                        )
         
         # Commit the transaction
         conn.commit()
@@ -992,6 +1370,15 @@ def delete_meeting(meeting_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
+        # Delete meeting invitations first
+        cur.execute("DELETE FROM MeetingInvitations WHERE MeetingId = %s", (meeting_id,))
+        
+        # Delete related notifications
+        cur.execute(
+            "DELETE FROM Notifications WHERE RelatedId = %s AND Type = 'meeting_invitation'",
+            (meeting_id,)
+        )
+        
         # Delete meeting
         cur.execute("DELETE FROM TeamMeeting WHERE TeamMeetingId = %s", (meeting_id,))
         
@@ -1012,6 +1399,210 @@ def delete_meeting(meeting_id):
             conn.rollback()
         print(f"Error: {str(e)}")
         return jsonify({'success': False, 'message': 'Failed to delete meeting', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/notifications', methods=['GET'])
+def get_notifications():
+    """Get notifications for a user"""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Get notifications for the user
+        cur.execute(
+            """
+            SELECT NotificationId, Type, Title, Message, RelatedId, IsRead, CreatedAt
+            FROM Notifications
+            WHERE UserId = %s
+            ORDER BY CreatedAt DESC
+            """,
+            (user_id,)
+        )
+        
+        notifications = []
+        unread_count = 0
+        for row in cur.fetchall():
+            notification = {
+                'notificationid': row[0],
+                'type': row[1],
+                'title': row[2],
+                'message': row[3],
+                'relatedid': row[4],
+                'isread': row[5],
+                'createdat': row[6].isoformat() if row[6] else None
+            }
+            notifications.append(notification)
+            if not row[5]:  # If not read
+                unread_count += 1
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifications,
+            'unreadCount': unread_count
+        }), 200
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to fetch notifications', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/notifications/mark-all-read', methods=['PUT'])
+def mark_all_notifications_read():
+    """Mark all notifications as read for a user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('userId')
+        
+        if not user_id:
+            return jsonify({'success': False, 'message': 'User ID is required'}), 400
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute(
+            """
+            UPDATE Notifications 
+            SET IsRead = TRUE 
+            WHERE UserId = %s AND IsRead = FALSE
+            """, 
+            (user_id,)
+        )
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'All notifications marked as read'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error marking all notifications as read: {e}")
+        return jsonify({'success': False, 'message': 'Failed to mark notifications as read'}), 500
+
+@app.route('/api/notifications/<int:notification_id>/read', methods=['PUT'])
+def mark_notification_read(notification_id):
+    """Mark a specific notification as read"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute(
+            """
+            UPDATE Notifications 
+            SET IsRead = TRUE 
+            WHERE NotificationId = %s
+            """, 
+            (notification_id,)
+        )
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Notification marked as read'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error marking notification as read: {e}")
+        return jsonify({'success': False, 'message': 'Failed to mark notification as read'}), 500
+
+@app.route('/api/notifications/<int:notification_id>', methods=['DELETE'])
+def delete_notification(notification_id):
+    """Delete a specific notification"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute(
+            """
+            DELETE FROM Notifications 
+            WHERE NotificationId = %s
+            """, 
+            (notification_id,)
+        )
+        
+        if cur.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Notification not found'}), 404
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Notification deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error deleting notification: {e}")
+        return jsonify({'success': False, 'message': 'Failed to delete notification'}), 500
+
+@app.route('/api/meeting-invitations/<int:invitation_id>/respond', methods=['PUT'])
+def respond_to_invitation(invitation_id):
+    """Respond to a meeting invitation"""
+    data = request.get_json()
+    response = data.get('response')  # 'accepted' or 'declined'
+    
+    if response not in ['accepted', 'declined']:
+        return jsonify({'success': False, 'message': 'Invalid response. Must be "accepted" or "declined"'}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Update invitation status
+        cur.execute(
+            """
+            UPDATE MeetingInvitations 
+            SET Status = %s, RespondedAt = CURRENT_TIMESTAMP
+            WHERE MeetingId = %s
+            """,
+            (response, invitation_id)
+        )
+        
+        if cur.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Invitation not found'}), 404
+        
+        # Mark related notification as read
+        cur.execute(
+            """
+            UPDATE Notifications 
+            SET IsRead = TRUE
+            WHERE RelatedId = %s AND Type = 'meeting_invitation'
+            """,
+            (invitation_id,)
+        )
+        
+        # Commit the transaction
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Invitation {response} successfully'
+        }), 200
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to respond to invitation', 'error': str(e)}), 500
     
     finally:
         if conn:
@@ -1225,6 +1816,18 @@ def delete_user(user_id):
         cur = conn.cursor()
         
         # Delete user's data in order (due to foreign key constraints)
+        # Delete meeting invitations
+        cur.execute(
+            """
+            DELETE FROM MeetingInvitations 
+            WHERE UserId = %s
+            """,
+            (user_id,)
+        )
+        
+        # Delete notifications
+        cur.execute("DELETE FROM Notifications WHERE UserId = %s", (user_id,))
+        
         # Delete timelines first
         cur.execute(
             """

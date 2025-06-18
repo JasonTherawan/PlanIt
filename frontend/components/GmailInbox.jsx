@@ -264,19 +264,45 @@ const GmailInbox = ({ isOpen, onClose }) => {
   const cleanEmailBody = (body) => {
     if (!body) return ""
 
-    // Remove excessive line breaks and whitespace
-    return body
-      .replace(/\n{3,}/g, "\n\n") // Replace 3+ line breaks with 2
+    // Remove HTML tags and decode HTML entities
+    let cleanedBody = body
+      .replace(/<style[^>]*>.*?<\/style>/gis, "") // Remove style tags and content
+      .replace(/<script[^>]*>.*?<\/script>/gis, "") // Remove script tags and content
+      .replace(/<[^>]*>/g, "") // Remove all HTML tags
+      .replace(/&nbsp;/g, " ") // Replace non-breaking spaces
+      .replace(/&amp;/g, "&") // Replace HTML entities
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&zwnj;/g, "")
       .replace(/\r\n/g, "\n") // Normalize line endings
+      .replace(/\n{3,}/g, "\n\n") // Replace 3+ line breaks with 2
       .replace(/[ \t]+/g, " ") // Replace multiple spaces/tabs with single space
       .replace(/^\s+|\s+$/g, "") // Trim start and end
       .replace(/\n\s*\n\s*\n/g, "\n\n") // Remove excessive blank lines
+
+    // Handle quoted text sections
+    cleanedBody = cleanedBody
+      .replace(/^>.*$/gm, "") // Remove quoted lines starting with >
+      .replace(/On .* wrote:.*$/gm, "") // Remove "On ... wrote:" lines
+      .replace(/From:.*$/gm, "") // Remove email headers in body
+      .replace(/To:.*$/gm, "")
+      .replace(/Subject:.*$/gm, "")
+      .replace(/Date:.*$/gm, "")
+      .replace(/Sent:.*$/gm, "")
+
+    // Final cleanup
+    return cleanedBody
+      .replace(/\n{3,}/g, "\n\n") // Final line break cleanup
+      .trim()
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[90vh] overflow-hidden flex">
         {/* Header */}
         <div className="w-full flex flex-col">
@@ -501,7 +527,7 @@ const GmailInbox = ({ isOpen, onClose }) => {
 
       {/* Reply Modal */}
       {showReplyModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-lg font-semibold">Reply to: {selectedMessage?.subject}</h3>
@@ -539,7 +565,7 @@ const GmailInbox = ({ isOpen, onClose }) => {
 
       {/* Forward Modal */}
       {showForwardModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-lg font-semibold">Forward: {selectedMessage?.subject}</h3>

@@ -1,10 +1,10 @@
 "use client"
 
-import { Search, ChevronLeft, ChevronRight, User, X } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, User, X, Bell } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import googleAuthService from "../services/googleAuth"
 
-const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
+const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationClick }) => {
   const [user, setUser] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState([])
@@ -13,6 +13,8 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
   const [goals, setGoals] = useState([])
   const [teams, setTeams] = useState([])
   const [userProfileData, setUserProfileData] = useState(null)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const searchRef = useRef(null)
   const resultsRef = useRef(null)
 
@@ -54,10 +56,31 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
     }
   }
 
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const userId = getUserId()
+      const response = await fetch(`http://localhost:5000/api/notifications?userId=${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setNotifications(data.notifications || [])
+        setUnreadCount(data.unreadCount || 0)
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error)
+    }
+  }
+
   // Fetch all data for search
   useEffect(() => {
     fetchUser()
     fetchAllData()
+    fetchNotifications()
+
+    // Set up polling for notifications every 30 seconds
+    const notificationInterval = setInterval(fetchNotifications, 30000)
+
+    return () => clearInterval(notificationInterval)
   }, [])
 
   useEffect(() => {
@@ -442,13 +465,26 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick }) => {
           )}
         </div>
 
-        <button
-          onClick={onProfileClick}
-          className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-blue-500"
-        >
+        {/* Notification Bell */}
+        <div className="relative">
+          <button
+            onClick={onNotificationClick}
+            className="p-2 rounded-full hover:bg-gray-100 relative"
+            title="Notifications"
+          >
+            <Bell size={20} className="text-gray-600" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <button onClick={onProfileClick} className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden hover:ring-2 hover:ring-blue-500">
           {userProfileData?.imageUrl ? (
             <img
-              src={userProfileData.imageUrl}
+              src={userProfileData.imageUrl || "/placeholder.svg"}
               alt="Profile"
               className="w-full h-full object-cover"
               onError={(e) => {

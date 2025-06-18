@@ -717,7 +717,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
   if (!isOpen || !item) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg border-[#005bc3] border-1 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">

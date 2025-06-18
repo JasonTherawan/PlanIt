@@ -19,6 +19,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
   const [highlightedSidebarItem, setHighlightedSidebarItem] = useState(null)
   const [isGmailInboxOpen, setIsGmailInboxOpen] = useState(false)
   const [isGoogleUser, setIsGoogleUser] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState(null)
   const scrollContainerRef = useRef(null)
 
   // Urgency color mapping
@@ -40,6 +41,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
     const user = JSON.parse(localStorage.getItem("user") || "{}")
     const isGoogleUser = !!user.googleId || !!user.accessToken
     setIsGoogleUser(isGoogleUser)
+    setCurrentUserId(user.id)
   }, [])
 
   // Fetch activities, goals, and teams
@@ -121,8 +123,14 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
     }
   }
 
-  // Delete team meeting
-  const deleteTeamMeeting = async (meetingId) => {
+  // Delete team meeting - only for team creators
+  const deleteTeamMeeting = async (meetingId, teamCreatorId) => {
+    // Check if current user is the team creator
+    if (currentUserId !== teamCreatorId) {
+      alert("Only team creators can delete meetings")
+      return
+    }
+
     if (!confirm("Are you sure you want to delete this team meeting?")) return
 
     try {
@@ -161,10 +169,27 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
     }
   }
 
-  // Handle edit
+  // Handle edit - only allow editing for creators or own items
   const handleEdit = (item) => {
-    setEditingItem(item)
-    setIsEditModalOpen(true)
+    // For activities and goals, always allow editing (they belong to the user)
+    if (item.type === "activity" || item.type === "goal") {
+      setEditingItem(item)
+      setIsEditModalOpen(true)
+      return
+    }
+
+    // For meetings, only allow editing if user is the team creator
+    if (item.type === "meeting") {
+      // Find the team this meeting belongs to
+      const team = teams.find((t) => t.meetings && t.meetings.some((m) => m.teammeetingid === item.id))
+
+      if (team && team.createdbyuserid === currentUserId) {
+        setEditingItem(item)
+        setIsEditModalOpen(true)
+      } else {
+        alert("Only team creators can edit meetings")
+      }
+    }
   }
 
   // Get the first day of the month
@@ -335,6 +360,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
               title: meeting.meetingtitle,
               id: meeting.teammeetingid,
               teamname: team.teamname,
+              teamCreatorId: team.createdbyuserid,
             })
           }
         })
@@ -434,6 +460,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
               title: meeting.meetingtitle,
               id: meeting.teammeetingid,
               teamname: team.teamname,
+              teamCreatorId: team.createdbyuserid,
             })
           }
         })
@@ -442,14 +469,6 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
 
     // Combine and sort by deadline
     return [...upcomingActivities, ...upcomingGoals, ...upcomingMeetings].sort((a, b) => a.deadline - b.deadline)
-  }
-
-  const formatEventTime = (date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
-
-  const formatEventDate = (date) => {
-    return date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })
   }
 
   const formatTime = (timeString) => {
@@ -538,7 +557,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
         case "high":
           return "#EF4444"
         case "medium":
-          return '#F59E0B"E0B'
+          return "#F59E0B"
         case "low":
           return "#10B981"
         default:
@@ -598,6 +617,13 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
       (item.type !== "goal" ||
         highlightedSidebarItem.timelineId === (item.timelineId || (item.timeline ? item.timeline.timelineid : null)))
 
+    // Check if user can edit/delete this item
+    const canEdit =
+      item.type === "activity" ||
+      item.type === "goal" ||
+      (item.type === "meeting" && item.teamCreatorId === currentUserId)
+    const canDelete = canEdit
+
     return (
       <div
         key={uniqueKey}
@@ -634,28 +660,32 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
             </button>
-            <button
-              onClick={() => handleEdit(item)}
-              className="w-4 h-4 bg-blue-500 hover:bg-blue-600 rounded flex items-center justify-center"
-              title="Edit"
-            >
-              <Edit2 size={8} />
-            </button>
-            <button
-              onClick={() => {
-                if (item.type === "activity") {
-                  deleteActivity(item.id)
-                } else if (item.type === "goal") {
-                  deleteGoal(item.id)
-                } else if (item.type === "meeting") {
-                  deleteTeamMeeting(item.id)
-                }
-              }}
-              className="w-4 h-4 bg-red-500 hover:bg-red-600 rounded flex items-center justify-center"
-              title="Delete"
-            >
-              <Trash2 size={8} />
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => handleEdit(item)}
+                className="w-4 h-4 bg-blue-500 hover:bg-blue-600 rounded flex items-center justify-center"
+                title="Edit"
+              >
+                <Edit2 size={8} />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={() => {
+                  if (item.type === "activity") {
+                    deleteActivity(item.id)
+                  } else if (item.type === "goal") {
+                    deleteGoal(item.id)
+                  } else if (item.type === "meeting") {
+                    deleteTeamMeeting(item.id, item.teamCreatorId)
+                  }
+                }}
+                className="w-4 h-4 bg-red-500 hover:bg-red-600 rounded flex items-center justify-center"
+                title="Delete"
+              >
+                <Trash2 size={8} />
+              </button>
+            )}
           </div>
         )}
 

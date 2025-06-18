@@ -358,7 +358,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     }
 
     return (
-      <div className="fixed inset-0 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
         <div className="bg-white rounded-lg border-1 shadow-2xl w-full max-w-md p-4" onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium">

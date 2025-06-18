@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Plus, Trash2, AlertCircle, CheckCircle, Mail, Clock, Users } from "lucide-react"
+import { X, Plus, Trash2, AlertCircle, CheckCircle } from "lucide-react"
 
 const AddItemModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState("activity")
@@ -48,11 +48,11 @@ const AddItemModal = ({ isOpen, onClose }) => {
   const [team, setTeam] = useState({
     teamName: "",
     teamDescription: "",
-    teamStartWorkingHour: "09:00",
-    teamEndWorkingHour: "17:00",
+    teamStartWorkingHour: "",
+    teamEndWorkingHour: "",
   })
 
-  // Team meetings for team
+  // Meeting entries for team
   const [meetings, setMeetings] = useState([
     {
       meetingTitle: "",
@@ -60,6 +60,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
       meetingDate: "",
       meetingStartTime: "",
       meetingEndTime: "",
+      invitationType: "mandatory",
       invitedEmails: [""],
     },
   ])
@@ -106,6 +107,56 @@ const AddItemModal = ({ isOpen, onClose }) => {
     }
   }
 
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setApiError("")
+      setSuccessMessage("")
+      // Reset forms
+      setActivity({
+        activityTitle: "",
+        activityDescription: "",
+        activityCategory: "",
+        activityUrgency: "medium",
+        activityDate: "",
+        activityStartTime: "",
+        activityEndTime: "",
+      })
+      setGoal({
+        goalTitle: "",
+        goalDescription: "",
+        goalCategory: "",
+        goalProgress: "not-started",
+      })
+      setTimelines([
+        {
+          timelineTitle: "",
+          timelineStartDate: "",
+          timelineEndDate: "",
+          timelineStartTime: "",
+          timelineEndTime: "",
+        },
+      ])
+      setTeam({
+        teamName: "",
+        teamDescription: "",
+        teamStartWorkingHour: "",
+        teamEndWorkingHour: "",
+      })
+      setMeetings([
+        {
+          meetingTitle: "",
+          meetingDescription: "",
+          meetingDate: "",
+          meetingStartTime: "",
+          meetingEndTime: "",
+          invitationType: "mandatory",
+          invitedEmails: [""],
+        },
+      ])
+    }
+  }, [isOpen])
+
   // Handle activity form changes
   const handleActivityChange = (e) => {
     const { name, value } = e.target
@@ -135,6 +186,29 @@ const AddItemModal = ({ isOpen, onClose }) => {
     setTimelines(updatedTimelines)
   }
 
+  // Add new timeline
+  const addTimeline = () => {
+    setTimelines([
+      ...timelines,
+      {
+        timelineTitle: "",
+        timelineStartDate: "",
+        timelineEndDate: "",
+        timelineStartTime: "",
+        timelineEndTime: "",
+      },
+    ])
+  }
+
+  // Remove timeline
+  const removeTimeline = (index) => {
+    if (timelines.length > 1) {
+      const updatedTimelines = [...timelines]
+      updatedTimelines.splice(index, 1)
+      setTimelines(updatedTimelines)
+    }
+  }
+
   // Handle team form changes
   const handleTeamChange = (e) => {
     const { name, value } = e.target
@@ -162,26 +236,19 @@ const AddItemModal = ({ isOpen, onClose }) => {
     setMeetings(updatedMeetings)
   }
 
-  // Add new timeline
-  const addTimeline = () => {
-    setTimelines([
-      ...timelines,
-      {
-        timelineTitle: "",
-        timelineStartDate: "",
-        timelineEndDate: "",
-        timelineStartTime: "",
-        timelineEndTime: "",
-      },
-    ])
+  // Add new invited email
+  const addInvitedEmail = (meetingIndex) => {
+    const updatedMeetings = [...meetings]
+    updatedMeetings[meetingIndex].invitedEmails.push("")
+    setMeetings(updatedMeetings)
   }
 
-  // Remove timeline
-  const removeTimeline = (index) => {
-    if (timelines.length > 1) {
-      const updatedTimelines = [...timelines]
-      updatedTimelines.splice(index, 1)
-      setTimelines(updatedTimelines)
+  // Remove invited email
+  const removeInvitedEmail = (meetingIndex, emailIndex) => {
+    const updatedMeetings = [...meetings]
+    if (updatedMeetings[meetingIndex].invitedEmails.length > 1) {
+      updatedMeetings[meetingIndex].invitedEmails.splice(emailIndex, 1)
+      setMeetings(updatedMeetings)
     }
   }
 
@@ -195,6 +262,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
         meetingDate: "",
         meetingStartTime: "",
         meetingEndTime: "",
+        invitationType: "mandatory",
         invitedEmails: [""],
       },
     ])
@@ -205,22 +273,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     if (meetings.length > 1) {
       const updatedMeetings = [...meetings]
       updatedMeetings.splice(index, 1)
-      setMeetings(updatedMeetings)
-    }
-  }
-
-  // Add email to meeting
-  const addEmailToMeeting = (meetingIndex) => {
-    const updatedMeetings = [...meetings]
-    updatedMeetings[meetingIndex].invitedEmails.push("")
-    setMeetings(updatedMeetings)
-  }
-
-  // Remove email from meeting
-  const removeEmailFromMeeting = (meetingIndex, emailIndex) => {
-    const updatedMeetings = [...meetings]
-    if (updatedMeetings[meetingIndex].invitedEmails.length > 1) {
-      updatedMeetings[meetingIndex].invitedEmails.splice(emailIndex, 1)
       setMeetings(updatedMeetings)
     }
   }
@@ -244,7 +296,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
       const existingStart = new Date(`${existingActivity.activitydate}T${existingActivity.activitystarttime}`)
       const existingEnd = new Date(`${existingActivity.activitydate}T${existingActivity.activityendtime}`)
 
-      // Check for any intersection (not just exact overlap)
       if (newStart < existingEnd && newEnd > existingStart) {
         overlaps.push({
           type: "activity",
@@ -258,13 +309,11 @@ const AddItemModal = ({ isOpen, onClose }) => {
     goals.forEach((goal) => {
       if (goal.timelines) {
         goal.timelines.forEach((timeline) => {
-          // Check if timeline spans the activity date
           const timelineStart = new Date(timeline.timelinestartdate)
           const timelineEnd = new Date(timeline.timelineenddate)
           const activityDate = new Date(newActivity.activityDate)
 
           if (activityDate >= timelineStart && activityDate <= timelineEnd) {
-            // If timeline has specific times, check for time overlap
             if (timeline.timelinestarttime && timeline.timelineendtime) {
               const timelineStartTime = new Date(`${newActivity.activityDate}T${timeline.timelinestarttime}`)
               const timelineEndTime = new Date(`${newActivity.activityDate}T${timeline.timelineendtime}`)
@@ -277,7 +326,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 })
               }
             } else {
-              // If no specific times, consider it overlapping for the whole day
               overlaps.push({
                 type: "goal",
                 title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
@@ -328,9 +376,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
     activities.forEach((activity) => {
       const activityDate = new Date(activity.activitydate)
 
-      // Check if activity date falls within timeline range
       if (activityDate >= newStart && activityDate <= newEnd) {
-        // If timeline has specific times and activity has times, check for time overlap
         if (
           newTimeline.timelineStartTime &&
           newTimeline.timelineEndTime &&
@@ -351,7 +397,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
             })
           }
         } else {
-          // If no specific times, consider it overlapping
           overlaps.push({
             type: "activity",
             title: activity.activitytitle,
@@ -371,7 +416,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
           const existingStart = new Date(timeline.timelinestartdate)
           const existingEnd = new Date(timeline.timelineenddate)
 
-          // Check for date range overlap
           if (newStart <= existingEnd && newEnd >= existingStart) {
             overlaps.push({
               type: "goal",
@@ -392,9 +436,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
         team.meetings.forEach((meeting) => {
           const meetingDate = new Date(meeting.meetingdate)
 
-          // Check if meeting date falls within timeline range
           if (meetingDate >= newStart && meetingDate <= newEnd) {
-            // If timeline has specific times and meeting has times, check for time overlap
             if (
               newTimeline.timelineStartTime &&
               newTimeline.timelineEndTime &&
@@ -415,7 +457,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 })
               }
             } else {
-              // If no specific times, consider it overlapping
               overlaps.push({
                 type: "meeting",
                 title: meeting.meetingtitle,
@@ -423,90 +464,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 date: meeting.meetingdate,
               })
             }
-          }
-        })
-      }
-    })
-
-    return overlaps
-  }
-
-  // Check for meeting overlaps
-  const checkMeetingOverlaps = (newMeeting) => {
-    if (!newMeeting.meetingStartTime || !newMeeting.meetingEndTime) {
-      return []
-    }
-
-    const newStart = new Date(`${newMeeting.meetingDate}T${newMeeting.meetingStartTime}`)
-    const newEnd = new Date(`${newMeeting.meetingDate}T${newMeeting.meetingEndTime}`)
-
-    const overlaps = []
-
-    // Check against existing activities
-    activities.forEach((activity) => {
-      if (activity.activitydate !== newMeeting.meetingDate) return
-      if (!activity.activitystarttime || !activity.activityendtime) return
-
-      const activityStart = new Date(`${activity.activitydate}T${activity.activitystarttime}`)
-      const activityEnd = new Date(`${activity.activitydate}T${activity.activityendtime}`)
-
-      if (newStart < activityEnd && newEnd > activityStart) {
-        overlaps.push({
-          type: "activity",
-          title: activity.activitytitle,
-          time: `${activity.activitystarttime} - ${activity.activityendtime}`,
-        })
-      }
-    })
-
-    // Check against goal timelines
-    goals.forEach((goal) => {
-      if (goal.timelines) {
-        goal.timelines.forEach((timeline) => {
-          const timelineStart = new Date(timeline.timelinestartdate)
-          const timelineEnd = new Date(timeline.timelineenddate)
-          const meetingDate = new Date(newMeeting.meetingDate)
-
-          if (meetingDate >= timelineStart && meetingDate <= timelineEnd) {
-            if (timeline.timelinestarttime && timeline.timelineendtime) {
-              const timelineStartTime = new Date(`${newMeeting.meetingDate}T${timeline.timelinestarttime}`)
-              const timelineEndTime = new Date(`${newMeeting.meetingDate}T${timeline.timelineendtime}`)
-
-              if (newStart < timelineEndTime && newEnd > timelineStartTime) {
-                overlaps.push({
-                  type: "goal",
-                  title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
-                  time: `${timeline.timelinestarttime} - ${timeline.timelineendtime}`,
-                })
-              }
-            } else {
-              overlaps.push({
-                type: "goal",
-                title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
-                time: "All day",
-              })
-            }
-          }
-        })
-      }
-    })
-
-    // Check against other team meetings
-    teams.forEach((team) => {
-      if (team.meetings) {
-        team.meetings.forEach((meeting) => {
-          if (meeting.meetingdate !== newMeeting.meetingDate) return
-          if (!meeting.meetingstarttime || !meeting.meetingendtime) return
-
-          const meetingStart = new Date(`${meeting.meetingdate}T${meeting.meetingstarttime}`)
-          const meetingEnd = new Date(`${meeting.meetingdate}T${meeting.meetingendtime}`)
-
-          if (newStart < meetingEnd && newEnd > meetingStart) {
-            overlaps.push({
-              type: "meeting",
-              title: meeting.meetingtitle,
-              time: `${meeting.meetingstarttime} - ${meeting.meetingendtime}`,
-            })
           }
         })
       }
@@ -535,7 +492,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
       return false
     }
 
-    // Check if at least one timeline has title and dates
     const validTimeline = timelines.some(
       (timeline) => timeline.timelineTitle.trim() && timeline.timelineStartDate && timeline.timelineEndDate,
     )
@@ -555,24 +511,14 @@ const AddItemModal = ({ isOpen, onClose }) => {
       return false
     }
 
-    // Check if at least one meeting has title and date
-    const validMeeting = meetings.some((meeting) => meeting.meetingTitle.trim() && meeting.meetingDate)
+    const validMeeting = meetings.some(
+      (meeting) =>
+        meeting.meetingTitle.trim() && meeting.meetingDate && meeting.invitedEmails.some((email) => email.trim()),
+    )
 
     if (!validMeeting) {
-      setApiError("At least one meeting with title and date is required")
+      setApiError("At least one meeting with title, date, and invited emails is required")
       return false
-    }
-
-    // Validate invited emails
-    for (let i = 0; i < meetings.length; i++) {
-      const meeting = meetings[i]
-      if (meeting.meetingTitle.trim() && meeting.meetingDate) {
-        const validEmails = meeting.invitedEmails.filter((email) => email.trim() && email.includes("@"))
-        if (validEmails.length === 0) {
-          setApiError(`Meeting "${meeting.meetingTitle}" must have at least one valid email address`)
-          return false
-        }
-      }
     }
 
     return true
@@ -621,7 +567,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           activityEndTime: activity.activityEndTime,
         }
 
-        // Make API call to create activity
+        // Make API call
         const response = await fetch("http://localhost:5000/api/activities", {
           method: "POST",
           headers: {
@@ -636,21 +582,10 @@ const AddItemModal = ({ isOpen, onClose }) => {
           console.log("Activity created successfully:", data)
           setSuccessMessage("Activity created successfully!")
 
-          // Reset form
-          setActivity({
-            activityTitle: "",
-            activityDescription: "",
-            activityCategory: "",
-            activityUrgency: "medium",
-            activityDate: "",
-            activityStartTime: "",
-            activityEndTime: "",
-          })
-
           // Close modal after a delay
           setTimeout(() => {
             onClose()
-          }, 2000)
+          }, 1500)
         } else {
           console.error("Failed to create activity:", data)
           setApiError(data.message || "Failed to create activity. Please try again.")
@@ -711,7 +646,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           })),
         }
 
-        // Make API call to create goal
+        // Make API call
         const response = await fetch("http://localhost:5000/api/goals", {
           method: "POST",
           headers: {
@@ -726,77 +661,21 @@ const AddItemModal = ({ isOpen, onClose }) => {
           console.log("Goal created successfully:", data)
           setSuccessMessage("Goal created successfully!")
 
-          // Reset form
-          setGoal({
-            goalTitle: "",
-            goalDescription: "",
-            goalCategory: "",
-            goalProgress: "not-started",
-          })
-
-          setTimelines([
-            {
-              timelineTitle: "",
-              timelineStartDate: "",
-              timelineEndDate: "",
-              timelineStartTime: "",
-              timelineEndTime: "",
-            },
-          ])
-
           // Close modal after a delay
           setTimeout(() => {
             onClose()
-          }, 2000)
+          }, 1500)
         } else {
           console.error("Failed to create goal:", data)
           setApiError(data.message || "Failed to create goal. Please try again.")
         }
-      } else {
+      } else if (activeTab === "team") {
         // Validate team form
         if (!validateTeamForm()) {
           setIsLoading(false)
           return
         }
 
-        // Check for overlaps in all meetings
-        const allMeetingOverlaps = []
-        meetings.forEach((meeting, index) => {
-          if (
-            meeting.meetingTitle.trim() &&
-            meeting.meetingDate &&
-            meeting.meetingStartTime &&
-            meeting.meetingEndTime
-          ) {
-            const overlaps = checkMeetingOverlaps(meeting)
-            if (overlaps.length > 0) {
-              allMeetingOverlaps.push({
-                meetingIndex: index + 1,
-                meetingTitle: meeting.meetingTitle,
-                overlaps: overlaps,
-              })
-            }
-          }
-        })
-
-        if (allMeetingOverlaps.length > 0) {
-          let overlapMessage = "The following team meetings have intersections:\n\n"
-          allMeetingOverlaps.forEach(({ meetingIndex, meetingTitle, overlaps }) => {
-            overlapMessage += `Meeting ${meetingIndex} (${meetingTitle}):\n`
-            overlaps.forEach((overlap) => {
-              overlapMessage += `  • ${overlap.title} (${overlap.time}) [${overlap.type}]\n`
-            })
-            overlapMessage += "\n"
-          })
-          overlapMessage += "Do you want to continue?"
-
-          const confirmOverlap = window.confirm(overlapMessage)
-          if (!confirmOverlap) {
-            setIsLoading(false)
-            return
-          }
-        }
-        
         // Prepare team data for API
         const teamData = {
           createdByUserId: getUserId(),
@@ -804,19 +683,18 @@ const AddItemModal = ({ isOpen, onClose }) => {
           teamDescription: team.teamDescription,
           teamStartWorkingHour: team.teamStartWorkingHour,
           teamEndWorkingHour: team.teamEndWorkingHour,
-          meetings: meetings
-            .filter((meeting) => meeting.meetingTitle.trim() && meeting.meetingDate)
-            .map((meeting) => ({
-              meetingTitle: meeting.meetingTitle,
-              meetingDescription: meeting.meetingDescription,
-              meetingDate: meeting.meetingDate,
-              meetingStartTime: meeting.meetingStartTime,
-              meetingEndTime: meeting.meetingEndTime,
-              invitedEmails: meeting.invitedEmails.filter((email) => email.trim() && email.includes("@")),
-            })),
+          meetings: meetings.map((meeting) => ({
+            meetingTitle: meeting.meetingTitle,
+            meetingDescription: meeting.meetingDescription,
+            meetingDate: meeting.meetingDate,
+            meetingStartTime: meeting.meetingStartTime,
+            meetingEndTime: meeting.meetingEndTime,
+            invitationType: meeting.invitationType,
+            invitedEmails: meeting.invitedEmails.filter((email) => email.trim()),
+          })),
         }
 
-        // Make API call to create team
+        // Make API call
         const response = await fetch("http://localhost:5000/api/teams", {
           method: "POST",
           headers: {
@@ -831,29 +709,10 @@ const AddItemModal = ({ isOpen, onClose }) => {
           console.log("Team created successfully:", data)
           setSuccessMessage("Team created successfully!")
 
-          // Reset form
-          setTeam({
-            teamName: "",
-            teamDescription: "",
-            teamStartWorkingHour: "09:00",
-            teamEndWorkingHour: "17:00",
-          })
-
-          setMeetings([
-            {
-              meetingTitle: "",
-              meetingDescription: "",
-              meetingDate: "",
-              meetingStartTime: "",
-              meetingEndTime: "",
-              invitedEmails: [""],
-            },
-          ])
-
           // Close modal after a delay
           setTimeout(() => {
             onClose()
-          }, 2000)
+          }, 1500)
         } else {
           console.error("Failed to create team:", data)
           setApiError(data.message || "Failed to create team. Please try again.")
@@ -870,8 +729,8 @@ const AddItemModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg border-[#005bc3] border-1 shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-xl font-semibold text-gray-800">Add New Item</h2>
@@ -880,35 +739,32 @@ const AddItemModal = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Tabs */}
+        {/* Tab Navigation */}
         <div className="flex border-b">
           <button
-            className={`px-6 py-3 font-medium flex items-center ${
+            className={`px-6 py-3 font-medium ${
               activeTab === "activity"
                 ? "text-blue-600 border-b-2 border-blue-600"
                 : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveTab("activity")}
           >
-            <Clock size={16} className="mr-2" />
             Activity
           </button>
           <button
-            className={`px-6 py-3 font-medium flex items-center ${
+            className={`px-6 py-3 font-medium ${
               activeTab === "goal" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveTab("goal")}
           >
-            <CheckCircle size={16} className="mr-2" />
             Goal
           </button>
           <button
-            className={`px-6 py-3 font-medium flex items-center ${
+            className={`px-6 py-3 font-medium ${
               activeTab === "team" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveTab("team")}
           >
-            <Users size={16} className="mr-2" />
             Team
           </button>
         </div>
@@ -929,18 +785,18 @@ const AddItemModal = ({ isOpen, onClose }) => {
         )}
 
         {/* Form content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          {activeTab === "activity" ? (
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          {activeTab === "activity" && (
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Activity Title</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Activity Title*</label>
                   <input
                     type="text"
                     name="activityTitle"
                     value={activity.activityTitle}
                     onChange={handleActivityChange}
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -952,7 +808,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     value={activity.activityDescription}
                     onChange={handleActivityChange}
                     rows="3"
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
@@ -962,7 +818,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="activityCategory"
                     value={activity.activityCategory}
                     onChange={handleActivityChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select a category</option>
                     <option value="work">Work</option>
@@ -979,7 +835,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="activityUrgency"
                     value={activity.activityUrgency}
                     onChange={handleActivityChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -989,13 +845,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date*</label>
                   <input
                     type="date"
                     name="activityDate"
                     value={activity.activityDate}
                     onChange={handleActivityChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -1008,7 +864,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                       name="activityStartTime"
                       value={activity.activityStartTime}
                       onChange={handleActivityChange}
-                      className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
@@ -1019,7 +875,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                       name="activityEndTime"
                       value={activity.activityEndTime}
                       onChange={handleActivityChange}
-                      className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -1039,21 +895,23 @@ const AddItemModal = ({ isOpen, onClose }) => {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Adding..." : "Add Activity"}
+                  {isLoading ? "Creating..." : "Create Activity"}
                 </button>
               </div>
             </form>
-          ) : activeTab === "goal" ? (
+          )}
+
+          {activeTab === "goal" && (
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Goal Title</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Goal Title*</label>
                   <input
                     type="text"
                     name="goalTitle"
                     value={goal.goalTitle}
                     onChange={handleGoalChange}
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -1065,7 +923,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     value={goal.goalDescription}
                     onChange={handleGoalChange}
                     rows="3"
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
@@ -1075,7 +933,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="goalCategory"
                     value={goal.goalCategory}
                     onChange={handleGoalChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select a category</option>
                     <option value="career">Career</option>
@@ -1092,7 +950,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="goalProgress"
                     value={goal.goalProgress}
                     onChange={handleGoalChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="not-started">Not Started</option>
                     <option value="in-progress">In Progress</option>
@@ -1115,7 +973,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 </div>
 
                 {timelines.map((timeline, index) => (
-                  <div key={index} className="border rounded-md p-4 mb-4 bg-gray-100">
+                  <div key={index} className="border rounded-md p-4 mb-4 bg-gray-50">
                     <div className="flex justify-between items-center mb-3">
                       <h4 className="font-medium text-gray-700">Timeline {index + 1}</h4>
                       <button
@@ -1130,37 +988,37 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Title*</label>
                         <input
                           type="text"
                           name="timelineTitle"
                           value={timeline.timelineTitle}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date*</label>
                         <input
                           type="date"
                           name="timelineStartDate"
                           value={timeline.timelineStartDate}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date*</label>
                         <input
                           type="date"
                           name="timelineEndDate"
                           value={timeline.timelineEndDate}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
@@ -1172,7 +1030,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                           name="timelineStartTime"
                           value={timeline.timelineStartTime}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
 
@@ -1183,7 +1041,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                           name="timelineEndTime"
                           value={timeline.timelineEndTime}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </div>
@@ -1205,21 +1063,23 @@ const AddItemModal = ({ isOpen, onClose }) => {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Adding..." : "Add Goal"}
+                  {isLoading ? "Creating..." : "Create Goal"}
                 </button>
               </div>
             </form>
-          ) : (
+          )}
+
+          {activeTab === "team" && (
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Team Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Team Name*</label>
                   <input
                     type="text"
                     name="teamName"
                     value={team.teamName}
                     onChange={handleTeamChange}
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -1231,7 +1091,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     value={team.teamDescription}
                     onChange={handleTeamChange}
                     rows="3"
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
@@ -1242,7 +1102,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="teamStartWorkingHour"
                     value={team.teamStartWorkingHour}
                     onChange={handleTeamChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -1253,14 +1113,14 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="teamEndWorkingHour"
                     value={team.teamEndWorkingHour}
                     onChange={handleTeamChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
 
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-medium text-gray-800">Team Meetings</h3>
+                  <h3 className="text-lg font-medium text-gray-800">Meetings</h3>
                   <button
                     type="button"
                     onClick={addMeeting}
@@ -1270,13 +1130,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
                   </button>
                 </div>
 
-                {meetings.map((meeting, index) => (
-                  <div key={index} className="border rounded-md p-4 mb-4 bg-gray-50">
+                {meetings.map((meeting, meetingIndex) => (
+                  <div key={meetingIndex} className="border rounded-md p-4 mb-4 bg-gray-50">
                     <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium text-gray-700">Meeting {index + 1}</h4>
+                      <h4 className="font-medium text-gray-700">Meeting {meetingIndex + 1}</h4>
                       <button
                         type="button"
-                        onClick={() => removeMeeting(index)}
+                        onClick={() => removeMeeting(meetingIndex)}
                         className="text-red-500 hover:text-red-700"
                         disabled={meetings.length === 1}
                       >
@@ -1286,91 +1146,102 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Title</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Title*</label>
                         <input
                           type="text"
                           name="meetingTitle"
                           value={meeting.meetingTitle}
-                          onChange={(e) => handleMeetingChange(index, e)}
-                          className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Description</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <textarea
                           name="meetingDescription"
                           value={meeting.meetingDescription}
-                          onChange={(e) => handleMeetingChange(index, e)}
+                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
                           rows="2"
-                          className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         ></textarea>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Date</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date*</label>
                         <input
                           type="date"
                           name="meetingDate"
                           value={meeting.meetingDate}
-                          onChange={(e) => handleMeetingChange(index, e)}
-                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
-                      <div className="flex space-x-2">
-                        <div className="flex-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                          <input
-                            type="time"
-                            name="meetingStartTime"
-                            value={meeting.meetingStartTime}
-                            onChange={(e) => handleMeetingChange(index, e)}
-                            className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Invitation Type</label>
+                        <select
+                          name="invitationType"
+                          value={meeting.invitationType}
+                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="mandatory">Mandatory (Auto-assign)</option>
+                          <option value="request">Request (Can accept/decline)</option>
+                        </select>
+                      </div>
 
-                        <div className="flex-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                          <input
-                            type="time"
-                            name="meetingEndTime"
-                            value={meeting.meetingEndTime}
-                            onChange={(e) => handleMeetingChange(index, e)}
-                            className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          name="meetingStartTime"
+                          value={meeting.meetingStartTime}
+                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                        <input
+                          type="time"
+                          name="meetingEndTime"
+                          value={meeting.meetingEndTime}
+                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
                       </div>
                     </div>
 
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <label className="block text-sm font-medium text-gray-700">Invite Team Members</label>
+                        <label className="block text-sm font-medium text-gray-700">Invited Emails*</label>
                         <button
                           type="button"
-                          onClick={() => addEmailToMeeting(index)}
+                          onClick={() => addInvitedEmail(meetingIndex)}
                           className="flex items-center text-xs text-blue-600 hover:text-blue-800"
                         >
-                          <Mail size={12} className="mr-1" /> Add Email
+                          <Plus size={12} className="mr-1" /> Add Email
                         </button>
                       </div>
 
                       {meeting.invitedEmails.map((email, emailIndex) => (
-                        <div key={emailIndex} className="flex items-center space-x-2 mb-2">
+                        <div key={emailIndex} className="flex items-center mb-2">
                           <input
                             type="email"
                             value={email}
-                            onChange={(e) => handleInvitedEmailChange(index, emailIndex, e.target.value)}
+                            onChange={(e) => handleInvitedEmailChange(meetingIndex, emailIndex, e.target.value)}
                             placeholder="Enter email address"
-                            className="text-black flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                           />
                           <button
                             type="button"
-                            onClick={() => removeEmailFromMeeting(index, emailIndex)}
-                            className="text-red-500 hover:text-red-700"
+                            onClick={() => removeInvitedEmail(meetingIndex, emailIndex)}
+                            className="ml-2 text-red-500 hover:text-red-700"
                             disabled={meeting.invitedEmails.length === 1}
                           >
                             <Trash2 size={16} />
@@ -1396,7 +1267,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Adding..." : "Add Team"}
+                  {isLoading ? "Creating..." : "Create Team"}
                 </button>
               </div>
             </form>
