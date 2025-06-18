@@ -44,6 +44,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
     },
   ])
 
+  // AI scheduling state variables
+  const [aiSuggestions, setAiSuggestions] = useState([])
+  const [isLoadingAI, setIsLoadingAI] = useState(false)
+  const [selectedSuggestion, setSelectedSuggestion] = useState(null)
+  const [showAISuggestions, setShowAISuggestions] = useState(false)
+
   // Team form state
   const [team, setTeam] = useState({
     teamName: "",
@@ -52,7 +58,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     teamEndWorkingHour: "",
   })
 
-  // Meeting entries for team
   const [meetings, setMeetings] = useState([
     {
       meetingTitle: "",
@@ -62,6 +67,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
       meetingEndTime: "",
       invitationType: "mandatory",
       invitedEmails: [""],
+      // AI Scheduling fields
+      useAIScheduling: false,
+      dateRangeStart: "",
+      dateRangeEnd: "",
+      duration: 60,
+      timePreference: "",
     },
   ])
 
@@ -152,6 +163,11 @@ const AddItemModal = ({ isOpen, onClose }) => {
           meetingEndTime: "",
           invitationType: "mandatory",
           invitedEmails: [""],
+          useAIScheduling: false,
+          dateRangeStart: "",
+          dateRangeEnd: "",
+          duration: 60,
+          timePreference: "",
         },
       ])
     }
@@ -264,6 +280,11 @@ const AddItemModal = ({ isOpen, onClose }) => {
         meetingEndTime: "",
         invitationType: "mandatory",
         invitedEmails: [""],
+        useAIScheduling: false,
+        dateRangeStart: "",
+        dateRangeEnd: "",
+        duration: 60,
+        timePreference: "",
       },
     ])
   }
@@ -522,6 +543,117 @@ const AddItemModal = ({ isOpen, onClose }) => {
     }
 
     return true
+  }
+
+  const handleAISchedulingForTeam = async (meetingIndex) => {
+    setIsLoadingAI(true)
+    setApiError("")
+
+    try {
+      const meeting = meetings[meetingIndex]
+
+      // Get team members from invited emails
+      const validEmails = meeting.invitedEmails.filter((email) => email.trim())
+      if (validEmails.length === 0) {
+        setApiError("Please add at least one team member email")
+        setIsLoadingAI(false)
+        return
+      }
+
+      // Include creator in the analysis
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}")
+      const allMemberEmails = [currentUser.email, ...validEmails]
+
+      // Get user IDs from emails and their activities
+      const memberActivities = {}
+      const teamMembers = []
+
+      for (const email of allMemberEmails) {
+        try {
+          // First get user by email
+          const userResponse = await fetch(`http://localhost:5000/api/users/by-email/${encodeURIComponent(email)}`)
+          if (userResponse.ok) {
+            const userData = await userResponse.json()
+            teamMembers.push({
+              userid: userData.user.userid,
+              username: userData.user.username,
+              email: userData.user.useremail,
+            })
+
+            // Then get their activities
+            const activitiesResponse = await fetch(
+              `http://localhost:5000/api/activities?userId=${userData.user.userid}`,
+            )
+            if (activitiesResponse.ok) {
+              const data = await activitiesResponse.json()
+              // Filter activities within date range
+              const filteredActivities = data.activities.filter((activity) => {
+                const activityDate = new Date(activity.activitydate)
+                const startDate = new Date(meeting.dateRangeStart)
+                const endDate = new Date(meeting.dateRangeEnd)
+                return activityDate >= startDate && activityDate <= endDate
+              })
+              memberActivities[userData.user.userid] = filteredActivities
+            }
+          } else {
+            console.warn(`User not found for email: ${email}`)
+            // Add as unknown user for AI analysis
+            teamMembers.push({
+              userid: `unknown_${email}`,
+              username: email.split("@")[0],
+              email: email,
+            })
+            memberActivities[`unknown_${email}`] = []
+          }
+        } catch (error) {
+          console.error(`Error fetching data for ${email}:`, error)
+          memberActivities[`unknown_${email}`] = []
+        }
+      }
+
+      // Call AI service
+      const aiService = (await import("../services/aiService.js")).default
+      const result = await aiService.findOptimalMeetingTimes(
+        teamMembers,
+        {
+          startDate: meeting.dateRangeStart,
+          endDate: meeting.dateRangeEnd,
+        },
+        meeting.duration,
+        {
+          start: team.teamStartWorkingHour || "09:00",
+          end: team.teamEndWorkingHour || "17:00",
+        },
+        meeting.timePreference,
+        memberActivities,
+      )
+
+      if (result.success) {
+        setAiSuggestions(result.suggestions)
+        setSelectedSuggestion(null)
+        setShowAISuggestions(true)
+      } else {
+        setApiError(result.error || "Failed to generate meeting suggestions")
+      }
+    } catch (error) {
+      console.error("Error in AI scheduling:", error)
+      setApiError("Failed to generate meeting suggestions")
+    } finally {
+      setIsLoadingAI(false)
+    }
+  }
+
+  const selectAISuggestionForTeam = (suggestion, meetingIndex) => {
+    setSelectedSuggestion(suggestion)
+    const updatedMeetings = [...meetings]
+    updatedMeetings[meetingIndex] = {
+      ...updatedMeetings[meetingIndex],
+      meetingDate: suggestion.date,
+      meetingStartTime: suggestion.startTime,
+      meetingEndTime: suggestion.endTime,
+    }
+    setMeetings(updatedMeetings)
+    setShowAISuggestions(false)
   }
 
   // Handle form submission
@@ -1157,100 +1289,308 @@ const AddItemModal = ({ isOpen, onClose }) => {
                         />
                       </div>
 
-                      <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea
-                          name="meetingDescription"
-                          value={meeting.meetingDescription}
-                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                          rows="2"
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        ></textarea>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Date*</label>
+                      {/* AI Scheduling Toggle */}
+                      <div className="col-span-2 flex items-center space-x-2">
                         <input
-                          type="date"
-                          name="meetingDate"
-                          value={meeting.meetingDate}
-                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
+                          type="checkbox"
+                          id={`useAIScheduling-${meetingIndex}`}
+                          checked={meeting.useAIScheduling}
+                          onChange={(e) => {
+                            const updatedMeetings = [...meetings]
+                            updatedMeetings[meetingIndex].useAIScheduling = e.target.checked
+                            setMeetings(updatedMeetings)
+                          }}
+                          className="rounded"
                         />
+                        <label htmlFor={`useAIScheduling-${meetingIndex}`} className="text-sm text-gray-700">
+                          Use AI to find optimal meeting time
+                        </label>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Invitation Type</label>
-                        <select
-                          name="invitationType"
-                          value={meeting.invitationType}
-                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="mandatory">Mandatory (Auto-assign)</option>
-                          <option value="request">Request (Can accept/decline)</option>
-                        </select>
-                      </div>
+                      {meeting.useAIScheduling ? (
+                        // AI Scheduling Form
+                        <div className="col-span-2 border border-blue-300 rounded p-3 bg-blue-50">
+                          <h5 className="text-sm font-medium text-blue-700 mb-3">AI Meeting Scheduler</h5>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                        <input
-                          type="time"
-                          name="meetingStartTime"
-                          value={meeting.meetingStartTime}
-                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Team Members (Emails)*
+                              </label>
+                              {meeting.invitedEmails.map((email, emailIndex) => (
+                                <div key={emailIndex} className="flex items-center mb-2">
+                                  <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => handleInvitedEmailChange(meetingIndex, emailIndex, e.target.value)}
+                                    placeholder="Enter email address"
+                                    className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeInvitedEmail(meetingIndex, emailIndex)}
+                                    className="ml-2 text-red-500 hover:text-red-700"
+                                    disabled={meeting.invitedEmails.length === 1}
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => addInvitedEmail(meetingIndex)}
+                                className="flex items-center text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                <Plus size={12} className="mr-1" /> Add Member Email
+                              </button>
+                            </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                        <input
-                          type="time"
-                          name="meetingEndTime"
-                          value={meeting.meetingEndTime}
-                          onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                                <input
+                                  type="date"
+                                  value={meeting.dateRangeStart}
+                                  onChange={(e) => {
+                                    const updatedMeetings = [...meetings]
+                                    updatedMeetings[meetingIndex].dateRangeStart = e.target.value
+                                    setMeetings(updatedMeetings)
+                                  }}
+                                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                                <input
+                                  type="date"
+                                  value={meeting.dateRangeEnd}
+                                  onChange={(e) => {
+                                    const updatedMeetings = [...meetings]
+                                    updatedMeetings[meetingIndex].dateRangeEnd = e.target.value
+                                    setMeetings(updatedMeetings)
+                                  }}
+                                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                            </div>
 
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-sm font-medium text-gray-700">Invited Emails*</label>
-                        <button
-                          type="button"
-                          onClick={() => addInvitedEmail(meetingIndex)}
-                          className="flex items-center text-xs text-blue-600 hover:text-blue-800"
-                        >
-                          <Plus size={12} className="mr-1" /> Add Email
-                        </button>
-                      </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                              <select
+                                value={meeting.duration}
+                                onChange={(e) => {
+                                  const updatedMeetings = [...meetings]
+                                  updatedMeetings[meetingIndex].duration = Number.parseInt(e.target.value)
+                                  setMeetings(updatedMeetings)
+                                }}
+                                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              >
+                                <option value={30}>30 minutes</option>
+                                <option value={60}>1 hour</option>
+                                <option value={90}>1.5 hours</option>
+                                <option value={120}>2 hours</option>
+                                <option value={180}>3 hours</option>
+                              </select>
+                            </div>
 
-                      {meeting.invitedEmails.map((email, emailIndex) => (
-                        <div key={emailIndex} className="flex items-center mb-2">
-                          <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => handleInvitedEmailChange(meetingIndex, emailIndex, e.target.value)}
-                            placeholder="Enter email address"
-                            className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeInvitedEmail(meetingIndex, emailIndex)}
-                            className="ml-2 text-red-500 hover:text-red-700"
-                            disabled={meeting.invitedEmails.length === 1}
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Time Preference</label>
+                              <input
+                                type="text"
+                                value={meeting.timePreference}
+                                onChange={(e) => {
+                                  const updatedMeetings = [...meetings]
+                                  updatedMeetings[meetingIndex].timePreference = e.target.value
+                                  setMeetings(updatedMeetings)
+                                }}
+                                placeholder="e.g., morning, afternoon, after lunch, early morning"
+                                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleAISchedulingForTeam(meetingIndex)}
+                              disabled={
+                                isLoadingAI ||
+                                !meeting.dateRangeStart ||
+                                !meeting.dateRangeEnd ||
+                                !meeting.invitedEmails.some((email) => email.trim())
+                              }
+                              className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 rounded text-sm text-white flex items-center justify-center"
+                            >
+                              {isLoadingAI ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                                  Analyzing member schedules...
+                                </>
+                              ) : (
+                                "Find Best Meeting Times"
+                              )}
+                            </button>
+
+                            {selectedSuggestion && (
+                              <div className="bg-green-100 border border-green-300 rounded p-2">
+                                <p className="text-green-700 text-sm">
+                                  Selected: {selectedSuggestion.date} at {selectedSuggestion.startTime} -{" "}
+                                  {selectedSuggestion.endTime}
+                                </p>
+                                <p className="text-green-600 text-xs">{selectedSuggestion.reasoning}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ))}
+                      ) : (
+                        // Manual Scheduling Form
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date*</label>
+                            <input
+                              type="date"
+                              name="meetingDate"
+                              value={meeting.meetingDate}
+                              onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Invitation Type</label>
+                            <select
+                              name="invitationType"
+                              value={meeting.invitationType}
+                              onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="mandatory">Mandatory (Auto-assign)</option>
+                              <option value="request">Request (Can accept/decline)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                            <input
+                              type="time"
+                              name="meetingStartTime"
+                              value={meeting.meetingStartTime}
+                              onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                            <input
+                              type="time"
+                              name="meetingEndTime"
+                              value={meeting.meetingEndTime}
+                              onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+
+                          <div className="col-span-2">
+                            <div className="flex justify-between items-center mb-2">
+                              <label className="block text-sm font-medium text-gray-700">Invited Emails*</label>
+                              <button
+                                type="button"
+                                onClick={() => addInvitedEmail(meetingIndex)}
+                                className="flex items-center text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                <Plus size={12} className="mr-1" /> Add Email
+                              </button>
+                            </div>
+
+                            {meeting.invitedEmails.map((email, emailIndex) => (
+                              <div key={emailIndex} className="flex items-center mb-2">
+                                <input
+                                  type="email"
+                                  value={email}
+                                  onChange={(e) => handleInvitedEmailChange(meetingIndex, emailIndex, e.target.value)}
+                                  placeholder="Enter email address"
+                                  className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  required
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeInvitedEmail(meetingIndex, emailIndex)}
+                                  className="ml-2 text-red-500 hover:text-red-700"
+                                  disabled={meeting.invitedEmails.length === 1}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
+                {/* AI Suggestions Modal */}
+                {showAISuggestions && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
+                      <h3 className="text-lg font-medium mb-4 text-gray-800">AI Meeting Suggestions</h3>
+                      {aiSuggestions.length > 0 ? (
+                        <div className="space-y-3">
+                          {aiSuggestions.map((suggestion, index) => (
+                            <div
+                              key={index}
+                              className="border border-gray-300 rounded p-3 hover:border-blue-500 cursor-pointer transition-colors"
+                              onClick={() => selectAISuggestionForTeam(suggestion, 0)} // Assuming first meeting for now
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <h4 className="font-medium text-gray-800">
+                                    {suggestion.date} • {suggestion.startTime} - {suggestion.endTime}
+                                  </h4>
+                                  <div className="flex items-center mt-1">
+                                    <span
+                                      className={`text-xs px-2 py-1 rounded ${
+                                        suggestion.score >= 90
+                                          ? "bg-green-100 text-green-700"
+                                          : suggestion.score >= 70
+                                            ? "bg-yellow-100 text-yellow-700"
+                                            : "bg-red-100 text-red-700"
+                                      }`}
+                                    >
+                                      Score: {suggestion.score}/100
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{suggestion.reasoning}</p>
+                              {suggestion.advantages && suggestion.advantages.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {suggestion.advantages.map((advantage, i) => (
+                                    <span key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                      {advantage}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-600">
+                          No suitable meeting times found. Try adjusting your preferences.
+                        </p>
+                      )}
+                      <div className="flex justify-end mt-4">
+                        <button
+                          onClick={() => setShowAISuggestions(false)}
+                          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 rounded text-sm text-white"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end mt-6">

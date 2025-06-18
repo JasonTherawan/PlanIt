@@ -20,6 +20,10 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
   const [isEditingTeam, setIsEditingTeam] = useState(false)
   const [isAddingMeeting, setIsAddingMeeting] = useState(false)
   const [editingMeeting, setEditingMeeting] = useState(null)
+  const [aiSuggestions, setAiSuggestions] = useState([])
+  const [isLoadingAI, setIsLoadingAI] = useState(false)
+  const [selectedSuggestion, setSelectedSuggestion] = useState(null)
+  const [showAISuggestions, setShowAISuggestions] = useState(false)
   const sidebarRef = useRef(null)
 
   // Form states
@@ -51,6 +55,12 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
     meetingEndTime: "",
     invitationType: "mandatory",
     invitedEmails: [""],
+    // AI Scheduling fields
+    useAIScheduling: false,
+    dateRangeStart: "",
+    dateRangeEnd: "",
+    duration: 60, // minutes
+    timePreference: "",
   })
 
   // Handle click outside to close sidebar
@@ -417,7 +427,17 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
           meetingEndTime: "",
           invitationType: "mandatory",
           invitedEmails: [""],
+          useAIScheduling: false,
+          dateRangeStart: "",
+          dateRangeEnd: "",
+          duration: 60,
+          timePreference: "",
         })
+        // Reset AI states
+        setAiSuggestions([])
+        setSelectedSuggestion(null)
+        setShowAISuggestions(false)
+
         fetchTeamDetails(selectedTeam.teamid)
         fetchUserTeams()
 
@@ -593,6 +613,141 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleInvitationResponse = async (invitationId, response) => {
+    try {
+      const apiResponse = await fetch(`http://localhost:5000/api/meeting-invitations/${invitationId}/respond`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ response }),
+      })
+
+      if (apiResponse.ok) {
+        // Track the response locally
+        setInvitationResponses((prev) => ({
+          ...prev,
+          [invitationId]: response,
+        }))
+
+        // Refresh notifications
+        // fetchNotifications()
+        setSuccess(`Meeting invitation ${response}!`)
+        setTimeout(() => setSuccess(""), 3000)
+      } else {
+        setError("Failed to respond to invitation")
+      }
+    } catch (error) {
+      console.error("Error responding to invitation:", error)
+      setError("Error responding to invitation")
+    }
+  }
+
+  const handleAIScheduling = async () => {
+    setIsLoadingAI(true)
+    setError("")
+
+    try {
+      // Get team members from invited emails
+      const validEmails = newMeeting.invitedEmails.filter((email) => email.trim())
+      if (validEmails.length === 0) {
+        setError("Please add at least one team member email")
+        setIsLoadingAI(false)
+        return
+      }
+
+      // Include creator in the analysis
+      const allMemberEmails = [user.useremail, ...validEmails]
+
+      // Get user IDs from emails
+      const memberActivities = {}
+      const teamMembers = []
+
+      for (const email of allMemberEmails) {
+        try {
+          // First get user by email
+          const userResponse = await fetch(`http://localhost:5000/api/users/by-email/${encodeURIComponent(email)}`)
+          if (userResponse.ok) {
+            const userData = await userResponse.json()
+            teamMembers.push({
+              userid: userData.user.userid,
+              username: userData.user.username,
+              email: userData.user.useremail,
+            })
+
+            // Then get their activities
+            const activitiesResponse = await fetch(
+              `http://localhost:5000/api/activities?userId=${userData.user.userid}`,
+            )
+            if (activitiesResponse.ok) {
+              const data = await activitiesResponse.json()
+              // Filter activities within date range
+              const filteredActivities = data.activities.filter((activity) => {
+                const activityDate = new Date(activity.activitydate)
+                const startDate = new Date(newMeeting.dateRangeStart)
+                const endDate = new Date(newMeeting.dateRangeEnd)
+                return activityDate >= startDate && activityDate <= endDate
+              })
+              memberActivities[userData.user.userid] = filteredActivities
+            }
+          } else {
+            console.warn(`User not found for email: ${email}`)
+            // Add as unknown user for AI analysis
+            teamMembers.push({
+              userid: `unknown_${email}`,
+              username: email.split("@")[0],
+              email: email,
+            })
+            memberActivities[`unknown_${email}`] = []
+          }
+        } catch (error) {
+          console.error(`Error fetching data for ${email}:`, error)
+          memberActivities[`unknown_${email}`] = []
+        }
+      }
+
+      // Call AI service
+      const aiService = (await import("../services/aiService.js")).default
+      const result = await aiService.findOptimalMeetingTimes(
+        teamMembers,
+        {
+          startDate: newMeeting.dateRangeStart,
+          endDate: newMeeting.dateRangeEnd,
+        },
+        newMeeting.duration,
+        {
+          start: selectedTeam.teamstartworkinghour || "09:00",
+          end: selectedTeam.teamendworkinghour || "17:00",
+        },
+        newMeeting.timePreference,
+        memberActivities,
+      )
+
+      if (result.success) {
+        setAiSuggestions(result.suggestions)
+        setShowAISuggestions(true)
+      } else {
+        setError(result.error || "Failed to generate meeting suggestions")
+      }
+    } catch (error) {
+      console.error("Error in AI scheduling:", error)
+      setError("Failed to generate meeting suggestions")
+    } finally {
+      setIsLoadingAI(false)
+    }
+  }
+
+  const selectAISuggestion = (suggestion) => {
+    setSelectedSuggestion(suggestion)
+    setNewMeeting((prev) => ({
+      ...prev,
+      meetingDate: suggestion.date,
+      meetingStartTime: suggestion.startTime,
+      meetingEndTime: suggestion.endTime,
+    }))
+    setShowAISuggestions(false)
   }
 
   // Format date for display
@@ -794,38 +949,169 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
                           className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
+                      {/* AI Scheduling Toggle */}
+                      <div className="flex items-center space-x-2">
                         <input
-                          type="date"
-                          name="meetingDate"
-                          value={newMeeting.meetingDate}
-                          onChange={handleMeetingChange}
-                          className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                          type="checkbox"
+                          id="useAIScheduling"
+                          checked={newMeeting.useAIScheduling}
+                          onChange={(e) => setNewMeeting((prev) => ({ ...prev, useAIScheduling: e.target.checked }))}
+                          className="rounded"
                         />
+                        <label htmlFor="useAIScheduling" className="text-sm text-gray-300">
+                          Use AI to find optimal meeting time
+                        </label>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-1">Start</label>
-                          <input
-                            type="time"
-                            name="meetingStartTime"
-                            value={newMeeting.meetingStartTime}
-                            onChange={handleMeetingChange}
-                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                          />
+
+                      {newMeeting.useAIScheduling ? (
+                        // AI Scheduling Form
+                        <div className="space-y-3 border border-blue-600 rounded p-3">
+                          <h5 className="text-sm font-medium text-blue-400">AI Meeting Scheduler</h5>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                              Team Members (Emails)
+                            </label>
+                            {newMeeting.invitedEmails.map((email, index) => (
+                              <div key={index} className="flex items-center mb-2">
+                                <input
+                                  type="email"
+                                  value={email}
+                                  onChange={(e) => handleInvitedEmailChange(index, e.target.value)}
+                                  className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                  placeholder="Enter email"
+                                />
+                                <button
+                                  onClick={() => removeInvitedEmail(index)}
+                                  className="ml-2 text-red-400 hover:text-red-300"
+                                  disabled={newMeeting.invitedEmails.length === 1}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={addInvitedEmail}
+                              className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
+                            >
+                              <Plus size={12} className="mr-1" /> Add Member Email
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+                              <input
+                                type="date"
+                                value={newMeeting.dateRangeStart}
+                                onChange={(e) => setNewMeeting((prev) => ({ ...prev, dateRangeStart: e.target.value }))}
+                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
+                              <input
+                                type="date"
+                                value={newMeeting.dateRangeEnd}
+                                onChange={(e) => setNewMeeting((prev) => ({ ...prev, dateRangeEnd: e.target.value }))}
+                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Duration (minutes)</label>
+                            <select
+                              value={newMeeting.duration}
+                              onChange={(e) =>
+                                setNewMeeting((prev) => ({ ...prev, duration: Number.parseInt(e.target.value) }))
+                              }
+                              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                            >
+                              <option value={30}>30 minutes</option>
+                              <option value={60}>1 hour</option>
+                              <option value={90}>1.5 hours</option>
+                              <option value={120}>2 hours</option>
+                              <option value={180}>3 hours</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Time Preference</label>
+                            <input
+                              type="text"
+                              value={newMeeting.timePreference}
+                              onChange={(e) => setNewMeeting((prev) => ({ ...prev, timePreference: e.target.value }))}
+                              placeholder="e.g., morning, afternoon, after lunch, early morning"
+                              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+
+                          <button
+                            onClick={handleAIScheduling}
+                            disabled={
+                              isLoadingAI ||
+                              !newMeeting.dateRangeStart ||
+                              !newMeeting.dateRangeEnd ||
+                              !newMeeting.invitedEmails.some((email) => email.trim())
+                            }
+                            className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 rounded text-sm flex items-center justify-center"
+                          >
+                            {isLoadingAI ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                                Analyzing member schedules...
+                              </>
+                            ) : (
+                              "Find Best Meeting Times"
+                            )}
+                          </button>
+
+                          {selectedSuggestion && (
+                            <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded p-2">
+                              <p className="text-green-300 text-sm">
+                                Selected: {selectedSuggestion.date} at {selectedSuggestion.startTime} -{" "}
+                                {selectedSuggestion.endTime}
+                              </p>
+                              <p className="text-green-400 text-xs">{selectedSuggestion.reasoning}</p>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-1">End</label>
-                          <input
-                            type="time"
-                            name="meetingEndTime"
-                            value={newMeeting.meetingEndTime}
-                            onChange={handleMeetingChange}
-                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                          />
+                      ) : (
+                        // Manual Scheduling Form
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
+                            <input
+                              type="date"
+                              name="meetingDate"
+                              value={newMeeting.meetingDate}
+                              onChange={handleMeetingChange}
+                              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Start</label>
+                            <input
+                              type="time"
+                              name="meetingStartTime"
+                              value={newMeeting.meetingStartTime}
+                              onChange={handleMeetingChange}
+                              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">End</label>
+                            <input
+                              type="time"
+                              name="meetingEndTime"
+                              value={newMeeting.meetingEndTime}
+                              onChange={handleMeetingChange}
+                              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
                         </div>
-                      </div>
+                      )}
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Invitation Type</label>
                         <select
@@ -838,46 +1124,115 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
                           <option value="request">Request</option>
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Invited Emails</label>
-                        {newMeeting.invitedEmails.map((email, index) => (
-                          <div key={index} className="flex items-center mb-2">
-                            <input
-                              type="email"
-                              value={email}
-                              onChange={(e) => handleInvitedEmailChange(index, e.target.value)}
-                              className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                              placeholder="Enter email"
-                            />
-                            <button
-                              onClick={() => removeInvitedEmail(index)}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                              disabled={newMeeting.invitedEmails.length === 1}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          onClick={addInvitedEmail}
-                          className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
-                        >
-                          <Plus size={12} className="mr-1" /> Add Email
-                        </button>
-                      </div>
+                      {!newMeeting.useAIScheduling && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">Invited Emails</label>
+                          {newMeeting.invitedEmails.map((email, index) => (
+                            <div key={index} className="flex items-center mb-2">
+                              <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => handleInvitedEmailChange(index, e.target.value)}
+                                className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                placeholder="Enter email"
+                              />
+                              <button
+                                onClick={() => removeInvitedEmail(index)}
+                                className="ml-2 text-red-400 hover:text-red-300"
+                                disabled={newMeeting.invitedEmails.length === 1}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            onClick={addInvitedEmail}
+                            className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
+                          >
+                            <Plus size={12} className="mr-1" /> Add Email
+                          </button>
+                        </div>
+                      )}
                       <div className="flex space-x-2 justify-end">
                         <button
                           onClick={handleAddMeeting}
                           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
-                          disabled={isLoading}
+                          disabled={isLoading || (newMeeting.useAIScheduling && !selectedSuggestion)}
                         >
                           {isLoading ? "Adding..." : "Add Meeting"}
                         </button>
                         <button
-                          onClick={() => setIsAddingMeeting(false)}
+                          onClick={() => {
+                            setIsAddingMeeting(false)
+                            setShowAISuggestions(false)
+                            setSelectedSuggestion(null)
+                            setAiSuggestions([])
+                          }}
                           className="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-sm"
                         >
                           Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* AI Suggestions Modal */}
+                {showAISuggestions && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
+                      <h3 className="text-lg font-medium mb-4 text-white">AI Meeting Suggestions</h3>
+                      {aiSuggestions.length > 0 ? (
+                        <div className="space-y-3">
+                          {aiSuggestions.map((suggestion, index) => (
+                            <div
+                              key={index}
+                              className="border border-gray-600 rounded p-3 hover:border-blue-500 cursor-pointer transition-colors"
+                              onClick={() => selectAISuggestion(suggestion)}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <h4 className="font-medium text-white">
+                                    {suggestion.date} • {suggestion.startTime} - {suggestion.endTime}
+                                  </h4>
+                                  <div className="flex items-center mt-1">
+                                    <span
+                                      className={`text-xs px-2 py-1 rounded ${
+                                        suggestion.score >= 90
+                                          ? "bg-green-900 text-green-300"
+                                          : suggestion.score >= 70
+                                            ? "bg-yellow-900 text-yellow-300"
+                                            : "bg-red-900 text-red-300"
+                                      }`}
+                                    >
+                                      Score: {suggestion.score}/100
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <p className="text-sm text-gray-300 mb-2">{suggestion.reasoning}</p>
+                              {suggestion.advantages && suggestion.advantages.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {suggestion.advantages.map((advantage, i) => (
+                                    <span key={i} className="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded">
+                                      {advantage}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400">
+                          No suitable meeting times found. Try adjusting your preferences.
+                        </p>
+                      )}
+                      <div className="flex justify-end mt-4">
+                        <button
+                          onClick={() => setShowAISuggestions(false)}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm text-white"
+                        >
+                          Close
                         </button>
                       </div>
                     </div>
