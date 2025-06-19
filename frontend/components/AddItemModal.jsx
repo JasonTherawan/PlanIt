@@ -922,13 +922,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Activity Title*</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Activity Title</label>
                   <input
                     type="text"
                     name="activityTitle"
                     value={activity.activityTitle}
                     onChange={handleActivityChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -940,7 +940,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     value={activity.activityDescription}
                     onChange={handleActivityChange}
                     rows="3"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
@@ -950,7 +950,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="activityCategory"
                     value={activity.activityCategory}
                     onChange={handleActivityChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select a category</option>
                     <option value="work">Work</option>
@@ -958,6 +958,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     <option value="health">Health</option>
                     <option value="education">Education</option>
                     <option value="social">Social</option>
+                    <option value="meeting">Meeting</option>
                   </select>
                 </div>
 
@@ -967,7 +968,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="activityUrgency"
                     value={activity.activityUrgency}
                     onChange={handleActivityChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -977,13 +978,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date*</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                   <input
                     type="date"
                     name="activityDate"
                     value={activity.activityDate}
                     onChange={handleActivityChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -996,7 +997,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                       name="activityStartTime"
                       value={activity.activityStartTime}
                       onChange={handleActivityChange}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
@@ -1007,7 +1008,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                       name="activityEndTime"
                       value={activity.activityEndTime}
                       onChange={handleActivityChange}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -1037,13 +1038,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Goal Title*</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Goal Title</label>
                   <input
                     type="text"
                     name="goalTitle"
                     value={goal.goalTitle}
                     onChange={handleGoalChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -1055,7 +1056,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     value={goal.goalDescription}
                     onChange={handleGoalChange}
                     rows="3"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
@@ -1065,7 +1066,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="goalCategory"
                     value={goal.goalCategory}
                     onChange={handleGoalChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select a category</option>
                     <option value="career">Career</option>
@@ -1082,7 +1083,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="goalProgress"
                     value={goal.goalProgress}
                     onChange={handleGoalChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="not-started">Not Started</option>
                     <option value="in-progress">In Progress</option>
@@ -1120,37 +1121,37 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title*</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                         <input
                           type="text"
                           name="timelineTitle"
                           value={timeline.timelineTitle}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date*</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                         <input
                           type="date"
                           name="timelineStartDate"
                           value={timeline.timelineStartDate}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date*</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                         <input
                           type="date"
                           name="timelineEndDate"
                           value={timeline.timelineEndDate}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
@@ -1162,7 +1163,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                           name="timelineStartTime"
                           value={timeline.timelineStartTime}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
 
@@ -1173,7 +1174,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                           name="timelineEndTime"
                           value={timeline.timelineEndTime}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </div>
@@ -1205,13 +1206,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Team Name*</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Team Name</label>
                   <input
                     type="text"
                     name="teamName"
                     value={team.teamName}
                     onChange={handleTeamChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -1223,7 +1224,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     value={team.teamDescription}
                     onChange={handleTeamChange}
                     rows="3"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
@@ -1234,7 +1235,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="teamStartWorkingHour"
                     value={team.teamStartWorkingHour}
                     onChange={handleTeamChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -1245,7 +1246,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     name="teamEndWorkingHour"
                     value={team.teamEndWorkingHour}
                     onChange={handleTeamChange}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -1278,13 +1279,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Title*</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Title</label>
                         <input
                           type="text"
                           name="meetingTitle"
                           value={meeting.meetingTitle}
                           onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
@@ -1315,7 +1316,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                           <div className="space-y-3">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Team Members (Emails)*
+                                Team Members (Emails)
                               </label>
                               {meeting.invitedEmails.map((email, emailIndex) => (
                                 <div key={emailIndex} className="flex items-center mb-2">
@@ -1324,7 +1325,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                     value={email}
                                     onChange={(e) => handleInvitedEmailChange(meetingIndex, emailIndex, e.target.value)}
                                     placeholder="Enter email address"
-                                    className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="text-gray-700 flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                   />
                                   <button
@@ -1357,7 +1358,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                     updatedMeetings[meetingIndex].dateRangeStart = e.target.value
                                     setMeetings(updatedMeetings)
                                   }}
-                                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                               </div>
                               <div>
@@ -1370,7 +1371,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                     updatedMeetings[meetingIndex].dateRangeEnd = e.target.value
                                     setMeetings(updatedMeetings)
                                   }}
-                                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                               </div>
                             </div>
@@ -1384,7 +1385,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                   updatedMeetings[meetingIndex].duration = Number.parseInt(e.target.value)
                                   setMeetings(updatedMeetings)
                                 }}
-                                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               >
                                 <option value={30}>30 minutes</option>
                                 <option value={60}>1 hour</option>
@@ -1405,7 +1406,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                   setMeetings(updatedMeetings)
                                 }}
                                 placeholder="e.g., morning, afternoon, after lunch, early morning"
-                                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               />
                             </div>
 
@@ -1445,13 +1446,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
                         // Manual Scheduling Form
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date*</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                             <input
                               type="date"
                               name="meetingDate"
                               value={meeting.meetingDate}
                               onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               required
                             />
                           </div>
@@ -1462,7 +1463,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                               name="invitationType"
                               value={meeting.invitationType}
                               onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                               <option value="mandatory">Mandatory (Auto-assign)</option>
                               <option value="request">Request (Can accept/decline)</option>
@@ -1476,7 +1477,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                               name="meetingStartTime"
                               value={meeting.meetingStartTime}
                               onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
 
@@ -1487,13 +1488,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
                               name="meetingEndTime"
                               value={meeting.meetingEndTime}
                               onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
 
                           <div className="col-span-2">
                             <div className="flex justify-between items-center mb-2">
-                              <label className="block text-sm font-medium text-gray-700">Invited Emails*</label>
+                              <label className="block text-sm font-medium text-gray-700">Invited Emails</label>
                               <button
                                 type="button"
                                 onClick={() => addInvitedEmail(meetingIndex)}
@@ -1510,7 +1511,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                   value={email}
                                   onChange={(e) => handleInvitedEmailChange(meetingIndex, emailIndex, e.target.value)}
                                   placeholder="Enter email address"
-                                  className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="text-gray-700 flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   required
                                 />
                                 <button
@@ -1531,7 +1532,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 ))}
                 {/* AI Suggestions Modal */}
                 {showAISuggestions && (
-                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
                       <h3 className="text-lg font-medium mb-4 text-gray-800">AI Meeting Suggestions</h3>
                       {aiSuggestions.length > 0 ? (

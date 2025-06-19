@@ -786,6 +786,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                     <option value="health">Health</option>
                     <option value="education">Education</option>
                     <option value="social">Social</option>
+                    <option value="meeting">Meeting</option>
                   </select>
                 </div>
 
