@@ -1296,7 +1296,7 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
               {/* Edit Meeting Modal */}
               {editingMeeting && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                  <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                  <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
                     <h3 className="text-lg font-medium mb-4">Edit Meeting</h3>
                     <div className="space-y-3">
                       <div>

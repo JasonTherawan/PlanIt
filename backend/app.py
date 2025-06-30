@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2
-from psycopg2 import sql
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from dotenv import load_dotenv
@@ -1407,7 +1406,7 @@ def delete_meeting(meeting_id):
 
 @app.route('/api/notifications', methods=['GET'])
 def get_notifications():
-    """Get notifications for a user"""
+    """Get notifications for a user with invitation status"""
     user_id = request.args.get('userId')
     
     if not user_id:
@@ -1418,15 +1417,18 @@ def get_notifications():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Get notifications for the user
+        # Get notifications for the user with invitation status
         cur.execute(
             """
-            SELECT NotificationId, Type, Title, Message, RelatedId, IsRead, CreatedAt
-            FROM Notifications
-            WHERE UserId = %s
-            ORDER BY CreatedAt DESC
+            SELECT n.NotificationId, n.Type, n.Title, n.Message, n.RelatedId, n.IsRead, n.CreatedAt,
+                   mi.Status as InvitationStatus
+            FROM Notifications n
+            LEFT JOIN MeetingInvitations mi ON n.RelatedId = mi.MeetingId 
+                AND n.Type = 'meeting_invitation' AND mi.UserId = %s
+            WHERE n.UserId = %s
+            ORDER BY n.CreatedAt DESC
             """,
-            (user_id,)
+            (user_id, user_id)
         )
         
         notifications = []
@@ -1439,7 +1441,8 @@ def get_notifications():
                 'message': row[3],
                 'relatedid': row[4],
                 'isread': row[5],
-                'createdat': row[6].isoformat() if row[6] else None
+                'createdat': row[6].isoformat() if row[6] else None,
+                'invitationstatus': row[7]  # This will be the current invitation status
             }
             notifications.append(notification)
             if not row[5]:  # If not read
@@ -1554,41 +1557,45 @@ def delete_notification(notification_id):
         print(f"Error deleting notification: {e}")
         return jsonify({'success': False, 'message': 'Failed to delete notification'}), 500
 
-@app.route('/api/meeting-invitations/<int:invitation_id>/respond', methods=['PUT'])
-def respond_to_invitation(invitation_id):
+@app.route('/api/meeting-invitations/<int:meeting_id>/respond', methods=['PUT'])
+def respond_to_invitation(meeting_id):
     """Respond to a meeting invitation"""
     data = request.get_json()
     response = data.get('response')  # 'accepted' or 'declined'
+    user_id = data.get('userId')  # Add user_id to identify which user is responding
     
     if response not in ['accepted', 'declined']:
         return jsonify({'success': False, 'message': 'Invalid response. Must be "accepted" or "declined"'}), 400
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required'}), 400
     
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Update invitation status
+        # Update invitation status for the specific user and meeting
         cur.execute(
             """
             UPDATE MeetingInvitations 
             SET Status = %s, RespondedAt = CURRENT_TIMESTAMP
-            WHERE MeetingId = %s
+            WHERE MeetingId = %s AND UserId = %s
             """,
-            (response, invitation_id)
+            (response, meeting_id, user_id)
         )
         
         if cur.rowcount == 0:
             return jsonify({'success': False, 'message': 'Invitation not found'}), 404
         
-        # Mark related notification as read
+        # Mark related notification as read for this user
         cur.execute(
             """
             UPDATE Notifications 
             SET IsRead = TRUE
-            WHERE RelatedId = %s AND Type = 'meeting_invitation'
+            WHERE RelatedId = %s AND Type = 'meeting_invitation' AND UserId = %s
             """,
-            (invitation_id,)
+            (meeting_id, user_id)
         )
         
         # Commit the transaction

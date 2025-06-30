@@ -69,20 +69,23 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
   }
 
   // Handle invitation response
-  const handleInvitationResponse = async (invitationId, response) => {
+  const handleInvitationResponse = async (meetingId, response) => {
     try {
-      const apiResponse = await fetch(`http://localhost:5000/api/meeting-invitations/${invitationId}/respond`, {
+      const userId = getUserId()
+      const apiResponse = await fetch(`http://localhost:5000/api/meeting-invitations/${meetingId}/respond`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ response }),
+        body: JSON.stringify({ response, userId }),
       })
 
       if (apiResponse.ok) {
         // Update the notification status locally
         setNotifications((prev) =>
-          prev.map((notif) => (notif.relatedid === invitationId ? { ...notif, responded: response } : notif)),
+          prev.map((notif) =>
+            notif.relatedid === meetingId ? { ...notif, invitationstatus: response, isread: true } : notif,
+          ),
         )
       } else {
         setError("Failed to respond to invitation")
@@ -166,6 +169,37 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     }
   }
 
+  // Check if invitation can be responded to
+  const canRespondToInvitation = (notification) => {
+    return (
+      notification.type === "meeting_invitation" &&
+      notification.relatedid &&
+      (!notification.invitationstatus || notification.invitationstatus === "pending")
+    )
+  }
+
+  // Get invitation status display
+  const getInvitationStatusDisplay = (notification) => {
+    if (notification.type !== "meeting_invitation" || !notification.invitationstatus) {
+      return null
+    }
+
+    const status = notification.invitationstatus
+    if (status === "pending") {
+      return null // Don't show pending status, show buttons instead
+    }
+
+    return (
+      <span
+        className={`text-xs px-2 py-1 rounded ${
+          status === "accepted" ? "bg-green-900 text-green-300" : "bg-red-900 text-red-300"
+        }`}
+      >
+        {status === "accepted" ? "Accepted" : "Declined"}
+      </span>
+    )
+  }
+
   if (!isOpen) return null
 
   return (
@@ -233,36 +267,25 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
 
                   <div className="flex items-center justify-between">
                     <div className="flex space-x-2">
-                      {notification.type === "meeting_invitation" &&
-                        notification.relatedid &&
-                        !notification.responded && (
-                          <>
-                            <button
-                              onClick={() => handleInvitationResponse(notification.relatedid, "accepted")}
-                              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs flex items-center"
-                            >
-                              <Check size={12} className="mr-1" />
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => handleInvitationResponse(notification.relatedid, "declined")}
-                              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs flex items-center"
-                            >
-                              <X size={12} className="mr-1" />
-                              Decline
-                            </button>
-                          </>
-                        )}
-                      {notification.responded && (
-                        <span
-                          className={`text-xs px-2 py-1 rounded ${
-                            notification.responded === "accepted"
-                              ? "bg-green-900 text-green-300"
-                              : "bg-red-900 text-red-300"
-                          }`}
-                        >
-                          {notification.responded === "accepted" ? "Accepted" : "Declined"}
-                        </span>
+                      {canRespondToInvitation(notification) ? (
+                        <>
+                          <button
+                            onClick={() => handleInvitationResponse(notification.relatedid, "accepted")}
+                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs flex items-center"
+                          >
+                            <Check size={12} className="mr-1" />
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleInvitationResponse(notification.relatedid, "declined")}
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs flex items-center"
+                          >
+                            <X size={12} className="mr-1" />
+                            Decline
+                          </button>
+                        </>
+                      ) : (
+                        getInvitationStatusDisplay(notification)
                       )}
                     </div>
 
