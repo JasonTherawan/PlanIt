@@ -150,7 +150,7 @@ class AIService {
     }
   }
 
-  async findOptimalMeetingTimes(teamMembers, dateRange, duration, workingHours, creatorPreference, existingActivities) {
+  async findOptimalMeetingTimes(teamMembers, dateRange, duration, workingHours, creatorPreference, memberSchedules) {
     try {
       // If no Gemini API key is configured, return empty suggestions
       if (!this.apiKey) {
@@ -162,8 +162,57 @@ class AIService {
         }
       }
 
+      // Create detailed schedule analysis for each member
+      const memberScheduleAnalysis = {}
+      Object.keys(memberSchedules).forEach((userId) => {
+        const member = teamMembers.find((m) => m.userid === userId)
+        const memberName = member ? member.username : userId
+
+        const schedule = memberSchedules[userId]
+        const conflicts = []
+
+        // Add activities as conflicts
+        schedule.activities.forEach((activity) => {
+          conflicts.push({
+            type: "activity",
+            title: activity.activitytitle,
+            date: activity.activitydate,
+            startTime: activity.activitystarttime,
+            endTime: activity.activityendtime,
+            urgency: activity.activityurgency,
+          })
+        })
+
+        // Add goal timelines as conflicts
+        schedule.goals.forEach((goal) => {
+          goal.timelines.forEach((timeline) => {
+            conflicts.push({
+              type: "goal",
+              title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
+              startDate: timeline.timelinestartdate,
+              endDate: timeline.timelineenddate,
+              startTime: timeline.timelinestarttime,
+              endTime: timeline.timelineendtime,
+            })
+          })
+        })
+
+        // Add team meetings as conflicts
+        schedule.meetings.forEach((meeting) => {
+          conflicts.push({
+            type: "meeting",
+            title: meeting.meetingtitle,
+            date: meeting.meetingdate,
+            startTime: meeting.meetingstarttime,
+            endTime: meeting.meetingendtime,
+          })
+        })
+
+        memberScheduleAnalysis[memberName] = conflicts
+      })
+
       const prompt = `
-        You are an intelligent meeting scheduler. Analyze the following data and suggest the best meeting times.
+        You are an intelligent meeting scheduler. Analyze the following data and suggest the best meeting times that avoid ALL conflicts.
 
         TEAM MEMBERS: ${teamMembers.map((m) => m.username).join(", ")}
         
@@ -172,18 +221,26 @@ class AIService {
         WORKING HOURS: ${workingHours.start} to ${workingHours.end}
         CREATOR PREFERENCE: "${creatorPreference}"
         
-        EXISTING ACTIVITIES FOR ALL MEMBERS:
-        ${JSON.stringify(existingActivities, null, 2)}
+        DETAILED MEMBER SCHEDULES AND CONFLICTS:
+        ${JSON.stringify(memberScheduleAnalysis, null, 2)}
 
-        INSTRUCTIONS:
-        1. Find time slots where ALL team members are available
-        2. Respect working hours (${workingHours.start} to ${workingHours.end})
-        3. Consider the creator's time preference: "${creatorPreference}"
-        4. Avoid conflicts with existing activities
-        5. Suggest 3-10 optimal meeting times
-        6. Prioritize times that match the creator's preference
-        7. Consider lunch breaks (12:00-13:00) as less optimal
-        8. Prefer earlier times in the day when possible
+        CRITICAL INSTRUCTIONS:
+        1. NEVER suggest times that conflict with ANY member's existing activities, goals, or meetings
+        2. For activities/meetings with specific times, avoid those exact time slots
+        3. For goal timelines with specific times, avoid those time periods on relevant dates
+        4. For all-day goals/activities, consider them as lower priority but still note as potential conflicts
+        5. Respect working hours (${workingHours.start} to ${workingHours.end})
+        6. Consider the creator's time preference: "${creatorPreference}"
+        7. Suggest 5-10 optimal meeting times with NO conflicts
+        8. Prioritize times that match the creator's preference
+        9. Consider lunch breaks (12:00-13:00) as less optimal but not forbidden
+        10. Score based on actual availability and preference matching
+
+        CONFLICT DETECTION RULES:
+        - If a member has an activity from 10:00-11:00 on a date, DO NOT suggest any overlapping times
+        - If a member has a goal timeline with specific hours, avoid those hours on dates within the timeline
+        - If a member has team meetings, avoid those exact times
+        - High urgency activities should be weighted more heavily in conflict detection
 
         Return a JSON response with this exact structure:
         {
@@ -193,23 +250,28 @@ class AIService {
               "date": "YYYY-MM-DD",
               "startTime": "HH:MM",
               "endTime": "HH:MM",
-              "score": 95,
-              "reasoning": "Perfect time slot with no conflicts, matches morning preference",
+              "score": 85,
+              "reasoning": "No conflicts detected for any team member, matches morning preference",
               "conflicts": [],
-              "advantages": ["All members available", "Matches creator preference", "Early in day"]
+              "advantages": ["All members available", "Matches creator preference", "No scheduling conflicts"],
+              "memberAvailability": {
+                "memberName": "available/conflict details"
+              }
             }
           ]
         }
 
         SCORING CRITERIA (0-100):
-        - 100: Perfect slot, no conflicts, matches preference exactly
-        - 80-99: Great slot, minor preference mismatch
-        - 60-79: Good slot, some minor issues
-        - 40-59: Acceptable slot, notable issues
-        - 20-39: Poor slot, major issues
-        - 0-19: Very poor slot, multiple conflicts
+        - Start with 100 points
+        - Subtract 50 points for ANY direct time conflict
+        - Subtract 30 points for high urgency activity conflicts
+        - Subtract 20 points for goal timeline conflicts
+        - Subtract 15 points for lunch time scheduling
+        - Subtract 10 points for preference mismatch
+        - Subtract 5 points for end-of-day scheduling
 
-        Sort suggestions by score (highest first).
+        Only suggest times with scores above 60. Sort suggestions by score (highest first).
+        Be extremely careful about conflict detection - it's better to suggest fewer times than to suggest conflicting times.
       `
 
       const requestBody = {
@@ -223,10 +285,10 @@ class AIService {
           },
         ],
         generationConfig: {
-          temperature: 0.3,
+          temperature: 0.1, // Lower temperature for more consistent conflict detection
           topK: 1,
           topP: 1,
-          maxOutputTokens: 2000,
+          maxOutputTokens: 3000,
         },
       }
 
@@ -254,7 +316,7 @@ class AIService {
         // Clean the response to extract JSON
         const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
         if (!jsonMatch) {
-          console.log("No JSON found in Gemini response")
+          console.log("No JSON found in Gemini response:", aiResponse)
           return {
             success: false,
             suggestions: [],
@@ -266,7 +328,7 @@ class AIService {
 
         // Validate the response structure
         if (!parsedResponse.success || !Array.isArray(parsedResponse.suggestions)) {
-          console.log("Invalid response structure from Gemini")
+          console.log("Invalid response structure from Gemini:", parsedResponse)
           return {
             success: false,
             suggestions: [],
@@ -284,9 +346,12 @@ class AIService {
             suggestion.reasoning &&
             this.isValidDate(suggestion.date) &&
             this.isValidTime(suggestion.startTime) &&
-            this.isValidTime(suggestion.endTime)
+            this.isValidTime(suggestion.endTime) &&
+            suggestion.score >= 60 // Only include suggestions with decent scores
           )
         })
+
+        console.log(`AI generated ${validSuggestions.length} valid suggestions`)
 
         return {
           success: true,
@@ -295,6 +360,7 @@ class AIService {
         }
       } catch (parseError) {
         console.error("Error parsing Gemini response:", parseError)
+        console.log("Raw AI response:", aiResponse)
         return {
           success: false,
           suggestions: [],
@@ -310,7 +376,7 @@ class AIService {
       }
     }
   }
-  
+
   // Validate date format YYYY-MM-DD
   isValidDate(dateString) {
     const regex = /^\d{4}-\d{2}-\d{2}$/

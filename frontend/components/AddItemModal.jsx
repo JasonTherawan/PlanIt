@@ -564,36 +564,134 @@ const AddItemModal = ({ isOpen, onClose }) => {
       const currentUser = JSON.parse(localStorage.getItem("user") || "{}")
       const allMemberEmails = [currentUser.email, ...validEmails]
 
-      // Get user IDs from emails and their activities
+      // Get user data and activities for all members
       const memberActivities = {}
       const teamMembers = []
+      const memberGoals = {}
+      const memberTeams = {}
+
+      console.log("Fetching data for members:", allMemberEmails)
 
       for (const email of allMemberEmails) {
         try {
-          // First get user by email
+          // Get user by email
           const userResponse = await fetch(`http://localhost:5000/api/users/by-email/${encodeURIComponent(email)}`)
+
           if (userResponse.ok) {
             const userData = await userResponse.json()
+            const userId = userData.user.userid
+
             teamMembers.push({
-              userid: userData.user.userid,
+              userid: userId,
               username: userData.user.username,
               email: userData.user.useremail,
             })
 
-            // Then get their activities
-            const activitiesResponse = await fetch(
-              `http://localhost:5000/api/activities?userId=${userData.user.userid}`,
-            )
+            console.log(`Found user ${userData.user.username} (${email})`)
+
+            // Get their activities
+            const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
             if (activitiesResponse.ok) {
-              const data = await activitiesResponse.json()
-              // Filter activities within date range
-              const filteredActivities = data.activities.filter((activity) => {
+              const activitiesData = await activitiesResponse.json()
+              console.log(`Raw activities for ${userData.user.username}:`, activitiesData.activities)
+
+              // Filter activities within date range with better date handling
+              const filteredActivities = activitiesData.activities.filter((activity) => {
+                if (!activity.activitydate) return false
+
                 const activityDate = new Date(activity.activitydate)
                 const startDate = new Date(meeting.dateRangeStart)
                 const endDate = new Date(meeting.dateRangeEnd)
-                return activityDate >= startDate && activityDate <= endDate
+
+                // Ensure dates are valid
+                if (isNaN(activityDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                  console.warn(`Invalid date found for activity: ${activity.activitytitle}`, {
+                    activityDate: activity.activitydate,
+                    startDate: meeting.dateRangeStart,
+                    endDate: meeting.dateRangeEnd,
+                  })
+                  return false
+                }
+
+                const isInRange = activityDate >= startDate && activityDate <= endDate
+                console.log(
+                  `Activity "${activity.activitytitle}" on ${activity.activitydate}: ${isInRange ? "INCLUDED" : "EXCLUDED"}`,
+                )
+                return isInRange
               })
-              memberActivities[userData.user.userid] = filteredActivities
+
+              memberActivities[userId] = filteredActivities
+              console.log(`Found ${filteredActivities.length} activities for ${userData.user.username} in date range`)
+            } else {
+              console.warn(`Failed to fetch activities for ${userData.user.username}`)
+              memberActivities[userId] = []
+            }
+
+            // Get their goals with timelines
+            const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
+            if (goalsResponse.ok) {
+              const goalsData = await goalsResponse.json()
+              console.log(`Raw goals for ${userData.user.username}:`, goalsData.goals)
+
+              // Filter goal timelines within date range
+              const filteredGoals = goalsData.goals
+                .map((goal) => ({
+                  ...goal,
+                  timelines: goal.timelines.filter((timeline) => {
+                    if (!timeline.timelinestartdate || !timeline.timelineenddate) return false
+
+                    const timelineStart = new Date(timeline.timelinestartdate)
+                    const timelineEnd = new Date(timeline.timelineenddate)
+                    const rangeStart = new Date(meeting.dateRangeStart)
+                    const rangeEnd = new Date(meeting.dateRangeEnd)
+
+                    // Check for valid dates
+                    if (
+                      isNaN(timelineStart.getTime()) ||
+                      isNaN(timelineEnd.getTime()) ||
+                      isNaN(rangeStart.getTime()) ||
+                      isNaN(rangeEnd.getTime())
+                    ) {
+                      console.warn(`Invalid date in timeline: ${timeline.timelinetitle}`)
+                      return false
+                    }
+
+                    const overlaps = timelineStart <= rangeEnd && timelineEnd >= rangeStart
+                    console.log(
+                      `Timeline "${timeline.timelinetitle}" (${timeline.timelinestartdate} to ${timeline.timelineenddate}): ${overlaps ? "INCLUDED" : "EXCLUDED"}`,
+                    )
+                    return overlaps
+                  }),
+                }))
+                .filter((goal) => goal.timelines.length > 0)
+
+              memberGoals[userId] = filteredGoals
+              console.log(`Found ${filteredGoals.length} relevant goals for ${userData.user.username}`)
+            } else {
+              console.warn(`Failed to fetch goals for ${userData.user.username}`)
+              memberGoals[userId] = []
+            }
+
+            // Get their team meetings
+            const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+            if (teamsResponse.ok) {
+              const teamsData = await teamsResponse.json()
+              // Extract all meetings within date range
+              const allMeetings = []
+              teamsData.teams.forEach((team) => {
+                team.meetings.forEach((teamMeeting) => {
+                  const meetingDate = new Date(teamMeeting.meetingdate)
+                  const startDate = new Date(meeting.dateRangeStart)
+                  const endDate = new Date(meeting.dateRangeEnd)
+                  if (meetingDate >= startDate && meetingDate <= endDate) {
+                    allMeetings.push(teamMeeting)
+                  }
+                })
+              })
+              memberTeams[userId] = allMeetings
+              console.log(`Found ${allMeetings.length} team meetings for ${userData.user.username}`)
+            } else {
+              memberTeams[userId] = []
             }
           } else {
             console.warn(`User not found for email: ${email}`)
@@ -604,14 +702,75 @@ const AddItemModal = ({ isOpen, onClose }) => {
               email: email,
             })
             memberActivities[`unknown_${email}`] = []
+            memberGoals[`unknown_${email}`] = []
+            memberTeams[`unknown_${email}`] = []
           }
         } catch (error) {
           console.error(`Error fetching data for ${email}:`, error)
+          // Add as unknown user with empty data
+          teamMembers.push({
+            userid: `unknown_${email}`,
+            username: email.split("@")[0],
+            email: email,
+          })
           memberActivities[`unknown_${email}`] = []
+          memberGoals[`unknown_${email}`] = []
+          memberTeams[`unknown_${email}`] = []
         }
       }
 
-      // Call AI service
+      // Combine all scheduling conflicts for comprehensive analysis
+      const allMemberSchedules = {}
+      Object.keys(memberActivities).forEach((userId) => {
+        allMemberSchedules[userId] = {
+          activities: memberActivities[userId] || [],
+          goals: memberGoals[userId] || [],
+          meetings: memberTeams[userId] || [],
+        }
+      })
+
+      // Validate that we have the required date range
+      if (!meeting.dateRangeStart || !meeting.dateRangeEnd) {
+        setApiError("Please specify both start and end dates for the meeting range")
+        setIsLoadingAI(false)
+        return
+      }
+
+      // Validate date range
+      const startDate = new Date(meeting.dateRangeStart)
+      const endDate = new Date(meeting.dateRangeEnd)
+      if (startDate >= endDate) {
+        setApiError("End date must be after start date")
+        setIsLoadingAI(false)
+        return
+      }
+
+      console.log(`Analyzing schedules for date range: ${meeting.dateRangeStart} to ${meeting.dateRangeEnd}`)
+
+      // Log summary of collected data
+      console.log("=== SCHEDULE ANALYSIS SUMMARY ===")
+      Object.keys(allMemberSchedules).forEach((userId) => {
+        const member = teamMembers.find((m) => m.userid === userId)
+        const memberName = member ? member.username : userId
+        const schedule = allMemberSchedules[userId]
+
+        console.log(`${memberName}:`)
+        console.log(`  - Activities: ${schedule.activities.length}`)
+        console.log(`  - Goals: ${schedule.goals.length}`)
+        console.log(`  - Meetings: ${schedule.meetings.length}`)
+
+        // Log specific conflicts
+        schedule.activities.forEach((activity) => {
+          console.log(
+            `    Activity: ${activity.activitytitle} on ${activity.activitydate} ${activity.activitystarttime || "all day"}`,
+          )
+        })
+      })
+      console.log("=== END SUMMARY ===")
+
+      console.log("Complete member schedules:", allMemberSchedules)
+
+      // Call AI service with comprehensive data
       const aiService = (await import("../services/aiService.js")).default
       const result = await aiService.findOptimalMeetingTimes(
         teamMembers,
@@ -625,19 +784,20 @@ const AddItemModal = ({ isOpen, onClose }) => {
           end: team.teamEndWorkingHour || "17:00",
         },
         meeting.timePreference,
-        memberActivities,
+        allMemberSchedules,
       )
 
       if (result.success) {
         setAiSuggestions(result.suggestions)
         setSelectedSuggestion(null)
         setShowAISuggestions(true)
+        console.log("AI suggestions generated:", result.suggestions)
       } else {
         setApiError(result.error || "Failed to generate meeting suggestions")
       }
     } catch (error) {
       console.error("Error in AI scheduling:", error)
-      setApiError("Failed to generate meeting suggestions")
+      setApiError("Failed to generate meeting suggestions: " + error.message)
     } finally {
       setIsLoadingAI(false)
     }
@@ -1376,23 +1536,37 @@ const AddItemModal = ({ isOpen, onClose }) => {
                               </div>
                             </div>
 
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
-                              <select
-                                value={meeting.duration}
-                                onChange={(e) => {
-                                  const updatedMeetings = [...meetings]
-                                  updatedMeetings[meetingIndex].duration = Number.parseInt(e.target.value)
-                                  setMeetings(updatedMeetings)
-                                }}
-                                className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              >
-                                <option value={30}>30 minutes</option>
-                                <option value={60}>1 hour</option>
-                                <option value={90}>1.5 hours</option>
-                                <option value={120}>2 hours</option>
-                                <option value={180}>3 hours</option>
-                              </select>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                                <select
+                                  value={meeting.duration}
+                                  onChange={(e) => {
+                                    const updatedMeetings = [...meetings]
+                                    updatedMeetings[meetingIndex].duration = Number.parseInt(e.target.value)
+                                    setMeetings(updatedMeetings)
+                                  }}
+                                  className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value={30}>30 minutes</option>
+                                  <option value={60}>1 hour</option>
+                                  <option value={90}>1.5 hours</option>
+                                  <option value={120}>2 hours</option>
+                                  <option value={180}>3 hours</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Invitation Type</label>
+                                <select
+                                  name="invitationType"
+                                  value={meeting.invitationType}
+                                  onChange={(e) => handleMeetingChange(meetingIndex, e)}
+                                  className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value="mandatory">Mandatory (Auto-assign)</option>
+                                  <option value="request">Request (Can accept/decline)</option>
+                                </select>
+                              </div>
                             </div>
 
                             <div>

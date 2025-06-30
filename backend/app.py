@@ -1894,15 +1894,6 @@ def delete_user(user_id):
 @app.route('/api/users/by-email/<email>', methods=['GET'])
 def get_user_by_email(email):
     """Get user details by email address"""
-    email = unquote(email)
-    
-    if not email:
-        return jsonify({'success': False, 'message': 'Email parameter is required'}), 400
-    
-    # Validate email format (basic check)
-    if '@' not in email or '.' not in email:
-        return jsonify({'success': False, 'message': 'Invalid email format'}), 400
-    
     conn = None
     try:
         conn = get_db_connection()
@@ -1913,9 +1904,9 @@ def get_user_by_email(email):
             """
             SELECT UserId, UserName, UserEmail, UserDOB, UserBio, UserProfilePicture, GoogleId
             FROM Users
-            WHERE LOWER(UserEmail) = LOWER(%s)
+            WHERE UserEmail = %s
             """,
-            (email.strip(),)
+            (email,)
         )
         
         user = cur.fetchone()
@@ -1941,185 +1932,7 @@ def get_user_by_email(email):
         
     except Exception as e:
         print(f"Error: {str(e)}")
-        return jsonify({'success': False, 'message': 'Failed to fetch user by email', 'error': str(e)}), 500
-    
-    finally:
-        if conn:
-            conn.close()
-
-@app.route('/api/users/search', methods=['GET'])
-def search_users():
-    """Search users by email or name for AI meeting scheduling"""
-    query = request.args.get('query')
-    limit = request.args.get('limit', 10)
-    
-    if not query:
-        return jsonify({'success': False, 'message': 'Query parameter is required'}), 400
-    
-    # Validate limit
-    try:
-        limit = int(limit)
-        if limit < 1 or limit > 50:
-            limit = 10
-    except ValueError:
-        limit = 10
-    
-    conn = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        # Search users by email or name (case-insensitive)
-        search_pattern = f"%{query.strip().lower()}%"
-        cur.execute(
-            """
-            SELECT UserId, UserName, UserEmail, UserProfilePicture, GoogleId
-            FROM Users
-            WHERE LOWER(UserEmail) LIKE %s OR LOWER(UserName) LIKE %s
-            ORDER BY 
-                CASE 
-                    WHEN LOWER(UserEmail) = LOWER(%s) THEN 1
-                    WHEN LOWER(UserName) = LOWER(%s) THEN 2
-                    WHEN LOWER(UserEmail) LIKE %s THEN 3
-                    WHEN LOWER(UserName) LIKE %s THEN 4
-                    ELSE 5
-                END
-            LIMIT %s
-            """,
-            (search_pattern, search_pattern, query.strip().lower(), query.strip().lower(), 
-             f"{query.strip().lower()}%", f"{query.strip().lower()}%", limit)
-        )
-        
-        users = []
-        for row in cur.fetchall():
-            user_data = {
-                'userid': str(row[0]),
-                'username': row[1],
-                'useremail': row[2],
-                'userprofilepicture': row[3],
-                'isgoogleuser': row[4] is not None
-            }
-            users.append(user_data)
-        
-        return jsonify({
-            'success': True,
-            'users': users,
-            'count': len(users)
-        }), 200
-        
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        return jsonify({'success': False, 'message': 'Failed to search users', 'error': str(e)}), 500
-    
-    finally:
-        if conn:
-            conn.close()
-
-@app.route('/api/users/availability', methods=['GET'])
-def get_user_availability():
-    """Get user availability for AI meeting scheduling"""
-    user_id = request.args.get('userId')
-    start_date = request.args.get('startDate')
-    end_date = request.args.get('endDate')
-    
-    if not user_id or not start_date or not end_date:
-        return jsonify({'success': False, 'message': 'userId, startDate, and endDate are required'}), 400
-    
-    # Validate date format
-    try:
-        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-        end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-        
-        if start_date_obj > end_date_obj:
-            return jsonify({'success': False, 'message': 'Start date must be before end date'}), 400
-            
-    except ValueError:
-        return jsonify({'success': False, 'message': 'Invalid date format. Use YYYY-MM-DD'}), 400
-    
-    conn = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        # Get user's activities in the date range
-        cur.execute(
-            """
-            SELECT ActivityDate, ActivityStartTime, ActivityEndTime, ActivityTitle
-            FROM Activity
-            WHERE UserId = %s AND ActivityDate BETWEEN %s AND %s
-            AND ActivityStartTime IS NOT NULL AND ActivityEndTime IS NOT NULL
-            ORDER BY ActivityDate, ActivityStartTime
-            """,
-            (user_id, start_date, end_date)
-        )
-        
-        activities = []
-        for row in cur.fetchall():
-            activities.append({
-                'date': row[0].isoformat(),
-                'startTime': str(row[1]),
-                'endTime': str(row[2]),
-                'title': row[3]
-            })
-        
-        # Get user's team meetings in the date range (only accepted ones)
-        cur.execute(
-            """
-            SELECT tm.MeetingDate, tm.MeetingStartTime, tm.MeetingEndTime, tm.MeetingTitle
-            FROM TeamMeeting tm
-            JOIN MeetingInvitations mi ON tm.TeamMeetingId = mi.MeetingId
-            WHERE mi.UserId = %s AND mi.Status = 'accepted'
-            AND tm.MeetingDate BETWEEN %s AND %s
-            AND tm.MeetingStartTime IS NOT NULL AND tm.MeetingEndTime IS NOT NULL
-            ORDER BY tm.MeetingDate, tm.MeetingStartTime
-            """,
-            (user_id, start_date, end_date)
-        )
-        
-        meetings = []
-        for row in cur.fetchall():
-            meetings.append({
-                'date': row[0].isoformat(),
-                'startTime': str(row[1]),
-                'endTime': str(row[2]),
-                'title': row[3]
-            })
-        
-        # Get user's working hours from teams they belong to
-        cur.execute(
-            """
-            SELECT DISTINCT t.TeamStartWorkingHour, t.TeamEndWorkingHour
-            FROM Team t
-            JOIN TeamMembers tm ON t.TeamId = tm.TeamId
-            WHERE tm.UserId = %s
-            AND t.TeamStartWorkingHour IS NOT NULL 
-            AND t.TeamEndWorkingHour IS NOT NULL
-            """,
-            (user_id,)
-        )
-        
-        working_hours = []
-        for row in cur.fetchall():
-            working_hours.append({
-                'startTime': str(row[0]),
-                'endTime': str(row[1])
-            })
-        
-        return jsonify({
-            'success': True,
-            'availability': {
-                'userId': user_id,
-                'startDate': start_date,
-                'endDate': end_date,
-                'activities': activities,
-                'meetings': meetings,
-                'workingHours': working_hours
-            }
-        }), 200
-        
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        return jsonify({'success': False, 'message': 'Failed to fetch user availability', 'error': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Failed to fetch user', 'error': str(e)}), 500
     
     finally:
         if conn:

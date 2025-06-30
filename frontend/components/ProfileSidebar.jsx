@@ -394,6 +394,272 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
     }
   }
 
+  const handleAIScheduling = async () => {
+    setIsLoadingAI(true)
+    setError("")
+
+    try {
+      // Get team members from invited emails
+      const validEmails = newMeeting.invitedEmails.filter((email) => email.trim())
+      if (validEmails.length === 0) {
+        setError("Please add at least one team member email")
+        setIsLoadingAI(false)
+        return
+      }
+
+      // Include creator in the analysis
+      const allMemberEmails = [user.useremail, ...validEmails]
+
+      // Get user data and activities for all members
+      const memberActivities = {}
+      const teamMembers = []
+      const memberGoals = {}
+      const memberTeams = {}
+
+      console.log("Fetching data for members:", allMemberEmails)
+
+      for (const email of allMemberEmails) {
+        try {
+          // Get user by email
+          const userResponse = await fetch(`http://localhost:5000/api/users/by-email/${encodeURIComponent(email)}`)
+
+          if (userResponse.ok) {
+            const userData = await userResponse.json()
+            const userId = userData.user.userid
+
+            teamMembers.push({
+              userid: userId,
+              username: userData.user.username,
+              email: userData.user.useremail,
+            })
+
+            console.log(`Found user ${userData.user.username} (${email})`)
+
+            // Get their activities
+            const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
+            if (activitiesResponse.ok) {
+              const activitiesData = await activitiesResponse.json()
+              console.log(`Raw activities for ${userData.user.username}:`, activitiesData.activities)
+
+              // Filter activities within date range with better date handling
+              const filteredActivities = activitiesData.activities.filter((activity) => {
+                if (!activity.activitydate) return false
+
+                const activityDate = new Date(activity.activitydate)
+                const startDate = new Date(newMeeting.dateRangeStart)
+                const endDate = new Date(newMeeting.dateRangeEnd)
+
+                // Ensure dates are valid
+                if (isNaN(activityDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                  console.warn(`Invalid date found for activity: ${activity.activitytitle}`, {
+                    activityDate: activity.activitydate,
+                    startDate: newMeeting.dateRangeStart,
+                    endDate: newMeeting.dateRangeEnd,
+                  })
+                  return false
+                }
+
+                const isInRange = activityDate >= startDate && activityDate <= endDate
+                console.log(
+                  `Activity "${activity.activitytitle}" on ${activity.activitydate}: ${isInRange ? "INCLUDED" : "EXCLUDED"}`,
+                )
+                return isInRange
+              })
+
+              memberActivities[userId] = filteredActivities
+              console.log(`Found ${filteredActivities.length} activities for ${userData.user.username} in date range`)
+            } else {
+              console.warn(`Failed to fetch activities for ${userData.user.username}`)
+              memberActivities[userId] = []
+            }
+
+            // Get their goals with timelines
+            const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
+            if (goalsResponse.ok) {
+              const goalsData = await goalsResponse.json()
+              console.log(`Raw goals for ${userData.user.username}:`, goalsData.goals)
+
+              // Filter goal timelines within date range
+              const filteredGoals = goalsData.goals
+                .map((goal) => ({
+                  ...goal,
+                  timelines: goal.timelines.filter((timeline) => {
+                    if (!timeline.timelinestartdate || !timeline.timelineenddate) return false
+
+                    const timelineStart = new Date(timeline.timelinestartdate)
+                    const timelineEnd = new Date(timeline.timelineenddate)
+                    const rangeStart = new Date(newMeeting.dateRangeStart)
+                    const rangeEnd = new Date(newMeeting.dateRangeEnd)
+
+                    // Check for valid dates
+                    if (
+                      isNaN(timelineStart.getTime()) ||
+                      isNaN(timelineEnd.getTime()) ||
+                      isNaN(rangeStart.getTime()) ||
+                      isNaN(rangeEnd.getTime())
+                    ) {
+                      console.warn(`Invalid date in timeline: ${timeline.timelinetitle}`)
+                      return false
+                    }
+
+                    const overlaps = timelineStart <= rangeEnd && timelineEnd >= rangeStart
+                    console.log(
+                      `Timeline "${timeline.timelinetitle}" (${timeline.timelinestartdate} to ${timeline.timelineenddate}): ${overlaps ? "INCLUDED" : "EXCLUDED"}`,
+                    )
+                    return overlaps
+                  }),
+                }))
+                .filter((goal) => goal.timelines.length > 0)
+
+              memberGoals[userId] = filteredGoals
+              console.log(`Found ${filteredGoals.length} relevant goals for ${userData.user.username}`)
+            } else {
+              console.warn(`Failed to fetch goals for ${userData.user.username}`)
+              memberGoals[userId] = []
+            }
+
+            // Get their team meetings
+            const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+            if (teamsResponse.ok) {
+              const teamsData = await teamsResponse.json()
+              // Extract all meetings within date range
+              const allMeetings = []
+              teamsData.teams.forEach((team) => {
+                team.meetings.forEach((teamMeeting) => {
+                  const meetingDate = new Date(teamMeeting.meetingdate)
+                  const startDate = new Date(newMeeting.dateRangeStart)
+                  const endDate = new Date(newMeeting.dateRangeEnd)
+                  if (meetingDate >= startDate && meetingDate <= endDate) {
+                    allMeetings.push(teamMeeting)
+                  }
+                })
+              })
+              memberTeams[userId] = allMeetings
+              console.log(`Found ${allMeetings.length} team meetings for ${userData.user.username}`)
+            } else {
+              memberTeams[userId] = []
+            }
+          } else {
+            console.warn(`User not found for email: ${email}`)
+            // Add as unknown user for AI analysis
+            teamMembers.push({
+              userid: `unknown_${email}`,
+              username: email.split("@")[0],
+              email: email,
+            })
+            memberActivities[`unknown_${email}`] = []
+            memberGoals[`unknown_${email}`] = []
+            memberTeams[`unknown_${email}`] = []
+          }
+        } catch (error) {
+          console.error(`Error fetching data for ${email}:`, error)
+          // Add as unknown user with empty data
+          teamMembers.push({
+            userid: `unknown_${email}`,
+            username: email.split("@")[0],
+            email: email,
+          })
+          memberActivities[`unknown_${email}`] = []
+          memberGoals[`unknown_${email}`] = []
+          memberTeams[`unknown_${email}`] = []
+        }
+      }
+
+      // Combine all scheduling conflicts for comprehensive analysis
+      const allMemberSchedules = {}
+      Object.keys(memberActivities).forEach((userId) => {
+        allMemberSchedules[userId] = {
+          activities: memberActivities[userId] || [],
+          goals: memberGoals[userId] || [],
+          meetings: memberTeams[userId] || [],
+        }
+      })
+
+      // Validate that we have the required date range
+      if (!newMeeting.dateRangeStart || !newMeeting.dateRangeEnd) {
+        setError("Please specify both start and end dates for the meeting range")
+        setIsLoadingAI(false)
+        return
+      }
+
+      // Validate date range
+      const startDate = new Date(newMeeting.dateRangeStart)
+      const endDate = new Date(newMeeting.dateRangeEnd)
+      if (startDate >= endDate) {
+        setError("End date must be after start date")
+        setIsLoadingAI(false)
+        return
+      }
+
+      console.log(`Analyzing schedules for date range: ${newMeeting.dateRangeStart} to ${newMeeting.dateRangeEnd}`)
+
+      // Log summary of collected data
+      console.log("=== SCHEDULE ANALYSIS SUMMARY ===")
+      Object.keys(allMemberSchedules).forEach((userId) => {
+        const member = teamMembers.find((m) => m.userid === userId)
+        const memberName = member ? member.username : userId
+        const schedule = allMemberSchedules[userId]
+
+        console.log(`${memberName}:`)
+        console.log(`  - Activities: ${schedule.activities.length}`)
+        console.log(`  - Goals: ${schedule.goals.length}`)
+        console.log(`  - Meetings: ${schedule.meetings.length}`)
+
+        // Log specific conflicts
+        schedule.activities.forEach((activity) => {
+          console.log(
+            `    Activity: ${activity.activitytitle} on ${activity.activitydate} ${activity.activitystarttime || "all day"}`,
+          )
+        })
+      })
+      console.log("=== END SUMMARY ===")
+
+      console.log("Complete member schedules:", allMemberSchedules)
+
+      // Call AI service with comprehensive data
+      const aiService = (await import("../services/aiService.js")).default
+      const result = await aiService.findOptimalMeetingTimes(
+        teamMembers,
+        {
+          startDate: newMeeting.dateRangeStart,
+          endDate: newMeeting.dateRangeEnd,
+        },
+        newMeeting.duration,
+        {
+          start: teamDetails.teamstartworkinghour || "09:00",
+          end: teamDetails.teamendworkinghour || "17:00",
+        },
+        newMeeting.timePreference,
+        allMemberSchedules,
+      )
+
+      if (result.success) {
+        setAiSuggestions(result.suggestions)
+        setSelectedSuggestion(null)
+        setShowAISuggestions(true)
+        console.log("AI suggestions generated:", result.suggestions)
+      } else {
+        setError(result.error || "Failed to generate meeting suggestions")
+      }
+    } catch (error) {
+      console.error("Error in AI scheduling:", error)
+      setError("Failed to generate meeting suggestions: " + error.message)
+    } finally {
+      setIsLoadingAI(false)
+    }
+  }
+
+  const selectAISuggestion = (suggestion) => {
+    setSelectedSuggestion(suggestion)
+    setNewMeeting((prev) => ({
+      ...prev,
+      meetingDate: suggestion.date,
+      meetingStartTime: suggestion.startTime,
+      meetingEndTime: suggestion.endTime,
+    }))
+    setShowAISuggestions(false)
+  }
+  
   const handleAddMeeting = async () => {
     setIsLoading(true)
     setError("")
@@ -613,141 +879,6 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleInvitationResponse = async (invitationId, response) => {
-    try {
-      const apiResponse = await fetch(`http://localhost:5000/api/meeting-invitations/${invitationId}/respond`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ response }),
-      })
-
-      if (apiResponse.ok) {
-        // Track the response locally
-        setInvitationResponses((prev) => ({
-          ...prev,
-          [invitationId]: response,
-        }))
-
-        // Refresh notifications
-        // fetchNotifications()
-        setSuccess(`Meeting invitation ${response}!`)
-        setTimeout(() => setSuccess(""), 3000)
-      } else {
-        setError("Failed to respond to invitation")
-      }
-    } catch (error) {
-      console.error("Error responding to invitation:", error)
-      setError("Error responding to invitation")
-    }
-  }
-
-  const handleAIScheduling = async () => {
-    setIsLoadingAI(true)
-    setError("")
-
-    try {
-      // Get team members from invited emails
-      const validEmails = newMeeting.invitedEmails.filter((email) => email.trim())
-      if (validEmails.length === 0) {
-        setError("Please add at least one team member email")
-        setIsLoadingAI(false)
-        return
-      }
-
-      // Include creator in the analysis
-      const allMemberEmails = [user.useremail, ...validEmails]
-
-      // Get user IDs from emails
-      const memberActivities = {}
-      const teamMembers = []
-
-      for (const email of allMemberEmails) {
-        try {
-          // First get user by email
-          const userResponse = await fetch(`http://localhost:5000/api/users/by-email/${encodeURIComponent(email)}`)
-          if (userResponse.ok) {
-            const userData = await userResponse.json()
-            teamMembers.push({
-              userid: userData.user.userid,
-              username: userData.user.username,
-              email: userData.user.useremail,
-            })
-
-            // Then get their activities
-            const activitiesResponse = await fetch(
-              `http://localhost:5000/api/activities?userId=${userData.user.userid}`,
-            )
-            if (activitiesResponse.ok) {
-              const data = await activitiesResponse.json()
-              // Filter activities within date range
-              const filteredActivities = data.activities.filter((activity) => {
-                const activityDate = new Date(activity.activitydate)
-                const startDate = new Date(newMeeting.dateRangeStart)
-                const endDate = new Date(newMeeting.dateRangeEnd)
-                return activityDate >= startDate && activityDate <= endDate
-              })
-              memberActivities[userData.user.userid] = filteredActivities
-            }
-          } else {
-            console.warn(`User not found for email: ${email}`)
-            // Add as unknown user for AI analysis
-            teamMembers.push({
-              userid: `unknown_${email}`,
-              username: email.split("@")[0],
-              email: email,
-            })
-            memberActivities[`unknown_${email}`] = []
-          }
-        } catch (error) {
-          console.error(`Error fetching data for ${email}:`, error)
-          memberActivities[`unknown_${email}`] = []
-        }
-      }
-
-      // Call AI service
-      const aiService = (await import("../services/aiService.js")).default
-      const result = await aiService.findOptimalMeetingTimes(
-        teamMembers,
-        {
-          startDate: newMeeting.dateRangeStart,
-          endDate: newMeeting.dateRangeEnd,
-        },
-        newMeeting.duration,
-        {
-          start: selectedTeam.teamstartworkinghour || "09:00",
-          end: selectedTeam.teamendworkinghour || "17:00",
-        },
-        newMeeting.timePreference,
-        memberActivities,
-      )
-
-      if (result.success) {
-        setAiSuggestions(result.suggestions)
-        setShowAISuggestions(true)
-      } else {
-        setError(result.error || "Failed to generate meeting suggestions")
-      }
-    } catch (error) {
-      console.error("Error in AI scheduling:", error)
-      setError("Failed to generate meeting suggestions")
-    } finally {
-      setIsLoadingAI(false)
-    }
-  }
-
-  const selectAISuggestion = (suggestion) => {
-    setSelectedSuggestion(suggestion)
-    setNewMeeting((prev) => ({
-      ...prev,
-      meetingDate: suggestion.date,
-      meetingStartTime: suggestion.startTime,
-      meetingEndTime: suggestion.endTime,
-    }))
-    setShowAISuggestions(false)
   }
 
   // Format date for display
