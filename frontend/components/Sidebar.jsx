@@ -6,8 +6,7 @@ import AddItemModal from "./AddItemModal"
 import EditItemModal from "./EditItemModal"
 import GmailInbox from "./GmailInbox"
 
-const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }) => {
-  const [isEventModalOpen, setIsEventModalOpen] = useState(false)
+const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
@@ -26,6 +25,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
   const urgencyColors = {
     low: "#10B981", // green
     medium: "#F59E0B", // yellow
+    "medium-high": "#FF6B35", // orange (for meetings)
     high: "#EF4444", // red
     urgent: "#DC2626", // dark red
   }
@@ -33,7 +33,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
   // Get user ID from localStorage
   const getUserId = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}")
-    return user.id || 1
+    return user.id
   }
 
   // Check if user is Google user
@@ -268,20 +268,43 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
     )
   }
 
-  // Get most urgent activity for a specific date
+  // Get most urgent activity or meeting for a specific date
   const getMostUrgentActivityForDate = (day) => {
     if (day.month !== "current") return null
 
     const dateString = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}-${String(day.date).padStart(2, "0")}`
-
+    
+    // Get activities for this date
     const dayActivities = activities.filter((activity) => activity.activitydate === dateString)
 
-    if (dayActivities.length === 0) return null
+    // Get meetings for this date
+    const dayMeetings = []
+    teams.forEach((team) => {
+      if (team.meetings) {
+        team.meetings.forEach((meeting) => {
+          if (meeting.meetingdate === dateString) {
+            dayMeetings.push({
+              ...meeting,
+              type: "meeting",
+              urgency: "medium-high"
+            })
+          }
+        })
+      }
+    })
+
+    // Combine activities and meetings
+    const allItems = [
+      ...dayActivities.map(activity => ({ ...activity, type: "activity", urgency: activity.activityurgency })),
+      ...dayMeetings
+    ]
+
+    if (allItems.length === 0) return null
 
     // Sort by urgency priority
-    const urgencyPriority = { urgent: 4, high: 3, medium: 2, low: 1 }
-    const mostUrgent = dayActivities.reduce((prev, current) => {
-      return urgencyPriority[current.activityurgency] > urgencyPriority[prev.activityurgency] ? current : prev
+    const urgencyPriority = { urgent: 4, high: 3, "medium-high": 2.5, medium: 2, low: 1 }
+    const mostUrgent = allItems.reduce((prev, current) => {
+      return urgencyPriority[current.urgency] > urgencyPriority[prev.urgency] ? current : prev
     })
 
     return mostUrgent
@@ -840,7 +863,7 @@ const Sidebar = ({ currentDate, setCurrentDate, events, addEvent, onDataUpdate }
                   {mostUrgentActivity && (
                     <div
                       className="absolute -bottom-1 w-2 h-2 rounded-full"
-                      style={{ backgroundColor: urgencyColors[mostUrgentActivity.activityurgency] }}
+                      style={{ backgroundColor: urgencyColors[mostUrgentActivity.urgency] }}
                     ></div>
                   )}
                 </button>
