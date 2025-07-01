@@ -2,10 +2,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, time
 from dotenv import load_dotenv
 import os
-from urllib.parse import unquote
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -28,6 +27,37 @@ def get_db_connection():
         port=DB_PORT
     )
     return conn
+
+def format_time_to_hhmm(time_obj):
+    """Convert time object to HH:MM format string"""
+    if time_obj is None:
+        return None
+    if isinstance(time_obj, str):
+        # If it's already a string, parse it and reformat
+        try:
+            parsed_time = datetime.strptime(time_obj, '%H:%M:%S').time()
+            return parsed_time.strftime('%H:%M')
+        except ValueError:
+            try:
+                # Try HH:MM format
+                parsed_time = datetime.strptime(time_obj, '%H:%M').time()
+                return parsed_time.strftime('%H:%M')
+            except ValueError:
+                return time_obj  # Return as-is if can't parse
+    return time_obj.strftime('%H:%M')
+
+def parse_time_from_hhmm(time_str):
+    """Parse HH:MM format string to time object"""
+    if not time_str:
+        return None
+    try:
+        # Handle both HH:MM and HH:MM:SS formats
+        if len(time_str.split(':')) == 2:
+            return datetime.strptime(time_str, '%H:%M').time()
+        else:
+            return datetime.strptime(time_str, '%H:%M:%S').time()
+    except ValueError:
+        return None
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -238,7 +268,11 @@ def create_activity():
     # Validate required fields
     if not user_id or not title or not date:
         return jsonify({'success': False, 'message': 'User ID, title, and date are required'}), 400
-    
+
+    # Parse time fields
+    parsed_start_time = parse_time_from_hhmm(start_time) if start_time else None
+    parsed_end_time = parse_time_from_hhmm(end_time) if end_time else None
+
     # Connect to database
     conn = None
     try:
@@ -254,7 +288,7 @@ def create_activity():
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING ActivityId
             """,
-            (title, description, category, urgency, date, start_time, end_time, user_id)
+            (title, description, category, urgency, date, parsed_start_time, parsed_end_time, user_id)
         )
         
         # Get the new activity ID
@@ -313,8 +347,8 @@ def get_activities():
                 'activitycategory': row[3],
                 'activityurgency': row[4],
                 'activitydate': row[5].isoformat() if row[5] else None,
-                'activitystarttime': str(row[6]) if row[6] else None,
-                'activityendtime': str(row[7]) if row[7] else None
+                'activitystarttime': format_time_to_hhmm(row[6]),
+                'activityendtime': format_time_to_hhmm(row[7])
             })
         
         return jsonify({
@@ -349,6 +383,10 @@ def update_activity(activity_id):
     if not title or not date:
         return jsonify({'success': False, 'message': 'Title and date are required'}), 400
     
+    # Parse time fields
+    parsed_start_time = parse_time_from_hhmm(start_time) if start_time else None
+    parsed_end_time = parse_time_from_hhmm(end_time) if end_time else None
+
     # Connect to database
     conn = None
     try:
@@ -364,7 +402,7 @@ def update_activity(activity_id):
                 ActivityEndTime = %s
             WHERE ActivityId = %s
             """,
-            (title, description, category, urgency, date, start_time, end_time, activity_id)
+            (title, description, category, urgency, date, parsed_start_time, parsed_end_time, activity_id)
         )
         
         # Check if any rows were affected
@@ -465,6 +503,10 @@ def create_goal():
         # Insert timelines
         timeline_ids = []
         for timeline in timelines:
+            # Parse time fields
+            start_time = parse_time_from_hhmm(timeline.get('timelineStartTime')) if timeline.get('timelineStartTime') else None
+            end_time = parse_time_from_hhmm(timeline.get('timelineEndTime')) if timeline.get('timelineEndTime') else None
+            
             cur.execute(
                 """
                 INSERT INTO Timeline (TimelineTitle, TimelineStartDate, TimelineEndDate, 
@@ -476,8 +518,8 @@ def create_goal():
                     timeline.get('timelineTitle'),
                     timeline.get('timelineStartDate'),
                     timeline.get('timelineEndDate'),
-                    timeline.get('timelineStartTime'),
-                    timeline.get('timelineEndTime'),
+                    start_time,
+                    end_time,
                     goal_id
                 )
             )
@@ -549,8 +591,8 @@ def get_goals():
                     'timelinetitle': row[6],
                     'timelinestartdate': row[7].isoformat() if row[7] else None,
                     'timelineenddate': row[8].isoformat() if row[8] else None,
-                    'timelinestarttime': str(row[9]) if row[9] else None,
-                    'timelineendtime': str(row[10]) if row[10] else None
+                    'timelinestarttime': format_time_to_hhmm(row[9]),
+                    'timelineendtime': format_time_to_hhmm(row[10])
                 })
         
         goals = list(goals_dict.values())
@@ -614,6 +656,10 @@ def update_goal(goal_id):
         # Insert new timelines
         timeline_ids = []
         for timeline in timelines:
+            # Parse time fields
+            start_time = parse_time_from_hhmm(timeline.get('timelineStartTime')) if timeline.get('timelineStartTime') else None
+            end_time = parse_time_from_hhmm(timeline.get('timelineEndTime')) if timeline.get('timelineEndTime') else None
+            
             cur.execute(
                 """
                 INSERT INTO Timeline (TimelineTitle, TimelineStartDate, TimelineEndDate, 
@@ -625,8 +671,8 @@ def update_goal(goal_id):
                     timeline.get('timelineTitle'),
                     timeline.get('timelineStartDate'),
                     timeline.get('timelineEndDate'),
-                    timeline.get('timelineStartTime'),
-                    timeline.get('timelineEndTime'),
+                    start_time,
+                    end_time,
                     goal_id
                 )
             )
@@ -708,6 +754,10 @@ def create_team():
     if not meetings:
         return jsonify({'success': False, 'message': 'At least one meeting is required'}), 400
     
+    # Parse working hours
+    parsed_start_hour = parse_time_from_hhmm(team_start_working_hour) if team_start_working_hour else None
+    parsed_end_hour = parse_time_from_hhmm(team_end_working_hour) if team_end_working_hour else None
+    
     # Connect to database
     conn = None
     try:
@@ -722,7 +772,7 @@ def create_team():
             VALUES (%s, %s, %s, %s, %s)
             RETURNING TeamId
             """,
-            (team_name, team_description, team_start_working_hour, team_end_working_hour, created_by_user_id)
+            (team_name, team_description, parsed_start_hour, parsed_end_hour, created_by_user_id)
         )
         
         # Get the new team ID
@@ -740,6 +790,10 @@ def create_team():
         # Insert meetings and handle invitations
         meeting_ids = []
         for meeting in meetings:
+            # Parse meeting times
+            meeting_start_time = parse_time_from_hhmm(meeting.get('meetingStartTime')) if meeting.get('meetingStartTime') else None
+            meeting_end_time = parse_time_from_hhmm(meeting.get('meetingEndTime')) if meeting.get('meetingEndTime') else None
+            
             # Insert meeting with invitation type
             invitation_type = meeting.get('invitationType', 'mandatory')
             cur.execute(
@@ -753,8 +807,8 @@ def create_team():
                     meeting.get('meetingTitle'),
                     meeting.get('meetingDescription'),
                     meeting.get('meetingDate'),
-                    meeting.get('meetingStartTime'),
-                    meeting.get('meetingEndTime'),
+                    meeting_start_time,
+                    meeting_end_time,
                     team_id,
                     invitation_type
                 )
@@ -879,8 +933,8 @@ def get_teams():
                     'teamid': row[0],
                     'teamname': row[1],
                     'teamdescription': row[2],
-                    'teamstartworkinghour': str(row[3]) if row[3] else None,
-                    'teamendworkinghour': str(row[4]) if row[4] else None,
+                    'teamstartworkinghour': format_time_to_hhmm(row[3]),
+                    'teamendworkinghour': format_time_to_hhmm(row[4]),
                     'createdbyuserid': str(row[5]),  # Convert to string
                     'meetings': []
                 }
@@ -891,8 +945,8 @@ def get_teams():
                     'meetingtitle': row[6],
                     'meetingdescription': row[7],
                     'meetingdate': row[8].isoformat() if row[8] else None,
-                    'meetingstarttime': str(row[9]) if row[9] else None,
-                    'meetingendtime': str(row[10]) if row[10] else None,
+                    'meetingstarttime': format_time_to_hhmm(row[9]),
+                    'meetingendtime': format_time_to_hhmm(row[10]),
                     'invitationtype': row[12]
                 })
         
@@ -938,8 +992,8 @@ def get_team_details(team_id):
             'teamid': team_row[0],
             'teamname': team_row[1],
             'teamdescription': team_row[2],
-            'teamstartworkinghour': str(team_row[3]) if team_row[3] else None,
-            'teamendworkinghour': str(team_row[4]) if team_row[4] else None,
+            'teamstartworkinghour': format_time_to_hhmm(team_row[3]),
+            'teamendworkinghour': format_time_to_hhmm(team_row[4]),
             'createdbyuserid': str(team_row[5])
         }
         
@@ -962,8 +1016,8 @@ def get_team_details(team_id):
                 'meetingtitle': meeting_row[1],
                 'meetingdescription': meeting_row[2],
                 'meetingdate': meeting_row[3].isoformat() if meeting_row[3] else None,
-                'meetingstarttime': str(meeting_row[4]) if meeting_row[4] else None,
-                'meetingendtime': str(meeting_row[5]) if meeting_row[5] else None,
+                'meetingstarttime': format_time_to_hhmm(meeting_row[4]),
+                'meetingendtime': format_time_to_hhmm(meeting_row[5]),
                 'invitationtype': meeting_row[6],
                 'members': []
             }
@@ -1021,6 +1075,10 @@ def update_team(team_id):
     if not team_name:
         return jsonify({'success': False, 'message': 'Team name is required'}), 400
     
+    # Parse working hours
+    parsed_start_hour = parse_time_from_hhmm(team_start_working_hour) if team_start_working_hour else None
+    parsed_end_hour = parse_time_from_hhmm(team_end_working_hour) if team_end_working_hour else None
+    
     conn = None
     try:
         conn = get_db_connection()
@@ -1033,7 +1091,7 @@ def update_team(team_id):
             SET TeamName = %s, TeamDescription = %s, TeamStartWorkingHour = %s, TeamEndWorkingHour = %s
             WHERE TeamId = %s
             """,
-            (team_name, team_description, team_start_working_hour, team_end_working_hour, team_id)
+            (team_name, team_description, parsed_start_hour, parsed_end_hour, team_id)
         )
         
         if cur.rowcount == 0:
@@ -1072,6 +1130,10 @@ def add_team_meeting(team_id):
     if not meeting_title or not meeting_date:
         return jsonify({'success': False, 'message': 'Meeting title and date are required'}), 400
     
+    # Parse meeting times
+    parsed_start_time = parse_time_from_hhmm(meeting_start_time) if meeting_start_time else None
+    parsed_end_time = parse_time_from_hhmm(meeting_end_time) if meeting_end_time else None
+    
     conn = None
     try:
         conn = get_db_connection()
@@ -1093,7 +1155,7 @@ def add_team_meeting(team_id):
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING TeamMeetingId
             """,
-            (meeting_title, meeting_description, meeting_date, meeting_start_time, meeting_end_time, team_id, invitation_type)
+            (meeting_title, meeting_description, meeting_date, parsed_start_time, parsed_end_time, team_id, invitation_type)
         )
         
         meeting_id = cur.fetchone()[0]
@@ -1250,6 +1312,10 @@ def update_meeting(meeting_id):
     if not title or not date:
         return jsonify({'success': False, 'message': 'Title and date are required'}), 400
     
+    # Parse meeting times
+    parsed_start_time = parse_time_from_hhmm(start_time) if start_time else None
+    parsed_end_time = parse_time_from_hhmm(end_time) if end_time else None
+    
     # Connect to database
     conn = None
     try:
@@ -1281,7 +1347,7 @@ def update_meeting(meeting_id):
                 MeetingStartTime = %s, MeetingEndTime = %s, InvitationType = %s
             WHERE TeamMeetingId = %s
             """,
-            (title, description, date, start_time, end_time, invitation_type, meeting_id)
+            (title, description, date, parsed_start_time, parsed_end_time, invitation_type, meeting_id)
         )
         
         # Delete existing invitations for this meeting
