@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useEffect, useState } from "react"
-import { Edit2 } from "lucide-react"
+import { Edit2, Trash2 } from "lucide-react"
 
 const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }) => {
   const gridRef = useRef(null)
@@ -357,6 +357,34 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
       }
     }
 
+    const handleDelete = () => {
+      onClose()
+
+      if (item.type === "activity") {
+        // Dispatch delete event for activity
+        const event = new CustomEvent("deleteCalendarItem", {
+          detail: { id: item.id, type: item.type },
+        })
+        window.dispatchEvent(event)
+      } else if (item.type === "goal") {
+        // Dispatch delete event for timeline, not the whole goal
+        const event = new CustomEvent("deleteCalendarItem", {
+          detail: {
+            id: item.id,
+            type: item.type,
+            timelineId: item.timelineId,
+          },
+        })
+        window.dispatchEvent(event)
+      } else if (item.type === "meeting") {
+        // Dispatch delete event for meeting
+        const event = new CustomEvent("deleteCalendarItem", {
+          detail: { id: item.id, type: item.type },
+        })
+        window.dispatchEvent(event)
+      }
+    }
+
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
         <div className="bg-white rounded-lg border-1 shadow-2xl w-full max-w-md p-4" onClick={(e) => e.stopPropagation()}>
@@ -375,6 +403,13 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                 title="Edit"
               >
                 <Edit2 size={16} />
+              </button>
+              <button
+                onClick={handleDelete}
+                className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                title="Delete"
+              >
+                <Trash2 size={16} />
               </button>
               <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
                 <svg

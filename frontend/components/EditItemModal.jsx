@@ -7,6 +7,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // State for existing data to check overlaps
   const [activities, setActivities] = useState([])
@@ -150,6 +151,41 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
       [name]: value,
     }
     setTimelines(updatedTimelines)
+  }
+  
+  const handleDeleteGoal = async () => {
+    if (!item || item.type !== 'goal') return
+
+    if (!window.confirm("Are you sure you want to delete this goal and all its timelines? This action cannot be undone.")) {
+      return
+    }
+
+    setIsDeleting(true)
+    setApiError("")
+    setSuccessMessage("")
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/goals/${item.id}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        setSuccessMessage("Goal deleted successfully!");
+        // Notify other components to refresh data
+        window.dispatchEvent(new CustomEvent("refreshCalendarData"))
+        setTimeout(() => {
+          onClose()
+        }, 1500)
+      } else {
+        const data = await response.json()
+        setApiError(data.message || "Failed to delete goal.")
+      }
+    } catch (error) {
+      console.error("Error deleting goal:", error)
+      setApiError("A network error occurred. Please try again.")
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   // Add new timeline
@@ -313,19 +349,35 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     goals.forEach((goal) => {
       if (goal.goalid === item.id) return // Skip current goal
       if (goal.timelines) {
-        goal.timelines.forEach((timeline) => {
-          const existingStart = new Date(timeline.timelinestartdate)
-          const existingEnd = new Date(timeline.timelineenddate)
+        goal.timelines.forEach((existingTimeline) => {
+          const existingStart = new Date(existingTimeline.timelinestartdate)
+          const existingEnd = new Date(existingTimeline.timelineenddate)
 
+          // Check for date range overlap first
           if (newStart <= existingEnd && newEnd >= existingStart) {
-            overlaps.push({
-              type: "goal",
-              title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
-              time: timeline.timelinestarttime
-                ? `${timeline.timelinestarttime} - ${timeline.timelineendtime}`
-                : "All day",
-              date: `${timeline.timelinestartdate} to ${timeline.timelineenddate}`,
-            })
+            // Only trigger alert if BOTH timelines have specific start and end times
+            if (
+              newTimeline.timelineStartTime &&
+              newTimeline.timelineEndTime &&
+              existingTimeline.timelinestarttime &&
+              existingTimeline.timelineendtime
+            ) {
+              const commonDay = new Date(Math.max(newStart.getTime(), existingStart.getTime()))
+              const newTimelineStartTime = new Date(`${commonDay.toDateString()} ${newTimeline.timelineStartTime}`)
+              const newTimelineEndTime = new Date(`${commonDay.toDateString()} ${newTimeline.timelineEndTime}`)
+              const existingTimelineStartTime = new Date(`${commonDay.toDateString()} ${existingTimeline.timelinestarttime}`)
+              const existingTimelineEndTime = new Date(`${commonDay.toDateString()} ${existingTimeline.timelineendtime}`)
+
+              // If times overlap, then it's a conflict
+              if (newTimelineStartTime < existingTimelineEndTime && newTimelineEndTime > existingTimelineStartTime) {
+                overlaps.push({
+                  type: "goal",
+                  title: `${goal.goaltitle} - ${existingTimeline.timelinetitle}`,
+                  time: `${existingTimeline.timelinestarttime} - ${existingTimeline.timelineendtime}`,
+                  date: `${existingTimeline.timelinestartdate} to ${existingTimeline.timelineenddate}`,
+                })
+              }
+            }
           }
         })
       }
@@ -1008,22 +1060,35 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                 ))}
               </div>
 
-              <div className="flex justify-end mt-6">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 mr-2"
-                  disabled={isLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Updating..." : "Update Goal"}
-                </button>
+              <div className="flex justify-between items-center mt-6">
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleDeleteGoal}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:bg-red-400 flex items-center"
+                    disabled={isLoading || isDeleting}
+                  >
+                    <Trash2 size={16} className="mr-2" />
+                    {isDeleting ? "Deleting..." : "Delete Goal"}
+                  </button>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 mr-2"
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Updating..." : "Update Goal"}
+                  </button>
+                </div>
               </div>
             </form>
           ) : item.type === "meeting" ? (

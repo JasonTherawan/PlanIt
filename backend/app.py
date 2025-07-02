@@ -733,6 +733,54 @@ def delete_goal(goal_id):
         if conn:
             conn.close()
 
+@app.route('/api/timelines/<int:timeline_id>', methods=['DELETE'])
+def delete_timeline(timeline_id):
+    """Delete a specific timeline"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Check if this is the last timeline for the goal
+        cur.execute(
+            """
+            SELECT GoalId, COUNT(*) as timeline_count
+            FROM Timeline 
+            WHERE GoalId = (SELECT GoalId FROM Timeline WHERE TimelineId = %s)
+            GROUP BY GoalId
+            """,
+            (timeline_id,)
+        )
+        
+        result = cur.fetchone()
+        if result and result[1] <= 1:
+            return jsonify({'success': False, 'message': 'Cannot delete the last timeline. A goal must have at least one timeline.'}), 400
+        
+        # Delete timeline
+        cur.execute("DELETE FROM Timeline WHERE TimelineId = %s", (timeline_id,))
+        
+        # Check if any rows were affected
+        if cur.rowcount == 0:
+            return jsonify({'success': False, 'message': 'Timeline not found'}), 404
+        
+        # Commit the transaction
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Timeline deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to delete timeline', 'error': str(e)}), 500
+    
+    finally:
+        if conn:
+            conn.close()
+
 @app.route('/api/teams', methods=['POST'])
 def create_team():
     """Create a new team with meetings and invitations"""

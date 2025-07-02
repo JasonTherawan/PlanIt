@@ -433,19 +433,37 @@ const AddItemModal = ({ isOpen, onClose }) => {
     // Check against other goal timelines
     goals.forEach((goal) => {
       if (goal.timelines) {
-        goal.timelines.forEach((timeline) => {
-          const existingStart = new Date(timeline.timelinestartdate)
-          const existingEnd = new Date(timeline.timelineenddate)
+        goal.timelines.forEach((existingTimeline) => {
+          const existingStart = new Date(existingTimeline.timelinestartdate)
+          const existingEnd = new Date(existingTimeline.timelineenddate)
 
+          // Check for date range overlap first
           if (newStart <= existingEnd && newEnd >= existingStart) {
-            overlaps.push({
-              type: "goal",
-              title: `${goal.goaltitle} - ${timeline.timelinetitle}`,
-              time: timeline.timelinestarttime
-                ? `${timeline.timelinestarttime} - ${timeline.timelineendtime}`
-                : "All day",
-              date: `${timeline.timelinestartdate} to ${timeline.timelineenddate}`,
-            })
+            // Only trigger alert if BOTH timelines have specific start and end times
+            if (
+              newTimeline.timelineStartTime &&
+              newTimeline.timelineEndTime &&
+              existingTimeline.timelinestarttime &&
+              existingTimeline.timelineendtime
+            ) {
+              // Find a common day to compare times
+              const commonDay = new Date(Math.max(newStart.getTime(), existingStart.getTime()))
+              const newTimelineStartTime = new Date(`${commonDay.toDateString()} ${newTimeline.timelineStartTime}`)
+              const newTimelineEndTime = new Date(`${commonDay.toDateString()} ${newTimeline.timelineEndTime}`)
+              const existingTimelineStartTime = new Date(`${commonDay.toDateString()} ${existingTimeline.timelinestarttime}`)
+              const existingTimelineEndTime = new Date(`${commonDay.toDateString()} ${existingTimeline.timelineendtime}`)
+
+              // If times overlap, then it's a conflict
+              if (newTimelineStartTime < existingTimelineEndTime && newTimelineEndTime > existingTimelineStartTime) {
+                overlaps.push({
+                  type: "goal",
+                  title: `${goal.goaltitle} - ${existingTimeline.timelinetitle}`,
+                  time: `${existingTimeline.timelinestarttime} - ${existingTimeline.timelineendtime}`,
+                  date: `${existingTimeline.timelinestartdate} to ${existingTimeline.timelineenddate}`,
+                })
+              }
+            }
+            // If one or both are "all-day", it's not a direct time conflict, so no alert.
           }
         })
       }

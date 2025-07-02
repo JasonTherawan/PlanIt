@@ -109,7 +109,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
 
   // Delete goal
   const deleteGoal = async (goalId) => {
-    if (!confirm("Are you sure you want to delete this goal and all its timelines?")) return
+    if (!confirm("Are you sure you want to delete this entire goal and all its timelines?")) return
 
     try {
       const response = await fetch(`http://localhost:5000/api/goals/${goalId}`, {
@@ -124,6 +124,26 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     } catch (error) {
       console.error("Error deleting goal:", error)
       alert("Error deleting goal")
+    }
+  }
+
+  const deleteTimeline = async (timelineId) => {
+    if (!confirm("Are you sure you want to delete this timeline?")) return
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/timelines/${timelineId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        fetchAllData() // Refresh data
+      } else {
+        const data = await response.json()
+        alert(data.message || "Failed to delete timeline")
+      }
+    } catch (error) {
+      console.error("Error deleting timeline:", error)
+      alert("Error deleting timeline")
     }
   }
 
@@ -702,7 +722,13 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
                   if (item.type === "activity") {
                     deleteActivity(item.id)
                   } else if (item.type === "goal") {
-                    deleteGoal(item.id)
+                    // For goals, delete the specific timeline, not the whole goal
+                    const timelineId = item.timelineId || (item.timeline ? item.timeline.timelineid : null)
+                    if (timelineId) {
+                      deleteTimeline(timelineId)
+                    } else {
+                      deleteGoal(item.id) // Fallback for goals without timeline info
+                    }
                   } else if (item.type === "meeting") {
                     deleteTeamMeeting(item.id, item.teamCreatorId)
                   }
@@ -781,17 +807,40 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     const handleRefreshCalendarData = () => {
       fetchAllData()
     }
+    
+    const handleDeleteCalendarItem = (event) => {
+      const { id, type, timelineId } = event.detail
+
+      if (type === "activity") {
+        deleteActivity(id)
+      } else if (type === "goal") {
+        // For goals, delete the specific timeline if provided
+        if (timelineId) {
+          deleteTimeline(timelineId)
+        } else {
+          deleteGoal(id) // Fallback for goals without timeline info
+        }
+      } else if (type === "meeting") {
+        // Find the team this meeting belongs to get the creator ID
+        const team = teams.find((t) => t.meetings && t.meetings.some((m) => m.teammeetingid === id))
+        if (team) {
+          deleteTeamMeeting(id, team.createdbyuserid)
+        }
+      }
+    }
 
     window.addEventListener("highlightSidebarItem", handleHighlightSidebarItem)
     window.addEventListener("editCalendarItem", handleEditCalendarItem)
     window.addEventListener("switchSidebarTab", handleSwitchSidebarTab)
     window.addEventListener("refreshCalendarData", handleRefreshCalendarData)
+    window.addEventListener("deleteCalendarItem", handleDeleteCalendarItem)
 
     return () => {
       window.removeEventListener("highlightSidebarItem", handleHighlightSidebarItem)
       window.removeEventListener("editCalendarItem", handleEditCalendarItem)
       window.removeEventListener("switchSidebarTab", handleSwitchSidebarTab)
       window.removeEventListener("refreshCalendarData", handleRefreshCalendarData)
+      window.removeEventListener("deleteCalendarItem", handleDeleteCalendarItem)
     }
   }, [activities, goals, teams, activeTab])
 
