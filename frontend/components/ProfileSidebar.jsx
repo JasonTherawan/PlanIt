@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { User, Mail, Calendar, Edit2, Lock, LogOut, Trash2, X, Camera, Save, AlertCircle, Users, ChevronRight, Plus } from "lucide-react"
+import { User, Mail, Calendar, Edit2, Lock, LogOut, Trash2, X, Camera, Save, AlertCircle, Users, ChevronRight, Plus, Eye } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
-const ProfileSidebar = ({ isOpen, onClose }) => {
+const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [teams, setTeams] = useState([])
@@ -911,6 +911,50 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
 
     return null
   }
+  
+  const handleViewMeetingOnCalendar = (meeting) => {
+    const meetingDate = new Date(meeting.meetingdate)
+    
+    // Set the main calendar's date
+    setCurrentDate(meetingDate)
+
+    // Determine if the meeting is in the past
+    const now = new Date()
+    now.setHours(0, 0, 0, 0) // Normalize current date for accurate comparison
+    const isPast = meetingDate < now
+
+    // Dispatch an event to tell the main sidebar to switch tabs
+    const switchTabEvent = new CustomEvent("switchSidebarTab", {
+      detail: { isPast },
+    });
+    window.dispatchEvent(switchTabEvent)
+  
+    // Use a timeout to allow the calendar and sidebar to re-render
+    setTimeout(() => {
+      // Highlight the item on the calendar grid
+      const highlightEvent = new CustomEvent("highlightCalendarItem", {
+        detail: {
+          id: meeting.teammeetingid,
+          type: "meeting",
+          timelineId: null,
+        },
+      });
+      window.dispatchEvent(highlightEvent)
+
+      // Highlight the item in the main sidebar
+      const sidebarEvent = new CustomEvent("highlightSidebarItem", {
+        detail: { 
+          id: meeting.teammeetingid, 
+          type: "meeting",
+          timelineId: null,
+        },
+      });
+      window.dispatchEvent(sidebarEvent)
+    }, 100)
+  
+    // Close the profile sidebar
+    onClose();
+  };
 
   if (!isOpen) return null
 
@@ -1378,6 +1422,13 @@ const ProfileSidebar = ({ isOpen, onClose }) => {
                           <h4 className="font-medium">{meeting.meetingtitle}</h4>
                           <div className="flex items-center space-x-1">
                             <span className="text-xs text-gray-400">{meeting.meetingdate}</span>
+                            <button
+                              onClick={() => handleViewMeetingOnCalendar(meeting)}
+                              className="p-1 text-gray-400 hover:text-gray-300 rounded"
+                              title="View on calendar"
+                            >
+                              <Eye size={12} />
+                            </button>
                             {selectedTeam.createdbyuserid === user?.userid && (
                               <button
                                 onClick={() => setEditingMeeting(meeting)}

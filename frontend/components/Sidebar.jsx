@@ -49,6 +49,10 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     fetchAllData()
   }, [])
 
+  useEffect(() => {
+    setViewDate(new Date(currentDate));
+  }, [currentDate]);
+
   const fetchAllData = async () => {
     try {
       const userId = getUserId()
@@ -618,8 +622,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
         itemDate = item.deadline
       }
 
-      // Set the current date to the item's date to navigate to that day
-      setCurrentDate(new Date(itemDate))
+      setViewDate(new Date(itemDate));
+      setCurrentDate(new Date(itemDate));
 
       // Dispatch a custom event that CalendarGrid can listen for
       const event = new CustomEvent("highlightCalendarItem", {
@@ -628,8 +632,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
           type: item.type,
           timelineId: item.timelineId || (item.timeline ? item.timeline.timelineid : null),
         },
-      })
-      window.dispatchEvent(event)
+      });
+      window.dispatchEvent(event);
     }
 
     // Check if this item is highlighted
@@ -664,7 +668,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
           <div className="absolute top-2 right-1 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
             {/* Eye icon to locate on calendar */}
             <button
-              onClick={scrollToItemOnGrid}
+              onClick={() => scrollToItemOnGrid(item)}
               className="w-4 h-4 bg-gray-500 hover:bg-gray-600 rounded flex items-center justify-center"
               title="Find on calendar"
             >

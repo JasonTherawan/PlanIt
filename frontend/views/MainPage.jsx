@@ -68,7 +68,7 @@ export default function MainPage() {
           />
 
           {/* Profile Sidebar */}
-          <ProfileSidebar isOpen={isProfileSidebarOpen} onClose={() => setIsProfileSidebarOpen(false)} />
+          <ProfileSidebar isOpen={isProfileSidebarOpen} onClose={() => setIsProfileSidebarOpen(false)} setCurrentDate={setCurrentDate}/>
 
           {/* Notification Sidebar */}
           <NotificationSidebar isOpen={isNotificationSidebarOpen} onClose={() => setIsNotificationSidebarOpen(false)} />
