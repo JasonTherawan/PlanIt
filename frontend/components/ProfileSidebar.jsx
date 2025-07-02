@@ -726,6 +726,9 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     setSuccess("")
 
     try {
+      // Store original values for comparison
+      const originalMeeting = teamDetails.meetings.find((m) => m.teammeetingid === editingMeeting.teammeetingid)
+
       const response = await fetch(`http://localhost:5000/api/meetings/${editingMeeting.teammeetingid}`, {
         method: "PUT",
         headers: {
@@ -738,7 +741,9 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           meetingStartTime: editingMeeting.meetingstarttime,
           meetingEndTime: editingMeeting.meetingendtime,
           invitationType: editingMeeting.invitationtype,
-          invitedEmails: editingMeeting.members?.map((member) => member.useremail) || [],
+          newMemberEmails: (editingMeeting.newMemberEmails || []).filter((email) => email.trim()),
+          removedMemberIds: (editingMeeting.removedMembers || []).map((member) => member.userid),
+          originalMeeting: originalMeeting, // Send original data for comparison
         }),
       })
 
@@ -1431,7 +1436,13 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                             </button>
                             {selectedTeam.createdbyuserid === user?.userid && (
                               <button
-                                onClick={() => setEditingMeeting(meeting)}
+                                onClick={() =>
+                                  setEditingMeeting({
+                                    ...meeting,
+                                    newMemberEmails: [""],
+                                    removedMembers: [],
+                                  })
+                                }
                                 className="p-1 text-blue-400 hover:text-blue-300 rounded"
                                 title="Edit Meeting"
                               >
@@ -1478,9 +1489,9 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
               {/* Edit Meeting Modal */}
               {editingMeeting && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                  <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+                  <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
                     <h3 className="text-lg font-medium mb-4">Edit Meeting</h3>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Meeting Title</label>
                         <input
@@ -1493,7 +1504,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
                         <textarea
-                          value={editingMeeting.meetingdescription}
+                          value={editingMeeting.meetingdescription || ""}
                           onChange={(e) => setEditingMeeting({ ...editingMeeting, meetingdescription: e.target.value })}
                           rows="2"
                           className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
@@ -1513,7 +1524,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                           <label className="block text-sm font-medium text-gray-300 mb-1">Start</label>
                           <input
                             type="time"
-                            value={editingMeeting.meetingstarttime}
+                            value={editingMeeting.meetingstarttime || ""}
                             onChange={(e) => setEditingMeeting({ ...editingMeeting, meetingstarttime: e.target.value })}
                             className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                           />
@@ -1522,24 +1533,115 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                           <label className="block text-sm font-medium text-gray-300 mb-1">End</label>
                           <input
                             type="time"
-                            value={editingMeeting.meetingendtime}
+                            value={editingMeeting.meetingendtime || ""}
                             onChange={(e) => setEditingMeeting({ ...editingMeeting, meetingendtime: e.target.value })}
                             className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                           />
                         </div>
                       </div>
+                      {/* Current Members Section */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Current Members</label>
+                        <div className="space-y-2 mb-3">
+                          {editingMeeting.members &&
+                            editingMeeting.members.map((member) => (
+                              <div
+                                key={member.userid}
+                                className="flex items-center justify-between bg-gray-700 rounded p-2"
+                              >
+                                <div className="flex items-center">
+                                  <span className="text-sm text-white">{member.username}</span>
+                                  <span className="text-xs text-gray-400 ml-2">({member.useremail})</span>
+                                  <span
+                                    className={`text-xs px-2 py-1 rounded ml-2 ${
+                                      member.status === "accepted"
+                                        ? "bg-green-900 text-green-300"
+                                        : member.status === "declined"
+                                          ? "bg-red-900 text-red-300"
+                                          : "bg-yellow-900 text-yellow-300"
+                                    }`}
+                                  >
+                                    {member.status}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const updatedMembers = editingMeeting.members.filter(
+                                      (m) => m.userid !== member.userid,
+                                    )
+                                    setEditingMeeting({
+                                      ...editingMeeting,
+                                      members: updatedMembers,
+                                      removedMembers: [...(editingMeeting.removedMembers || []), member],
+                                    })
+                                  }}
+                                  className="text-red-400 hover:text-red-300 p-1"
+                                  title="Remove member"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+
+                      {/* Add New Members Section */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Add New Members</label>
+                        {(editingMeeting.newMemberEmails || [""]).map((email, index) => (
+                          <div key={index} className="flex items-center mb-2">
+                            <input
+                              type="email"
+                              value={email}
+                              onChange={(e) => {
+                                const updatedEmails = [...(editingMeeting.newMemberEmails || [""])]
+                                updatedEmails[index] = e.target.value
+                                setEditingMeeting({ ...editingMeeting, newMemberEmails: updatedEmails })
+                              }}
+                              className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                              placeholder="Enter email to add new member"
+                            />
+                            <button
+                              onClick={() => {
+                                const updatedEmails = (editingMeeting.newMemberEmails || [""]).filter(
+                                  (_, i) => i !== index,
+                                )
+                                setEditingMeeting({
+                                  ...editingMeeting,
+                                  newMemberEmails: updatedEmails.length > 0 ? updatedEmails : [""],
+                                })
+                              }}
+                              className="ml-2 text-red-400 hover:text-red-300"
+                              disabled={(editingMeeting.newMemberEmails || [""]).length === 1}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setEditingMeeting({
+                              ...editingMeeting,
+                              newMemberEmails: [...(editingMeeting.newMemberEmails || [""]), ""],
+                            })
+                          }}
+                          className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
+                        >
+                          <Plus size={12} className="mr-1" /> Add Email Field
+                        </button>
+                      </div>
                     </div>
                     <div className="flex space-x-2 mt-4 justify-end">
                       <button
                         onClick={handleUpdateMeeting}
-                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
                         disabled={isLoading}
                       >
-                        {isLoading ? "Updating..." : "Update"}
+                        {isLoading ? "Updating..." : "Update Meeting"}
                       </button>
                       <button
                         onClick={() => setEditingMeeting(null)}
-                        className="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-sm"
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm"
                       >
                         Cancel
                       </button>

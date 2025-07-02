@@ -1343,7 +1343,7 @@ def delete_team(team_id):
 
 @app.route('/api/meetings/<int:meeting_id>', methods=['PUT'])
 def update_meeting(meeting_id):
-    """Update an existing team meeting"""
+    """Update an existing team meeting with member management and notifications"""
     # Get data from request
     data = request.get_json()
     
@@ -1353,8 +1353,9 @@ def update_meeting(meeting_id):
     date = data.get('meetingDate')
     start_time = data.get('meetingStartTime')
     end_time = data.get('meetingEndTime')
-    invitation_type = data.get('invitationType', 'mandatory')
-    invited_emails = data.get('invitedEmails', [])
+    new_member_emails = data.get('newMemberEmails', [])
+    removed_member_ids = data.get('removedMemberIds', [])
+    original_meeting = data.get('originalMeeting', {})
     
     # Validate required fields
     if not title or not date:
@@ -1370,10 +1371,11 @@ def update_meeting(meeting_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Get team info for the meeting
+        # Get team info and current meeting details for the meeting
         cur.execute(
             """
-            SELECT t.TeamId, t.TeamName 
+            SELECT t.TeamId, t.TeamName, tm.MeetingTitle, tm.MeetingDescription, 
+                   tm.MeetingDate, tm.MeetingStartTime, tm.MeetingEndTime
             FROM TeamMeeting tm
             JOIN Team t ON tm.TeamId = t.TeamId
             WHERE tm.TeamMeetingId = %s
@@ -1381,35 +1383,60 @@ def update_meeting(meeting_id):
             (meeting_id,)
         )
         
-        team_result = cur.fetchone()
-        if not team_result:
+        meeting_result = cur.fetchone()
+        if not meeting_result:
             return jsonify({'success': False, 'message': 'Meeting not found'}), 404
         
-        team_id, team_name = team_result
+        team_id, team_name, old_title, old_description, old_date, old_start_time, old_end_time = meeting_result
         
         # Update meeting
         cur.execute(
             """
             UPDATE TeamMeeting 
             SET MeetingTitle = %s, MeetingDescription = %s, MeetingDate = %s,
-                MeetingStartTime = %s, MeetingEndTime = %s, InvitationType = %s
+                MeetingStartTime = %s, MeetingEndTime = %s
             WHERE TeamMeetingId = %s
             """,
-            (title, description, date, parsed_start_time, parsed_end_time, invitation_type, meeting_id)
+            (title, description, date, parsed_start_time, parsed_end_time, meeting_id)
         )
         
-        # Delete existing invitations for this meeting
-        cur.execute("DELETE FROM MeetingInvitations WHERE MeetingId = %s", (meeting_id,))
+        # Handle removed members
+        for member_id in removed_member_ids:
+            # Get member info for notification
+            cur.execute("SELECT UserName FROM Users WHERE UserId = %s", (member_id,))
+            member_result = cur.fetchone()
+            
+            if member_result:
+                member_name = member_result[0]
+                
+                # Remove from meeting invitations
+                cur.execute("DELETE FROM MeetingInvitations WHERE MeetingId = %s AND UserId = %s", (meeting_id, member_id))
+                
+                # Create notification for removed member
+                cur.execute(
+                    """
+                    INSERT INTO Notifications (UserId, Type, Title, Message)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (
+                        member_id,
+                        'meeting_update',
+                        f'Removed from Meeting: {title}',
+                        f'You have been removed from the meeting "{title}" in team "{team_name}".'
+                    )
+                )
         
-        # Handle new invited emails
-        for email in invited_emails:
+        # Handle new members
+        new_member_names = []
+        for email in new_member_emails:
             if email.strip():
                 # Check if user exists
-                cur.execute("SELECT UserId FROM Users WHERE UserEmail = %s", (email.strip(),))
+                cur.execute("SELECT UserId, UserName FROM Users WHERE UserEmail = %s", (email.strip(),))
                 user_result = cur.fetchone()
                 
                 if user_result:
-                    user_id = str(user_result[0])
+                    new_user_id, new_user_name = user_result
+                    new_member_names.append(new_user_name)
                     
                     # Add user to team if not already a member
                     cur.execute(
@@ -1420,7 +1447,7 @@ def update_meeting(meeting_id):
                             SELECT 1 FROM TeamMembers WHERE TeamId = %s AND UserId = %s
                         )
                         """,
-                        (team_id, user_id, team_id, user_id)
+                        (team_id, new_user_id, team_id, new_user_id)
                     )
                     
                     # Create meeting invitation
@@ -1429,34 +1456,103 @@ def update_meeting(meeting_id):
                         INSERT INTO MeetingInvitations (MeetingId, UserId, InvitationType, Status)
                         VALUES (%s, %s, %s, %s)
                         """,
-                        (meeting_id, user_id, invitation_type, 'accepted' if invitation_type == 'mandatory' else 'pending')
+                        (meeting_id, new_user_id, 'request', 'pending')
                     )
                     
-                    # Create notification for request invitations
-                    if invitation_type == 'request':
-                        meeting_time_info = ""
-                        if start_time and end_time:
-                            meeting_time_info = f" on {date} from {start_time} to {end_time}"
-                        elif date:
-                            meeting_time_info = f" on {date}"
-                        
-                        notification_message = f'You have been invited to join the updated meeting "{title}"{meeting_time_info} in team "{team_name}"'
-                        if description:
-                            notification_message += f'. Description: {description}'
-                        
-                        cur.execute(
-                            """
-                            INSERT INTO Notifications (UserId, Type, Title, Message, RelatedId)
-                            VALUES (%s, %s, %s, %s, %s)
-                            """,
-                            (
-                                user_id,
-                                'meeting_invitation',
-                                f'Meeting Updated: {title}',
-                                notification_message,
-                                meeting_id
-                            )
+                    # Create notification for new member
+                    meeting_time_info = ""
+                    if start_time and end_time:
+                        meeting_time_info = f" on {date} from {start_time} to {end_time}"
+                    elif date:
+                        meeting_time_info = f" on {date}"
+                    
+                    notification_message = f'You have been invited to join the meeting "{title}"{meeting_time_info} in team "{team_name}"'
+                    if description:
+                        notification_message += f'. Description: {description}'
+                    
+                    cur.execute(
+                        """
+                        INSERT INTO Notifications (UserId, Type, Title, Message, RelatedId)
+                        VALUES (%s, %s, %s, %s, %s)
+                        """,
+                        (
+                            new_user_id,
+                            'meeting_invitation',
+                            f'Meeting Invitation: {title}',
+                            notification_message,
+                            meeting_id
                         )
+                    )
+        
+        # Create update notifications for existing members (excluding removed ones)
+        cur.execute(
+            """
+            SELECT DISTINCT mi.UserId, u.UserName
+            FROM MeetingInvitations mi
+            JOIN Users u ON mi.UserId = u.UserId
+            WHERE mi.MeetingId = %s AND mi.Status = 'accepted'
+            """,
+            (meeting_id,)
+        )
+        
+        existing_members = cur.fetchall()
+        
+        # Prepare change notifications
+        changes = []
+        
+        # Check for title change
+        if old_title != title:
+            changes.append(f'Meeting title updated from "{old_title}" to "{title}"')
+        
+        # Check for description change
+        old_desc = old_description or ""
+        new_desc = description or ""
+        if old_desc != new_desc:
+            if old_desc and new_desc:
+                changes.append(f'Description updated from "{old_desc}" to "{new_desc}"')
+            elif new_desc:
+                changes.append(f'Description added: "{new_desc}"')
+            elif old_desc:
+                changes.append('Description removed')
+        
+        # Check for date change
+        if str(old_date) != date:
+            changes.append(f'Meeting date updated from {old_date} to {date}')
+        
+        # Check for time changes
+        old_start_formatted = format_time_to_hhmm(old_start_time) if old_start_time else ""
+        old_end_formatted = format_time_to_hhmm(old_end_time) if old_end_time else ""
+        new_start_formatted = start_time or ""
+        new_end_formatted = end_time or ""
+        
+        if old_start_formatted != new_start_formatted or old_end_formatted != new_end_formatted:
+            old_time_range = f"{old_start_formatted} - {old_end_formatted}" if old_start_formatted and old_end_formatted else "Not set"
+            new_time_range = f"{new_start_formatted} - {new_end_formatted}" if new_start_formatted and new_end_formatted else "Not set"
+            changes.append(f'Meeting time updated from {old_time_range} to {new_time_range}')
+        
+        # Add new member notifications
+        if new_member_names:
+            changes.append(f'New members invited: {", ".join(new_member_names)}')
+        
+        # Send notifications to existing members if there are changes
+        if changes and existing_members:
+            change_message = '. '.join(changes)
+            
+            for member_id, member_name in existing_members:
+                # Don't notify removed members
+                if str(member_id) not in [str(mid) for mid in removed_member_ids]:
+                    cur.execute(
+                        """
+                        INSERT INTO Notifications (UserId, Type, Title, Message)
+                        VALUES (%s, %s, %s, %s)
+                        """,
+                        (
+                            member_id,
+                            'meeting_update',
+                            f'Meeting Updated: {title}',
+                            f'The meeting "{title}" in team "{team_name}" has been updated. Changes: {change_message}'
+                        )
+                    )
         
         # Commit the transaction
         conn.commit()

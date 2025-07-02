@@ -45,6 +45,18 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     },
   ])
 
+  // Meeting form state
+  const [meeting, setMeeting] = useState({
+    meetingTitle: "",
+    meetingDescription: "",
+    meetingDate: "",
+    meetingStartTime: "",
+    meetingEndTime: "",
+    members: [],
+    newMemberEmails: [""],
+    removedMembers: [],
+  })
+
   // Get user ID from localStorage
   const getUserId = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}")
@@ -86,6 +98,35 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
       console.error("Error fetching existing data:", error)
     }
   }
+  
+  // Fetch meeting details for meetings
+  const fetchMeetingDetails = async (meetingId) => {
+    try {
+      // Find the team that contains this meeting
+      const team = teams.find((t) => t.meetings && t.meetings.some((m) => m.teammeetingid === meetingId))
+      if (team) {
+        const response = await fetch(`http://localhost:5000/api/teams/${team.teamid}`)
+        if (response.ok) {
+          const data = await response.json()
+          const meetingData = data.team.meetings.find((m) => m.teammeetingid === meetingId)
+          if (meetingData) {
+            setMeeting({
+              meetingTitle: meetingData.meetingtitle || "",
+              meetingDescription: meetingData.meetingdescription || "",
+              meetingDate: meetingData.meetingdate || "",
+              meetingStartTime: meetingData.meetingstarttime || "",
+              meetingEndTime: meetingData.meetingendtime || "",
+              members: meetingData.members || [],
+              newMemberEmails: [""],
+              removedMembers: [],
+            })
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching meeting details:", error)
+    }
+  }
 
   // Initialize form data when item changes
   useEffect(() => {
@@ -120,9 +161,11 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
             })),
           )
         }
+      } else if (item.type === "meeting") {
+        fetchMeetingDetails(item.id)
       }
     }
-  }, [item])
+  }, [item, teams])
 
   // Handle activity form changes
   const handleActivityChange = (e) => {
@@ -138,6 +181,15 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     const { name, value } = e.target
     setGoal({
       ...goal,
+      [name]: value,
+    })
+  }
+
+  // Handle meeting form changes
+  const handleMeetingChange = (e) => {
+    const { name, value } = e.target
+    setMeeting({
+      ...meeting,
       [name]: value,
     })
   }
@@ -210,6 +262,46 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
       updatedTimelines.splice(index, 1)
       setTimelines(updatedTimelines)
     }
+  }
+
+  // Handle new member email changes
+  const handleNewMemberEmailChange = (index, value) => {
+    const updatedEmails = [...meeting.newMemberEmails]
+    updatedEmails[index] = value
+    setMeeting({
+      ...meeting,
+      newMemberEmails: updatedEmails,
+    })
+  }
+
+  // Add new member email field
+  const addNewMemberEmail = () => {
+    setMeeting({
+      ...meeting,
+      newMemberEmails: [...meeting.newMemberEmails, ""],
+    })
+  }
+
+  // Remove new member email field
+  const removeNewMemberEmail = (index) => {
+    if (meeting.newMemberEmails.length > 1) {
+      const updatedEmails = [...meeting.newMemberEmails]
+      updatedEmails.splice(index, 1)
+      setMeeting({
+        ...meeting,
+        newMemberEmails: updatedEmails,
+      })
+    }
+  }
+
+  // Remove existing member
+  const removeMember = (member) => {
+    const updatedMembers = meeting.members.filter((m) => m.userid !== member.userid)
+    setMeeting({
+      ...meeting,
+      members: updatedMembers,
+      removedMembers: [...meeting.removedMembers, member],
+    })
   }
 
   // Check for activity overlaps (excluding current item)
@@ -425,260 +517,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     return overlaps
   }
 
-  // Validate activity form
-  const validateActivityForm = () => {
-    if (!activity.activityTitle.trim()) {
-      setApiError("Activity title is required")
-      return false
-    }
-    if (!activity.activityDate) {
-      setApiError("Activity date is required")
-      return false
-    }
-    return true
-  }
-
-  // Validate goal form
-  const validateGoalForm = () => {
-    if (!goal.goalTitle.trim()) {
-      setApiError("Goal title is required")
-      return false
-    }
-
-    const validTimeline = timelines.some(
-      (timeline) => timeline.timelineTitle.trim() && timeline.timelineStartDate && timeline.timelineEndDate,
-    )
-
-    if (!validTimeline) {
-      setApiError("At least one timeline with title, start date, and end date is required")
-      return false
-    }
-
-    return true
-  }
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setApiError("")
-    setSuccessMessage("")
-    setIsLoading(true)
-
-    try {
-      if (item.type === "activity") {
-        // Validate activity form
-        if (!validateActivityForm()) {
-          setIsLoading(false)
-          return
-        }
-        
-        // Check for overlaps
-        const overlaps = checkActivityOverlaps(activity)
-        if (overlaps.length > 0) {
-          const overlapDetails = overlaps
-            .map((overlap) => `• ${overlap.title} (${overlap.time}) [${overlap.type}]`)
-            .join("\n")
-
-          const confirmOverlap = window.confirm(
-            `This activity intersects with the following items:\n\n${overlapDetails}\n\nDo you want to continue?`,
-          )
-          if (!confirmOverlap) {
-            setIsLoading(false)
-            return
-          }
-        }
-
-        // Prepare activity data for API
-        const activityData = {
-          activityTitle: activity.activityTitle,
-          activityDescription: activity.activityDescription,
-          activityCategory: activity.activityCategory,
-          activityUrgency: activity.activityUrgency,
-          activityDate: activity.activityDate,
-          activityStartTime: activity.activityStartTime,
-          activityEndTime: activity.activityEndTime,
-        }
-
-        // Make API call to update activity
-        const response = await fetch(`http://localhost:5000/api/activities/${item.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(activityData),
-        })
-
-        const data = await response.json()
-
-        if (response.ok) {
-          console.log("Activity updated successfully:", data)
-          setSuccessMessage("Activity updated successfully!")
-
-          // Close modal after a delay
-          setTimeout(() => {
-            onClose()
-          }, 1500)
-        } else {
-          console.error("Failed to update activity:", data)
-          setApiError(data.message || "Failed to update activity. Please try again.")
-        }
-      } else if (item.type === "goal") {
-        // Validate goal form
-        if (!validateGoalForm()) {
-          setIsLoading(false)
-          return
-        }
-        
-        // Check for overlaps in all timelines
-        const allOverlaps = []
-        timelines.forEach((timeline, index) => {
-          if (timeline.timelineTitle.trim() && timeline.timelineStartDate && timeline.timelineEndDate) {
-            const overlaps = checkGoalTimelineOverlaps(timeline)
-            if (overlaps.length > 0) {
-              allOverlaps.push({
-                timelineIndex: index + 1,
-                timelineTitle: timeline.timelineTitle,
-                overlaps: overlaps,
-              })
-            }
-          }
-        })
-
-        if (allOverlaps.length > 0) {
-          let overlapMessage = "The following goal timelines have intersections:\n\n"
-          allOverlaps.forEach(({ timelineIndex, timelineTitle, overlaps }) => {
-            overlapMessage += `Timeline ${timelineIndex} (${timelineTitle}):\n`
-            overlaps.forEach((overlap) => {
-              overlapMessage += `  • ${overlap.title} (${overlap.time}) [${overlap.type}]\n`
-            })
-            overlapMessage += "\n"
-          })
-          overlapMessage += "Do you want to continue?"
-
-          const confirmOverlap = window.confirm(overlapMessage)
-          if (!confirmOverlap) {
-            setIsLoading(false)
-            return
-          }
-        }
-
-        // Prepare goal data for API
-        const goalData = {
-          goalTitle: goal.goalTitle,
-          goalDescription: goal.goalDescription,
-          goalCategory: goal.goalCategory,
-          goalProgress: goal.goalProgress,
-          timelines: timelines.map((timeline) => ({
-            timelineId: timeline.timelineId,
-            timelineTitle: timeline.timelineTitle,
-            timelineStartDate: timeline.timelineStartDate,
-            timelineEndDate: timeline.timelineEndDate,
-            timelineStartTime: timeline.timelineStartTime,
-            timelineEndTime: timeline.timelineEndTime,
-          })),
-        }
-
-        // Make API call to update goal
-        const response = await fetch(`http://localhost:5000/api/goals/${item.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(goalData),
-        })
-
-        const data = await response.json()
-
-        if (response.ok) {
-          console.log("Goal updated successfully:", data)
-          setSuccessMessage("Goal updated successfully!")
-
-          // Close modal after a delay
-          setTimeout(() => {
-            onClose()
-          }, 1500)
-        } else {
-          console.error("Failed to update goal:", data)
-          setApiError(data.message || "Failed to update goal. Please try again.")
-        }
-      } else if (item.type === "meeting") {
-        // Validate meeting form
-        if (!item.meetingtitle?.trim()) {
-          setApiError("Meeting title is required")
-          setIsLoading(false)
-          return
-        }
-        if (!item.meetingdate) {
-          setApiError("Meeting date is required")
-          setIsLoading(false)
-          return
-        }
-
-        // Check for overlaps if meeting has times
-        if (item.meetingstarttime && item.meetingendtime) {
-          const meetingData = {
-            meetingDate: item.meetingdate,
-            meetingStartTime: item.meetingstarttime,
-            meetingEndTime: item.meetingendtime,
-          }
-
-          const overlaps = checkMeetingOverlaps(meetingData)
-          if (overlaps.length > 0) {
-            const overlapDetails = overlaps
-              .map((overlap) => `• ${overlap.title} (${overlap.time}) [${overlap.type}]`)
-              .join("\n")
-
-            const confirmOverlap = window.confirm(
-              `This meeting intersects with the following items:\n\n${overlapDetails}\n\nDo you want to continue?`,
-            )
-            if (!confirmOverlap) {
-              setIsLoading(false)
-              return
-            }
-          }
-        }
-
-        // Prepare meeting data for API
-        const meetingData = {
-          meetingTitle: item.meetingtitle,
-          meetingDescription: item.meetingdescription,
-          meetingDate: item.meetingdate,
-          meetingStartTime: item.meetingstarttime,
-          meetingEndTime: item.meetingendtime,
-        }
-
-        // Make API call to update meeting
-        const response = await fetch(`http://localhost:5000/api/meetings/${item.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(meetingData),
-        })
-
-        const data = await response.json()
-
-        if (response.ok) {
-          console.log("Meeting updated successfully:", data)
-          setSuccessMessage("Meeting updated successfully!")
-
-          // Close modal after a delay
-          setTimeout(() => {
-            onClose()
-          }, 1500)
-        } else {
-          console.error("Failed to update meeting:", data)
-          setApiError(data.message || "Failed to update meeting. Please try again.")
-        }
-      }
-    } catch (error) {
-      console.error("Error:", error)
-      setApiError("Network error. Please check your connection and try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-  
   // Check for meeting overlaps (excluding current item)
   const checkMeetingOverlaps = (newMeeting) => {
     if (!newMeeting.meetingStartTime || !newMeeting.meetingEndTime) {
@@ -764,13 +602,282 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     return overlaps
   }
 
-  const [editingItem, setEditingItem] = useState(item)
+  // Validate activity form
+  const validateActivityForm = () => {
+    if (!activity.activityTitle.trim()) {
+      setApiError("Activity title is required")
+      return false
+    }
+    if (!activity.activityDate) {
+      setApiError("Activity date is required")
+      return false
+    }
+    return true
+  }
+
+  // Validate goal form
+  const validateGoalForm = () => {
+    if (!goal.goalTitle.trim()) {
+      setApiError("Goal title is required")
+      return false
+    }
+
+    const validTimeline = timelines.some(
+      (timeline) => timeline.timelineTitle.trim() && timeline.timelineStartDate && timeline.timelineEndDate,
+    )
+
+    if (!validTimeline) {
+      setApiError("At least one timeline with title, start date, and end date is required")
+      return false
+    }
+
+    return true
+  }
+
+  // Validate meeting form
+  const validateMeetingForm = () => {
+    if (!meeting.meetingTitle.trim()) {
+      setApiError("Meeting title is required")
+      return false
+    }
+    if (!meeting.meetingDate) {
+      setApiError("Meeting date is required")
+      return false
+    }
+    return true
+  }
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setApiError("")
+    setSuccessMessage("")
+    setIsLoading(true)
+
+    try {
+      if (item.type === "activity") {
+        // Validate activity form
+        if (!validateActivityForm()) {
+          setIsLoading(false)
+          return
+        }
+        
+        // Check for overlaps
+        const overlaps = checkActivityOverlaps(activity)
+        if (overlaps.length > 0) {
+          const overlapDetails = overlaps
+            .map((overlap) => `• ${overlap.title} (${overlap.time}) [${overlap.type}]`)
+            .join("\n")
+
+          const confirmOverlap = window.confirm(
+            `This activity intersects with the following items:\n\n${overlapDetails}\n\nDo you want to continue?`,
+          )
+          if (!confirmOverlap) {
+            setIsLoading(false)
+            return
+          }
+        }
+
+        // Prepare activity data for API
+        const activityData = {
+          activityTitle: activity.activityTitle,
+          activityDescription: activity.activityDescription,
+          activityCategory: activity.activityCategory,
+          activityUrgency: activity.activityUrgency,
+          activityDate: activity.activityDate,
+          activityStartTime: activity.activityStartTime,
+          activityEndTime: activity.activityEndTime,
+        }
+
+        // Make API call to update activity
+        const response = await fetch(`http://localhost:5000/api/activities/${item.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(activityData),
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          console.log("Activity updated successfully:", data)
+          setSuccessMessage("Activity updated successfully!")
+
+          // Dispatch refresh event
+          window.dispatchEvent(new CustomEvent("refreshCalendarData"))
+
+          // Close modal after a delay
+          setTimeout(() => {
+            onClose()
+          }, 1500)
+        } else {
+          console.error("Failed to update activity:", data)
+          setApiError(data.message || "Failed to update activity. Please try again.")
+        }
+      } else if (item.type === "goal") {
+        // Validate goal form
+        if (!validateGoalForm()) {
+          setIsLoading(false)
+          return
+        }
+        
+        // Check for overlaps in all timelines
+        const allOverlaps = []
+        timelines.forEach((timeline, index) => {
+          if (timeline.timelineTitle.trim() && timeline.timelineStartDate && timeline.timelineEndDate) {
+            const overlaps = checkGoalTimelineOverlaps(timeline)
+            if (overlaps.length > 0) {
+              allOverlaps.push({
+                timelineIndex: index + 1,
+                timelineTitle: timeline.timelineTitle,
+                overlaps: overlaps,
+              })
+            }
+          }
+        })
+
+        if (allOverlaps.length > 0) {
+          let overlapMessage = "The following goal timelines have intersections:\n\n"
+          allOverlaps.forEach(({ timelineIndex, timelineTitle, overlaps }) => {
+            overlapMessage += `Timeline ${timelineIndex} (${timelineTitle}):\n`
+            overlaps.forEach((overlap) => {
+              overlapMessage += `  • ${overlap.title} (${overlap.time}) [${overlap.type}]\n`
+            })
+            overlapMessage += "\n"
+          })
+          overlapMessage += "Do you want to continue?"
+
+          const confirmOverlap = window.confirm(overlapMessage)
+          if (!confirmOverlap) {
+            setIsLoading(false)
+            return
+          }
+        }
+
+        // Prepare goal data for API
+        const goalData = {
+          goalTitle: goal.goalTitle,
+          goalDescription: goal.goalDescription,
+          goalCategory: goal.goalCategory,
+          goalProgress: goal.goalProgress,
+          timelines: timelines.map((timeline) => ({
+            timelineId: timeline.timelineId,
+            timelineTitle: timeline.timelineTitle,
+            timelineStartDate: timeline.timelineStartDate,
+            timelineEndDate: timeline.timelineEndDate,
+            timelineStartTime: timeline.timelineStartTime,
+            timelineEndTime: timeline.timelineEndTime,
+          })),
+        }
+
+        // Make API call to update goal
+        const response = await fetch(`http://localhost:5000/api/goals/${item.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(goalData),
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          console.log("Goal updated successfully:", data)
+          setSuccessMessage("Goal updated successfully!")
+
+          // Dispatch refresh event
+          window.dispatchEvent(new CustomEvent("refreshCalendarData"))
+
+          // Close modal after a delay
+          setTimeout(() => {
+            onClose()
+          }, 1500)
+        } else {
+          console.error("Failed to update goal:", data)
+          setApiError(data.message || "Failed to update goal. Please try again.")
+        }
+      } else if (item.type === "meeting") {
+        // Validate meeting form
+        if (!validateMeetingForm()) {
+          setIsLoading(false)
+          return
+        }
+
+        // Check for overlaps if meeting has times
+        if (meeting.meetingStartTime && meeting.meetingEndTime) {
+          const overlaps = checkMeetingOverlaps(meeting)
+          if (overlaps.length > 0) {
+            const overlapDetails = overlaps
+              .map((overlap) => `• ${overlap.title} (${overlap.time}) [${overlap.type}]`)
+              .join("\n")
+
+            const confirmOverlap = window.confirm(
+              `This meeting intersects with the following items:\n\n${overlapDetails}\n\nDo you want to continue?`,
+            )
+            if (!confirmOverlap) {
+              setIsLoading(false)
+              return
+            }
+          }
+        }
+        
+        // Find the original meeting data for comparison
+        const team = teams.find((t) => t.meetings && t.meetings.some((m) => m.teammeetingid === item.id))
+        const originalMeeting = team?.meetings.find((m) => m.teammeetingid === item.id)
+
+        // Prepare meeting data for API
+        const meetingData = {
+          meetingTitle: meeting.meetingTitle,
+          meetingDescription: meeting.meetingDescription,
+          meetingDate: meeting.meetingDate,
+          meetingStartTime: meeting.meetingStartTime,
+          meetingEndTime: meeting.meetingEndTime,
+          newMemberEmails: meeting.newMemberEmails.filter((email) => email.trim()),
+          removedMemberIds: meeting.removedMembers.map((member) => member.userid),
+          originalMeeting: originalMeeting,
+        }
+
+        // Make API call to update meeting
+        const response = await fetch(`http://localhost:5000/api/meetings/${item.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(meetingData),
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          console.log("Meeting updated successfully:", data)
+          setSuccessMessage("Meeting updated successfully!")
+
+          // Dispatch refresh event
+          window.dispatchEvent(new CustomEvent("refreshCalendarData"))
+
+          // Close modal after a delay
+          setTimeout(() => {
+            onClose()
+          }, 1500)
+        } else {
+          console.error("Failed to update meeting:", data)
+          setApiError(data.message || "Failed to update meeting. Please try again.")
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      setApiError("Network error. Please check your connection and try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   if (!isOpen || !item) return null
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg border-[#005bc3] border-1 shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg border-[#005bc3] border-1 shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-xl font-semibold text-gray-800">
@@ -1098,8 +1205,9 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Title</label>
                   <input
                     type="text"
-                    value={item.meetingtitle || ""}
-                    onChange={(e) => setEditingItem({ ...item, meetingtitle: e.target.value })}
+                    name="meetingTitle"
+                    value={meeting.meetingTitle}
+                    onChange={handleMeetingChange}
                     className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -1108,8 +1216,9 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <textarea
-                    value={item.meetingdescription || ""}
-                    onChange={(e) => setEditingItem({ ...item, meetingdescription: e.target.value })}
+                    name="meetingDescription"
+                    value={meeting.meetingDescription}
+                    onChange={handleMeetingChange}
                     rows="3"
                     className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
@@ -1119,8 +1228,9 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                   <input
                     type="date"
-                    value={item.meetingdate || ""}
-                    onChange={(e) => setEditingItem({ ...item, meetingdate: e.target.value })}
+                    name="meetingDate"
+                    value={meeting.meetingDate}
+                    onChange={handleMeetingChange}
                     className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -1131,8 +1241,9 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
                     <input
                       type="time"
-                      value={item.meetingstarttime || ""}
-                      onChange={(e) => setEditingItem({ ...item, meetingstarttime: e.target.value })}
+                      name="meetingStartTime"
+                      value={meeting.meetingStartTime}
+                      onChange={handleMeetingChange}
                       className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -1141,12 +1252,84 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
                     <input
                       type="time"
-                      value={item.meetingendtime || ""}
-                      onChange={(e) => setEditingItem({ ...item, meetingendtime: e.target.value })}
+                      name="meetingEndTime"
+                      value={meeting.meetingEndTime}
+                      onChange={handleMeetingChange}
                       className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Current Members Section */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Current Members</label>
+                <div className="space-y-2 mb-3">
+                  {meeting.members &&
+                    meeting.members.map((member) => (
+                      <div key={member.userid} className="flex items-center justify-between bg-gray-50 rounded p-3">
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-gray-900">{member.username}</span>
+                          <span className="text-xs text-gray-500 ml-2">({member.useremail})</span>
+                          <span
+                            className={`text-xs px-2 py-1 rounded ml-2 ${
+                              member.status === "accepted"
+                                ? "bg-green-100 text-green-800"
+                                : member.status === "declined"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {member.status}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeMember(member)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                          title="Remove member"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  {(!meeting.members || meeting.members.length === 0) && (
+                    <p className="text-sm text-gray-500">No current members</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Add New Members Section */}
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Add New Members</label>
+                  <button
+                    type="button"
+                    onClick={addNewMemberEmail}
+                    className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    <Plus size={16} className="mr-1" /> Add Email Field
+                  </button>
+                </div>
+                {meeting.newMemberEmails.map((email, index) => (
+                  <div key={index} className="flex items-center mb-2">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => handleNewMemberEmailChange(index, e.target.value)}
+                      className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter email to add new member"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeNewMemberEmail(index)}
+                      className="ml-2 text-red-500 hover:text-red-700"
+                      disabled={meeting.newMemberEmails.length === 1}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
               </div>
 
               <div className="flex justify-end mt-6">
