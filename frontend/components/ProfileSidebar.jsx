@@ -17,6 +17,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const [googleProfilePicture, setGoogleProfilePicture] = useState("")
   const [selectedTeam, setSelectedTeam] = useState(null)
   const [teamDetails, setTeamDetails] = useState(null)
+  const [creator, setCreator] = useState(null);
   const [isEditingTeam, setIsEditingTeam] = useState(false)
   const [isCreatingTeam, setIsCreatingTeam] = useState(false)
   const [isAddingMeeting, setIsAddingMeeting] = useState(false)
@@ -75,18 +76,21 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sidebarRef.current && !sidebarRef.current.contains(event.target) && isOpen) {
-        onClose()
+        onClose();
+        if (selectedTeam) {
+          handleBackToProfile();
+        }
       }
-    }
-
+    };
+  
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
-
+  
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [isOpen, onClose])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, onClose, selectedTeam]);
 
   // Get user data on component mount
   useEffect(() => {
@@ -95,6 +99,18 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       fetchUserTeams()
     }
   }, [isOpen])
+
+  const fetchCreatorData = async (creatorId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/users/${creatorId}`);
+      if (response.ok) {
+        const userData = await response.json();
+        setCreator(userData.user);
+      }
+    } catch (error) {
+      console.error("Error fetching creator data:", error);
+    }
+  };
 
   const fetchUserData = async () => {
     try {
@@ -149,7 +165,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
             setEditedUser({
               username: userData.username || "",
               bio: userData.userbio || "",
-              dob: userData.userdob ? userData.userdob.split("T")[0] : "",
+              dob: userData.user.userdob ? userData.user.userdob.split("T")[0] : "",
               profilePicture: "",
             })
           } else {
@@ -175,7 +191,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           setEditedUser({
             username: userData.username || "",
             bio: userData.userbio || "",
-            dob: userData.userdob ? userData.userdob.split("T")[0] : "",
+            dob: userData.user.userdob ? userData.user.userdob.split("T")[0] : "",
             profilePicture: "",
           })
         } else {
@@ -206,7 +222,10 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
 
   const fetchTeamDetails = async (teamId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/teams/${teamId}`)
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+      if (!storedUser.id) return;
+      
+      const response = await fetch(`http://localhost:5000/api/teams/${teamId}?userId=${storedUser.id}`)
       if (response.ok) {
         const data = await response.json()
         setTeamDetails(data.team)
@@ -216,6 +235,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           teamStartWorkingHour: data.team.teamstartworkinghour || "",
           teamEndWorkingHour: data.team.teamendworkinghour || "",
         })
+        fetchCreatorData(data.team.createdbyuserid);
       }
     } catch (error) {
       console.error("Error fetching team details:", error)
@@ -262,6 +282,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const handleBackToProfile = () => {
     setSelectedTeam(null)
     setTeamDetails(null)
+    setCreator(null);
     setIsEditingTeam(false)
     setIsAddingMeeting(false)
     setEditingMeeting(null)
@@ -1171,6 +1192,14 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
 
                 {isEditingTeam ? (
                   <div className="bg-gray-800 rounded-md p-4 space-y-3">
+                    {creator && (
+                        <div>
+                            <span className="block text-sm font-medium text-gray-300 mb-1">Created by</span>
+                            <p className="w-full p-2 bg-gray-900 border border-gray-700 rounded text-gray-400">
+                                {creator.userid === user?.userid ? `${creator.username} (You)` : creator.username}
+                            </p>
+                        </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-1">Team Name</label>
                       <input
@@ -1231,6 +1260,14 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                   </div>
                 ) : (
                   <div className="bg-gray-800 rounded-md p-4 space-y-3">
+                    {creator && (
+                      <div>
+                        <span className="text-gray-400 text-sm">Created by:</span>
+                        <p className="text-white">
+                            {creator.userid === user?.userid ? `${creator.username} (You)` : creator.username}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <span className="text-gray-400 text-sm">Description:</span>
                       <p className="text-white">{teamDetails.teamdescription || "No description"}</p>
@@ -1625,22 +1662,26 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                             {meeting.meetingstarttime} - {meeting.meetingendtime}
                           </p>
                         )}
+                        <p className="text-xs text-gray-400 mb-2 capitalize">
+                          Meeting type: {meeting.invitationtype}
+                        </p>
                         <div className="mb-2">
                           <span className="text-xs text-gray-400">Members ({meeting.members?.length || 0}):</span>
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {meeting.members?.map((member) => (
-                              <span
+                          {meeting.members?.map((member) => (
+                            <span
                                 key={member.userid}
                                 className={`text-xs px-2 py-1 rounded ${
-                                  member.status === "accepted"
+                                meeting.invitationtype === 'request' && member.status === "accepted"
                                     ? "bg-green-900 text-green-300"
-                                    : member.status === "declined"
-                                      ? "bg-red-900 text-red-300"
-                                      : "bg-yellow-900 text-yellow-300"
+                                    : meeting.invitationtype === 'request' && member.status === "declined"
+                                    ? "bg-red-900 text-red-300"
+                                    : "bg-gray-700 text-gray-300"
                                 }`}
-                              >
-                                {member.username} ({member.status})
-                              </span>
+                            >
+                                {member.userid === user?.userid ? "You" : member.username}
+                                {meeting.invitationtype === "request" && ` (${member.status})`}
+                            </span>
                             ))}
                           </div>
                         </div>

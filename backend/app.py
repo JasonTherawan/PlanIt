@@ -944,98 +944,121 @@ def create_team():
 
 @app.route('/api/teams', methods=['GET'])
 def get_teams():
-    """Get teams and meetings for a user (only accepted meetings)"""
+    """Get teams and meetings for a user (only meetings they are invited to)"""
     user_id = request.args.get('userId')
-    
+
     if not user_id:
         return jsonify({'success': False, 'message': 'User ID is required'}), 400
-    
+
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
-        # Get teams where user is a member with accepted meetings only
+
+        # Get all teams the user is a member of
         cur.execute(
             """
-            SELECT DISTINCT t.TeamId, t.TeamName, t.TeamDescription, 
-                   t.TeamStartWorkingHour, t.TeamEndWorkingHour, t.CreatedByUserId,
-                   tm.MeetingTitle, tm.MeetingDescription, tm.MeetingDate,
-                   tm.MeetingStartTime, tm.MeetingEndTime, tm.TeamMeetingId, tm.InvitationType
+            SELECT t.TeamId, t.TeamName, t.TeamDescription,
+                   t.TeamStartWorkingHour, t.TeamEndWorkingHour, t.CreatedByUserId
             FROM Team t
             INNER JOIN TeamMembers tmem ON t.TeamId = tmem.TeamId
-            LEFT JOIN TeamMeeting tm ON t.TeamId = tm.TeamId
-            LEFT JOIN MeetingInvitations mi ON tm.TeamMeetingId = mi.MeetingId AND mi.UserId = %s
-            WHERE tmem.UserId = %s 
-            AND (tm.TeamMeetingId IS NULL OR mi.Status = 'accepted' OR t.CreatedByUserId = %s)
-            ORDER BY t.TeamId, tm.MeetingDate, tm.MeetingStartTime
+            WHERE tmem.UserId = %s
             """,
-            (user_id, user_id, user_id)
+            (user_id,)
         )
-        
+
         teams_dict = {}
         for row in cur.fetchall():
             team_id = row[0]
-            if team_id not in teams_dict:
-                teams_dict[team_id] = {
-                    'teamid': row[0],
-                    'teamname': row[1],
-                    'teamdescription': row[2],
-                    'teamstartworkinghour': format_time_to_hhmm(row[3]),
-                    'teamendworkinghour': format_time_to_hhmm(row[4]),
-                    'createdbyuserid': str(row[5]),  # Convert to string
-                    'meetings': []
-                }
-            
-            if row[6]:  # If meeting exists
-                teams_dict[team_id]['meetings'].append({
-                    'teammeetingid': row[11],
-                    'meetingtitle': row[6],
-                    'meetingdescription': row[7],
-                    'meetingdate': row[8].isoformat() if row[8] else None,
-                    'meetingstarttime': format_time_to_hhmm(row[9]),
-                    'meetingendtime': format_time_to_hhmm(row[10]),
-                    'invitationtype': row[12]
+            teams_dict[team_id] = {
+                'teamid': row[0],
+                'teamname': row[1],
+                'teamdescription': row[2],
+                'teamstartworkinghour': format_time_to_hhmm(row[3]),
+                'teamendworkinghour': format_time_to_hhmm(row[4]),
+                'createdbyuserid': str(row[5]),
+                'meetings': []
+            }
+
+        # For each team, get the meetings
+        # If the user is the creator, get all meetings.
+        # Otherwise, get only invited meetings where the status is 'accepted'.
+        for team_id, team_data in teams_dict.items():
+            if str(team_data['createdbyuserid']) == user_id:
+                # User is the creator, get all meetings for this team
+                cur.execute(
+                    """
+                    SELECT tm.MeetingTitle, tm.MeetingDescription, tm.MeetingDate,
+                           tm.MeetingStartTime, tm.MeetingEndTime, tm.TeamMeetingId, tm.InvitationType
+                    FROM TeamMeeting tm
+                    WHERE tm.TeamId = %s
+                    ORDER BY tm.MeetingDate, tm.MeetingStartTime
+                    """,
+                    (team_id,)
+                )
+            else:
+                # User is not the creator, get only meetings they are invited to and have accepted
+                cur.execute(
+                    """
+                    SELECT tm.MeetingTitle, tm.MeetingDescription, tm.MeetingDate,
+                           tm.MeetingStartTime, tm.MeetingEndTime, tm.TeamMeetingId, tm.InvitationType
+                    FROM TeamMeeting tm
+                    INNER JOIN MeetingInvitations mi ON tm.TeamMeetingId = mi.MeetingId
+                    WHERE tm.TeamId = %s AND mi.UserId = %s AND mi.Status = 'accepted'
+                    ORDER BY tm.MeetingDate, tm.MeetingStartTime
+                    """,
+                    (team_id, user_id)
+                )
+
+            for meeting_row in cur.fetchall():
+                team_data['meetings'].append({
+                    'teammeetingid': meeting_row[5],
+                    'meetingtitle': meeting_row[0],
+                    'meetingdescription': meeting_row[1],
+                    'meetingdate': meeting_row[2].isoformat() if meeting_row[2] else None,
+                    'meetingstarttime': format_time_to_hhmm(meeting_row[3]),
+                    'meetingendtime': format_time_to_hhmm(meeting_row[4]),
+                    'invitationtype': meeting_row[6]
                 })
-        
+
         teams = list(teams_dict.values())
-        
+
         return jsonify({
             'success': True,
             'teams': teams
         }), 200
-        
+
     except Exception as e:
         print(f"Error: {str(e)}")
         return jsonify({'success': False, 'message': 'Failed to fetch teams', 'error': str(e)}), 500
-    
+
     finally:
         if conn:
             conn.close()
 
 @app.route('/api/teams/<int:team_id>', methods=['GET'])
 def get_team_details(team_id):
-    """Get detailed team information including all meetings and members"""
+    """Get detailed team information including meetings and members, filtered for the requesting user."""
+    user_id = request.args.get('userId')
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
         # Get team details
         cur.execute(
             """
-            SELECT TeamId, TeamName, TeamDescription, TeamStartWorkingHour, 
+            SELECT TeamId, TeamName, TeamDescription, TeamStartWorkingHour,
                    TeamEndWorkingHour, CreatedByUserId
             FROM Team
             WHERE TeamId = %s
             """,
             (team_id,)
         )
-        
         team_row = cur.fetchone()
         if not team_row:
             return jsonify({'success': False, 'message': 'Team not found'}), 404
-        
+
         team_data = {
             'teamid': team_row[0],
             'teamname': team_row[1],
@@ -1044,19 +1067,49 @@ def get_team_details(team_id):
             'teamendworkinghour': format_time_to_hhmm(team_row[4]),
             'createdbyuserid': str(team_row[5])
         }
-        
-        # Get all meetings for this team
-        cur.execute(
-            """
-            SELECT TeamMeetingId, MeetingTitle, MeetingDescription, MeetingDate,
-                   MeetingStartTime, MeetingEndTime, InvitationType
-            FROM TeamMeeting
-            WHERE TeamId = %s
-            ORDER BY MeetingDate, MeetingStartTime
-            """,
-            (team_id,)
-        )
-        
+
+        # Determine if the requesting user is the team creator
+        is_creator = str(team_data['createdbyuserid']) == user_id if user_id else False
+
+        # Get meetings for this team
+        if is_creator:
+            # If the user is the creator, they see all meetings
+            cur.execute(
+                """
+                SELECT TeamMeetingId, MeetingTitle, MeetingDescription, MeetingDate,
+                       MeetingStartTime, MeetingEndTime, InvitationType
+                FROM TeamMeeting
+                WHERE TeamId = %s
+                ORDER BY MeetingDate, MeetingStartTime
+                """,
+                (team_id,)
+            )
+        elif user_id:
+            # If the user is not the creator, they only see meetings they are invited to
+            cur.execute(
+                """
+                SELECT DISTINCT tm.TeamMeetingId, tm.MeetingTitle, tm.MeetingDescription, tm.MeetingDate,
+                                tm.MeetingStartTime, tm.MeetingEndTime, tm.InvitationType
+                FROM TeamMeeting tm
+                JOIN MeetingInvitations mi ON tm.TeamMeetingId = mi.MeetingId
+                WHERE tm.TeamId = %s AND mi.UserId = %s
+                ORDER BY tm.MeetingDate, tm.MeetingStartTime
+                """,
+                (team_id, user_id)
+            )
+        else:
+             # Fallback for when no user_id is provided - show all meetings
+            cur.execute(
+                """
+                SELECT TeamMeetingId, MeetingTitle, MeetingDescription, MeetingDate,
+                       MeetingStartTime, MeetingEndTime, InvitationType
+                FROM TeamMeeting
+                WHERE TeamId = %s
+                ORDER BY MeetingDate, MeetingStartTime
+                """,
+                (team_id,)
+            )
+
         meetings = []
         for meeting_row in cur.fetchall():
             meeting_data = {
@@ -1069,7 +1122,7 @@ def get_team_details(team_id):
                 'invitationtype': meeting_row[6],
                 'members': []
             }
-            
+
             # Get members for this specific meeting
             cur.execute(
                 """
@@ -1082,7 +1135,7 @@ def get_team_details(team_id):
                 """,
                 (meeting_row[0],)
             )
-            
+
             for member_row in cur.fetchall():
                 meeting_data['members'].append({
                     'userid': str(member_row[0]),
@@ -1092,20 +1145,20 @@ def get_team_details(team_id):
                     'status': member_row[4],
                     'invitationtype': member_row[5]
                 })
-            
+
             meetings.append(meeting_data)
-        
+
         team_data['meetings'] = meetings
-        
+
         return jsonify({
             'success': True,
             'team': team_data
         }), 200
-        
+
     except Exception as e:
         print(f"Error: {str(e)}")
         return jsonify({'success': False, 'message': 'Failed to fetch team details', 'error': str(e)}), 500
-    
+
     finally:
         if conn:
             conn.close()
