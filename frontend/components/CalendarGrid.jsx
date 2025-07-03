@@ -207,6 +207,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
             dayMeetings.push({
               ...meeting,
               teamname: team.teamname,
+              teamid: team.teamid,
             })
           }
         })
@@ -329,6 +330,29 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
   
   // Info modal component
   const InfoModal = ({ item, onClose }) => {
+    const [creator, setCreator] = useState(null);
+  
+    useEffect(() => {
+        const fetchCreatorData = async (creatorId) => {
+            try {
+                const response = await fetch(`http://localhost:5000/api/users/${creatorId}`);
+                if (response.ok) {
+                    const userData = await response.json();
+                    setCreator(userData.user);
+                }
+            } catch (error) {
+                console.error("Error fetching creator data:", error);
+            }
+        };
+
+        if (item && item.type === 'meeting' && item.teamid) {
+            const team = teams.find(t => t.teamid === item.teamid);
+            if (team) {
+                fetchCreatorData(team.createdbyuserid);
+            }
+        }
+    }, [item]);
+
     if (!item) return null
 
     const handleEdit = () => {
@@ -468,6 +492,14 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                   : item.meetingstarttime || item.meetingendtime}
               </div>
             )}
+            
+            {/* Meeting Type */}
+            {item.type === "meeting" && (
+                <div className="text-sm">
+                    <span className="font-medium">Meeting Type: </span>
+                    <span className="capitalize">{item.invitationtype}</span>
+                </div>
+            )}
 
             {/* Description */}
             {item.type === "activity" && item.activitydescription && (
@@ -537,6 +569,41 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                 <span className="font-medium">Team: </span>
                 {item.teamname}
               </div>
+            )}
+
+            {/* Creator for meetings */}
+            {item.type === 'meeting' && creator && (
+                <div className="text-sm">
+                    <span className="font-medium">Created by:</span>
+                    <div className="flex items-center mt-1">
+                        <img src={creator.userprofilepicture || `https://ui-avatars.com/api/?name=${creator.username}&background=0D8ABC&color=fff`} alt={creator.username} className="w-6 h-6 rounded-full mr-2" />
+                        <span>{creator.userid === getUserId() ? "You" : creator.username}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Members for meetings */}
+            {item.type === "meeting" && item.members && (
+                <div className="text-sm">
+                    <span className="font-medium">Members:</span>
+                    <div className="flex flex-col gap-2 mt-1">
+                        {item.members.map((member) => (
+                            <div key={member.userid} className="flex items-center">
+                                <img src={member.userprofilepicture || `https://ui-avatars.com/api/?name=${member.username}&background=0D8ABC&color=fff`} alt={member.username} className="w-6 h-6 rounded-full mr-2" />
+                                <span>{member.userid === getUserId() ? "You" : member.username}</span>
+                                {item.invitationtype === "request" && (
+                                    <span className={`text-xs px-2 py-1 rounded ml-2 ${
+                                        member.status === "accepted" ? "bg-green-100 text-green-800" :
+                                        member.status === "declined" ? "bg-red-100 text-red-800" :
+                                        "bg-yellow-100 text-yellow-800"
+                                    }`}>
+                                        {member.status}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
             )}
           </div>
         </div>
@@ -679,176 +746,160 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                 const dayActivities = getActivitiesForDay(day)
                 const dayMeetings = getTeamMeetingsForDay(day)
 
+                // Combine and sort activities and meetings by creation time
+                const dayItems = [
+                  ...dayActivities.map(a => ({ ...a, type: 'activity', id: a.activityid, created_at: a.created_at || new Date(0).toISOString() })),
+                  ...dayMeetings.map(m => ({ ...m, type: 'meeting', id: m.teammeetingid, created_at: m.created_at || new Date(0).toISOString() }))
+                ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
                 return (
                   <div
                     key={dayIndex}
                     className={`w-[100px] flex-shrink-0 border-r relative ${isToday(day) ? "bg-blue-50" : ""}`}
                   >
-                    {/* Activity blocks */}
-                    {dayActivities.map((activity, actIndex) => {
-                      const { startHour, duration } = getActivityTimeSpan(activity)
-                      const topPosition = startHour * 56 + 2 // 56px per hour (14px * 4 quarters) + 2px for goal space
-                      const height = duration * 56 - 6 // Subtract 6px for border
+                    {dayItems.map((item, itemIndex) => {
+                      const { startHour, duration } = item.type === 'activity'
+                        ? getActivityTimeSpan(item)
+                        : getMeetingTimeSpan(item);
 
-                      // Check for overlaps with other activities on the same day
-                      const overlappingActivities = dayActivities.filter((otherActivity, otherIndex) => {
-                        if (otherIndex >= actIndex) return false // Only count previous activities
-                        const { startHour: otherStart, duration: otherDuration } = getActivityTimeSpan(otherActivity)
-                        const otherEnd = otherStart + otherDuration
-                        const currentEnd = startHour + duration
-                        return startHour < otherEnd && currentEnd > otherStart
-                      })
+                      const topPosition = startHour * 56 + 2;
+                      const height = duration * 56 - 6;
 
-                      const overlapCount = overlappingActivities.length
-                      const zIndexBase = 15
-                      const leftOffset = overlapCount * 4 // 4px offset per overlap
-                      const shadowLayers = overlapCount
+                      const overlappingItems = dayItems.filter((otherItem, otherIndex) => {
+                        if (otherIndex >= itemIndex) return false;
 
-                      const isHighlighted =
-                        highlightedItem &&
-                        highlightedItem.type === "activity" &&
-                        highlightedItem.id === activity.activityid
+                        const { startHour: otherStart, duration: otherDuration } = otherItem.type === 'activity'
+                          ? getActivityTimeSpan(otherItem)
+                          : getMeetingTimeSpan(otherItem);
+                        
+                        const otherEnd = otherStart + otherDuration;
+                        const currentEnd = startHour + duration;
 
-                      return (
-                        <div key={`activity-${activity.activityid}`} className="relative">
-                          {/* Main activity block */}
-                          <div
-                            className={`absolute bg-blue-50 border-l-4 rounded p-1 text-xs overflow-hidden
-                            transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
-                            ${isHighlighted ? "highlighted-calendar-item ring-2 ring-blue-700 z-30 scale-[1.03]" : ""}`}
-                            style={{
-                              borderLeftColor: urgencyColors[activity.activityurgency],
-                              top: `${topPosition}px`,
-                              height: `${height}px`,
-                              left: `${4 + leftOffset}px`,
-                              right: "4px",
-                              zIndex: isHighlighted ? 30 : zIndexBase + overlapCount + 1,
-                            }}
-                            onClick={(e) => {
-                              const item = {
-                                id: activity.activityid,
-                                type: "activity",
-                                activitytitle: activity.activitytitle,
-                                activitydate: activity.activitydate,
-                                activitystarttime: activity.activitystarttime,
-                                activityendtime: activity.activityendtime,
-                                activitydescription: activity.activitydescription,
-                                activitycategory: activity.activitycategory,
-                                activityurgency: activity.activityurgency,
-                              }
-                              
-                              // Check if item is in past and switch sidebar tab accordingly
-                              const itemDate = new Date(activity.activitydate)
-                              const now = new Date()
-                              const isItemInPast = itemDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                        return startHour < otherEnd && currentEnd > otherStart;
+                      });
 
-                              // Dispatch event to switch sidebar tab if needed
-                              const switchTabEvent = new CustomEvent("switchSidebarTab", {
-                                detail: { isPast: isItemInPast },
-                              })
-                              window.dispatchEvent(switchTabEvent)
-
-                              setInfoModalContent(item)
-                              setShowInfoModal(true)
-                              const event = new CustomEvent("highlightSidebarItem", {
-                                detail: { id: item.id, type: item.type },
-                              })
-                              window.dispatchEvent(event)
-                            }}
-                          >
-                            <div className="font-medium text-blue-800 truncate">{activity.activitytitle}</div>
-                            {activity.activitystarttime && (
-                              <div className="text-blue-600 text-xs">
-                                {activity.activitystarttime}
-                                {activity.activityendtime && ` - ${activity.activityendtime}`}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-
-                    {/* Team meeting blocks */}
-                    {dayMeetings.map((meeting, meetingIndex) => {
-                      const { startHour, duration } = getMeetingTimeSpan(meeting)
-                      const topPosition = startHour * 56 + 2 // 56px per hour (14px * 4 quarters) + 2px for goal space
-                      const height = duration * 56 - 6 // Subtract 6px for border
+                      const overlapCount = overlappingItems.length;
+                      const leftOffset = overlapCount * 4;
+                      const zIndexBase = 15;
                       
-                      // Check for overlaps with other meetings on the same day
-                      const overlappingMeetings = dayMeetings.filter((otherMeeting, otherIndex) => {
-                        if (otherIndex >= meetingIndex) return false
-                        const { startHour: otherStart, duration: otherDuration } = getMeetingTimeSpan(otherMeeting)
-                        const otherEnd = otherStart + otherDuration
-                        const currentEnd = startHour + duration
-                        return startHour < otherEnd && currentEnd > otherStart
-                      })
-
-                      const overlapCount = overlappingMeetings.length
-                      const zIndexBase = 15
-                      const leftOffset = overlapCount * 4
-                      const shadowLayers = overlapCount
-
                       const isHighlighted =
                         highlightedItem &&
-                        highlightedItem.type === "meeting" &&
-                        highlightedItem.id === meeting.teammeetingid
+                        highlightedItem.type === item.type &&
+                        highlightedItem.id === item.id
 
-                      return (
-                        <div key={`meeting-${meeting.teammeetingid}`} className="relative">
-                          {/* Main meeting block */}
-                          <div
-                            className={`absolute bg-orange-50 border-l-4 border-orange-500 rounded p-1 text-xs overflow-hidden
+                      if (item.type === 'activity') {
+                        return (
+                          <div key={`activity-${item.id}`} className="relative">
+                            <div
+                              className={`absolute bg-blue-50 border-l-4 rounded p-1 text-xs overflow-hidden
                               transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
-                              ${isHighlighted ? "highlighted-calendar-item ring-2 ring-orange-500 z-30 scale-[1.03]" : ""}`}
-                            style={{
-                              top: `${topPosition}px`,
-                              height: `${height}px`,
-                              left: `${4 + leftOffset}px`,
-                              right: "4px",
-                              zIndex: isHighlighted ? 30 : zIndexBase + overlapCount + 1,
-                            }}
-                            onClick={(e) => {
-                              const item = {
-                                id: meeting.teammeetingid,
-                                type: "meeting",
-                                meetingtitle: meeting.meetingtitle,
-                                meetingdate: meeting.meetingdate,
-                                meetingstarttime: meeting.meetingstarttime,
-                                meetingendtime: meeting.meetingendtime,
-                                meetingdescription: meeting.meetingdescription,
-                                teamname: meeting.teamname,
-                              }
+                              ${isHighlighted ? "highlighted-calendar-item ring-2 ring-blue-700 z-30 scale-[1.03]" : ""}`}
+                              style={{
+                                borderLeftColor: urgencyColors[item.activityurgency],
+                                top: `${topPosition}px`,
+                                height: `${height}px`,
+                                left: `${4 + leftOffset}px`,
+                                right: "4px",
+                                zIndex: isHighlighted ? 30 : zIndexBase + overlapCount + 1,
+                              }}
+                              onClick={(e) => {
+                                const modalItem = {
+                                  id: item.activityid,
+                                  type: "activity",
+                                  activitytitle: item.activitytitle,
+                                  activitydate: item.activitydate,
+                                  activitystarttime: item.activitystarttime,
+                                  activityendtime: item.activityendtime,
+                                  activitydescription: item.activitydescription,
+                                  activitycategory: item.activitycategory,
+                                  activityurgency: item.activityurgency,
+                                }
+                                
+                                const itemDate = new Date(item.activitydate)
+                                const now = new Date()
+                                const isItemInPast = itemDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-                              // Check if item is in past and switch sidebar tab accordingly
-                              const itemDate = new Date(meeting.meetingdate)
-                              const now = new Date()
-                              const isItemInPast = itemDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                                const switchTabEvent = new CustomEvent("switchSidebarTab", {
+                                  detail: { isPast: isItemInPast },
+                                })
+                                window.dispatchEvent(switchTabEvent)
 
-                              // Dispatch event to switch sidebar tab if needed
-                              const switchTabEvent = new CustomEvent("switchSidebarTab", {
-                                detail: { isPast: isItemInPast },
-                              })
-                              window.dispatchEvent(switchTabEvent)
-
-                              setInfoModalContent(item)
-                              setShowInfoModal(true)
-                              const event = new CustomEvent("highlightSidebarItem", {
-                                detail: { id: item.id, type: item.type },
-                              })
-                              window.dispatchEvent(event)
-                            }}
-                          >
-                            <div className="font-medium text-orange-800 truncate">{meeting.meetingtitle}</div>
-                            <div className="text-orange-600 text-xs truncate">Team: {meeting.teamname}</div>
-                            {meeting.meetingstarttime && (
-                              <div className="text-orange-600 text-xs">
-                                {meeting.meetingstarttime}
-                                {meeting.meetingendtime && ` - ${meeting.meetingendtime}`}
-                              </div>
-                            )}
+                                setInfoModalContent(modalItem)
+                                setShowInfoModal(true)
+                                const event = new CustomEvent("highlightSidebarItem", {
+                                  detail: { id: modalItem.id, type: modalItem.type },
+                                })
+                                window.dispatchEvent(event)
+                              }}
+                            >
+                              <div className="font-medium text-blue-800 truncate">{item.activitytitle}</div>
+                              {item.activitystarttime && (
+                                <div className="text-blue-600 text-xs">
+                                  {item.activitystarttime}
+                                  {item.activityendtime && ` - ${item.activityendtime}`}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )
+                        )
+                      } else { // item.type === 'meeting'
+                        return (
+                          <div key={`meeting-${item.id}`} className="relative">
+                            <div
+                              className={`absolute bg-orange-50 border-l-4 border-orange-500 rounded p-1 text-xs overflow-hidden
+                                transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
+                                ${isHighlighted ? "highlighted-calendar-item ring-2 ring-orange-500 z-30 scale-[1.03]" : ""}`}
+                              style={{
+                                top: `${topPosition}px`,
+                                height: `${height}px`,
+                                left: `${4 + leftOffset}px`,
+                                right: "4px",
+                                zIndex: isHighlighted ? 30 : zIndexBase + overlapCount + 1,
+                              }}
+                              onClick={(e) => {
+                                const modalItem = {
+                                  id: item.teammeetingid,
+                                  type: "meeting",
+                                  meetingtitle: item.meetingtitle,
+                                  meetingdate: item.meetingdate,
+                                  meetingstarttime: item.meetingstarttime,
+                                  meetingendtime: item.meetingendtime,
+                                  meetingdescription: item.meetingdescription,
+                                  teamname: item.teamname,
+                                  invitationtype: item.invitationtype,
+                                  members: item.members,
+                                  teamid: item.teamid,
+                                }
+
+                                const itemDate = new Date(item.meetingdate)
+                                const now = new Date()
+                                const isItemInPast = itemDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+                                const switchTabEvent = new CustomEvent("switchSidebarTab", {
+                                  detail: { isPast: isItemInPast },
+                                })
+                                window.dispatchEvent(switchTabEvent)
+
+                                setInfoModalContent(modalItem)
+                                setShowInfoModal(true)
+                                const event = new CustomEvent("highlightSidebarItem", {
+                                  detail: { id: modalItem.id, type: modalItem.type },
+                                })
+                                window.dispatchEvent(event)
+                              }}
+                            >
+                              <div className="font-medium text-orange-800 truncate">{item.meetingtitle}</div>
+                              <div className="text-orange-600 text-xs truncate">Team: {item.teamname}</div>
+                              {item.meetingstarttime && (
+                                <div className="text-orange-600 text-xs">
+                                  {item.meetingstarttime}
+                                  {item.meetingendtime && ` - ${item.meetingendtime}`}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      }
                     })}
 
                     {timeSlots.map((slot) => {

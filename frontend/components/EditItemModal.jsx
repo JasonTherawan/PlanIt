@@ -1263,7 +1263,9 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
 
               {/* Current Members Section */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Current Members</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Members {item.invitationtype === 'mandatory' && '(Mandatory)'}
+                </label>
                 <div className="space-y-2 mb-3">
                   {meeting.members &&
                     meeting.members.map((member) => (
@@ -1271,17 +1273,19 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                         <div className="flex items-center">
                           <span className="text-sm font-medium text-gray-900">{member.username}</span>
                           <span className="text-xs text-gray-500 ml-2">({member.useremail})</span>
-                          <span
-                            className={`text-xs px-2 py-1 rounded ml-2 ${
-                              member.status === "accepted"
-                                ? "bg-green-100 text-green-800"
-                                : member.status === "declined"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {member.status}
-                          </span>
+                          {item.invitationtype === 'request' && (
+                            <span
+                                className={`text-xs px-2 py-1 rounded ml-2 ${
+                                member.status === "accepted"
+                                    ? "bg-green-100 text-green-800"
+                                    : member.status === "declined"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }`}
+                            >
+                                {member.status}
+                            </span>
+                          )}
                         </div>
                         <button
                           type="button"

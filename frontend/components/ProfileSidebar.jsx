@@ -19,7 +19,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const [teamDetails, setTeamDetails] = useState(null)
   const [creator, setCreator] = useState(null);
   const [isEditingTeam, setIsEditingTeam] = useState(false)
-  const [isCreatingTeam, setIsCreatingTeam] = useState(false)
   const [isAddingMeeting, setIsAddingMeeting] = useState(false)
   const [editingMeeting, setEditingMeeting] = useState(null)
   const [aiSuggestions, setAiSuggestions] = useState([])
@@ -47,13 +46,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     teamDescription: "",
     teamStartWorkingHour: "",
     teamEndWorkingHour: "",
-  })
-
-  // Team creation form
-  const [newTeam, setNewTeam] = useState({
-    name: "",
-    description: "",
-    memberEmails: [""],
   })
 
   const [newMeeting, setNewMeeting] = useState({
@@ -239,38 +231,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       }
     } catch (error) {
       console.error("Error fetching team details:", error)
-    }
-  }
-  
-  const handleCreateTeam = async (e) => {
-    e.preventDefault()
-    if (!newTeam.name.trim()) return
-
-    try {
-      const response = await fetch("http://localhost:5000/api/teams", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          teamName: newTeam.name,
-          teamDescription: newTeam.description,
-          createdByUserId: user.id,
-          memberEmails: newTeam.memberEmails.filter((email) => email.trim()),
-        }),
-      })
-
-      if (response.ok) {
-        setNewTeam({ name: "", description: "", memberEmails: [""] })
-        setIsCreatingTeam(false)
-        fetchUserData(user.id)
-      } else {
-        const errorData = await response.json()
-        alert(errorData.error || "Failed to create team")
-      }
-    } catch (error) {
-      console.error("Error creating team:", error)
-      alert("Error creating team")
     }
   }
 
@@ -1194,10 +1154,13 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                   <div className="bg-gray-800 rounded-md p-4 space-y-3">
                     {creator && (
                         <div>
-                            <span className="block text-sm font-medium text-gray-300 mb-1">Created by</span>
-                            <p className="w-full p-2 bg-gray-900 border border-gray-700 rounded text-gray-400">
-                                {creator.userid === user?.userid ? `${creator.username} (You)` : creator.username}
-                            </p>
+                            <div className="block text-sm font-medium text-gray-300 mb-2">Created by</div>
+                            <div className="flex items-center mt-2">
+                              <img src={creator.userprofilepicture || `https://ui-avatars.com/api/?name=${creator.username}&background=0D8ABC&color=fff`} alt={creator.username} className="w-6 h-6 rounded-full mr-2" />
+                              <p className="w-full p-2 bg-gray-900 border border-gray-700 rounded text-gray-400">
+                                  {creator.userid === user?.userid ? `${creator.username} (You)` : creator.username}
+                              </p>
+                            </div>
                         </div>
                     )}
                     <div>
@@ -1262,10 +1225,13 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                   <div className="bg-gray-800 rounded-md p-4 space-y-3">
                     {creator && (
                       <div>
-                        <span className="text-gray-400 text-sm">Created by:</span>
-                        <p className="text-white">
-                            {creator.userid === user?.userid ? `${creator.username} (You)` : creator.username}
-                        </p>
+                        <span className="block text-sm font-medium text-gray-400 mb-1">Created by:</span>
+                        <div className="flex items-center">
+                            <img src={creator.userprofilepicture || `https://ui-avatars.com/api/?name=${creator.username}&background=0D8ABC&color=fff`} alt={creator.username} className="w-8 h-8 rounded-full mr-3" />
+                            <p className="text-white">
+                                {creator.userid === user?.userid ? `${creator.username} (You)` : creator.username}
+                            </p>
+                        </div>
                       </div>
                     )}
                     <div>
@@ -1667,21 +1633,23 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                         </p>
                         <div className="mb-2">
                           <span className="text-xs text-gray-400">Members ({meeting.members?.length || 0}):</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
+                          <div className="flex flex-col gap-2 mt-1">
                           {meeting.members?.map((member) => (
-                            <span
-                                key={member.userid}
-                                className={`text-xs px-2 py-1 rounded ${
-                                meeting.invitationtype === 'request' && member.status === "accepted"
-                                    ? "bg-green-900 text-green-300"
-                                    : meeting.invitationtype === 'request' && member.status === "declined"
-                                    ? "bg-red-900 text-red-300"
-                                    : "bg-gray-700 text-gray-300"
-                                }`}
-                            >
-                                {member.userid === user?.userid ? "You" : member.username}
-                                {meeting.invitationtype === "request" && ` (${member.status})`}
-                            </span>
+                              <div key={member.userid} className="flex items-center">
+                                  <img src={member.userprofilepicture || `https://ui-avatars.com/api/?name=${member.username}&background=0D8ABC&color=fff`} alt={member.username} className="w-6 h-6 rounded-full mr-2" />
+                                  <span
+                                      className={`text-xs px-2 py-1 rounded ${
+                                      meeting.invitationtype === 'request' && member.status === "accepted"
+                                          ? "bg-green-900 text-green-300"
+                                          : meeting.invitationtype === 'request' && member.status === "declined"
+                                          ? "bg-red-900 text-red-300"
+                                          : "bg-gray-700 text-gray-300"
+                                      }`}
+                                  >
+                                      {member.userid === user?.userid ? "You" : member.username}
+                                      {meeting.invitationtype === "request" && ` (${member.status})`}
+                                  </span>
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -1748,7 +1716,9 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                       </div>
                       {/* Current Members Section */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Current Members</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Current Members {editingMeeting.invitationtype === 'mandatory' && '(Mandatory)'}
+                      </label>
                         <div className="space-y-2 mb-3">
                           {editingMeeting.members &&
                             editingMeeting.members.map((member) => (
@@ -1759,17 +1729,19 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                                 <div className="flex items-center">
                                   <span className="text-sm text-white">{member.username}</span>
                                   <span className="text-xs text-gray-400 ml-2">({member.useremail})</span>
-                                  <span
-                                    className={`text-xs px-2 py-1 rounded ml-2 ${
-                                      member.status === "accepted"
-                                        ? "bg-green-900 text-green-300"
-                                        : member.status === "declined"
-                                          ? "bg-red-900 text-red-300"
-                                          : "bg-yellow-900 text-yellow-300"
-                                    }`}
-                                  >
-                                    {member.status}
-                                  </span>
+                                  {editingMeeting.invitationtype === 'request' && (
+                                    <span
+                                        className={`text-xs px-2 py-1 rounded ml-2 ${
+                                        member.status === "accepted"
+                                            ? "bg-green-900 text-green-300"
+                                            : member.status === "declined"
+                                            ? "bg-red-900 text-red-300"
+                                            : "bg-yellow-900 text-yellow-300"
+                                        }`}
+                                    >
+                                        {member.status}
+                                    </span>
+                                  )}
                                 </div>
                                 <button
                                   onClick={() => {
@@ -2094,137 +2066,49 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                     </div>
                   )}
 
-                  {/* Create Team Form */}
-                  {isCreatingTeam && (
-                    <div className="mb-6 bg-gray-800 rounded-md p-4">
-                      <h4 className="text-lg font-medium mb-3">Create New Team</h4>
-                      <form onSubmit={handleCreateTeam}>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-sm text-gray-400 mb-1">Team Name</label>
-                            <input
-                              type="text"
-                              value={newTeam.name}
-                              onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
-                              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm text-gray-400 mb-1">Description</label>
-                            <textarea
-                              value={newTeam.description}
-                              onChange={(e) => setNewTeam({ ...newTeam, description: e.target.value })}
-                              rows="3"
-                              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm text-gray-400 mb-1">Member Emails</label>
-                            {newTeam.memberEmails.map((email, index) => (
-                              <div key={index} className="flex items-center mb-2">
-                                <input
-                                  type="email"
-                                  value={email}
-                                  onChange={(e) => updateMemberEmail(index, e.target.value)}
-                                  className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2"
-                                  placeholder="Enter email"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => removeMemberEmailField(index)}
-                                  className="ml-2 text-red-400 hover:text-red-300"
-                                  disabled={newTeam.memberEmails.length === 1}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={addMemberEmailField}
-                              className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
-                            >
-                              <Plus size={12} className="mr-1" /> Add Email
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between mt-4">
-                          <button
-                            type="button"
-                            onClick={() => setIsCreatingTeam(false)}
-                            className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600 mr-2"
-                            disabled={isLoading}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                            disabled={isLoading}
-                          >
-                            {isLoading ? "Creating..." : "Create Team"}
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
-
                   {/* Action Buttons */}
                   <div className="space-y-3">
-                    {!isEditing && !isChangingPassword && !isCreatingTeam && (
-                      <>
+                  {!isEditing && !isChangingPassword && (
+                    <>
                         <button
-                          onClick={() => {
-                            setIsEditing(true)
+                        onClick={() => {
+                            setIsEditing(true);
                             setEditedUser({
-                              username: user.username || "",
-                              bio: user.userbio || "",
-                              dob: user.userdob || "",
-                              profilePicture: user.userprofilepicture || "",
-                            })
-                          }}
-                          className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                            username: user.username || "",
+                            bio: user.userbio || "",
+                            dob: user.userdob || "",
+                            profilePicture: user.userprofilepicture || "",
+                            });
+                        }}
+                        className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                         >
-                          <Edit2 size={16} className="mr-2" />
-                          Edit Profile
+                        <Edit2 size={16} className="mr-2" />
+                        Edit Profile
                         </button>
-
-                        <button
-                          onClick={() => setIsCreatingTeam(true)}
-                          className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
-                        >
-                          <Plus size={16} className="mr-2" />
-                          Create Team
-                        </button>
-
                         {!isGoogleUser && (
-                          <button
+                        <button
                             onClick={() => setIsChangingPassword(true)}
-                            className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700"
-                          >
+                            className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-200 bg-gray-600 rounded-md hover:bg-gray-700"
+                        >
                             <Lock size={16} className="mr-2" />
                             Change Password
-                          </button>
+                        </button>
                         )}
-
                         <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-200 bg-gray-600 rounded-md hover:bg-gray-700"
                         >
-                          <LogOut size={16} className="mr-2" />
-                          Logout
+                        <LogOut size={16} className="mr-2" />
+                        Logout
                         </button>
-
                         <button
-                          onClick={handleDeleteAccount}
-                          className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-800 rounded-md hover:bg-red-900"
+                        onClick={handleDeleteAccount}
+                        className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
                         >
-                          <Trash2 size={16} className="mr-2" />
-                          Delete Account
+                        <Trash2 size={16} className="mr-2" />
+                        Delete Account
                         </button>
-                      </>
+                    </>
                     )}
                   </div>
                 </>

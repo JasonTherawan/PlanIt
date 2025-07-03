@@ -1011,15 +1011,43 @@ def get_teams():
                 )
 
             for meeting_row in cur.fetchall():
-                team_data['meetings'].append({
-                    'teammeetingid': meeting_row[5],
+                meeting_id = meeting_row[5]
+                meeting_data = {
+                    'teammeetingid': meeting_id,
                     'meetingtitle': meeting_row[0],
                     'meetingdescription': meeting_row[1],
                     'meetingdate': meeting_row[2].isoformat() if meeting_row[2] else None,
                     'meetingstarttime': format_time_to_hhmm(meeting_row[3]),
                     'meetingendtime': format_time_to_hhmm(meeting_row[4]),
-                    'invitationtype': meeting_row[6]
-                })
+                    'invitationtype': meeting_row[6],
+                    'members': []
+                }
+                
+                # Get members for this specific meeting
+                cur.execute(
+                    """
+                    SELECT u.UserId, u.UserName, u.UserEmail, u.UserProfilePicture,
+                           mi.Status, mi.InvitationType
+                    FROM MeetingInvitations mi
+                    JOIN Users u ON mi.UserId = u.UserId
+                    WHERE mi.MeetingId = %s
+                    ORDER BY u.UserName
+                    """,
+                    (meeting_id,)
+                )
+
+                for member_row in cur.fetchall():
+                    meeting_data['members'].append({
+                        'userid': str(member_row[0]),
+                        'username': member_row[1],
+                        'useremail': member_row[2],
+                        'userprofilepicture': member_row[3],
+                        'status': member_row[4],
+                        'invitationtype': member_row[5]
+                    })
+                
+                team_data['meetings'].append(meeting_data)
+
 
         teams = list(teams_dict.values())
 
