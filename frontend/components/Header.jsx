@@ -4,7 +4,7 @@ import { Search, ChevronLeft, ChevronRight, User, X, Bell } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import googleAuthService from "../services/googleAuth"
 
-const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationClick }) => {
+const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationClick, dataUpdateTrigger }) => {
   const [user, setUser] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState([])
@@ -71,17 +71,21 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
     }
   }
 
-  // Fetch all data for search
   useEffect(() => {
     fetchUser()
     fetchAllData()
     fetchNotifications()
 
-    // Set up polling for notifications every 30 seconds
     const notificationInterval = setInterval(fetchNotifications, 30000)
+    
+    const handleNotificationsUpdate = () => fetchNotifications()
+    window.addEventListener("notificationsUpdated", handleNotificationsUpdate)
 
-    return () => clearInterval(notificationInterval)
-  }, [])
+    return () => {
+      clearInterval(notificationInterval)
+      window.removeEventListener("notificationsUpdated", handleNotificationsUpdate)
+    }
+  }, [dataUpdateTrigger])
 
   useEffect(() => {
     const fetchUserProfile = async () => {

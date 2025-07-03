@@ -62,6 +62,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
         setNotifications((prev) =>
           prev.map((notif) => (notif.notificationid === notificationId ? { ...notif, isread: true } : notif)),
         )
+        window.dispatchEvent(new CustomEvent("notificationsUpdated"))
       }
     } catch (error) {
       console.error("Error marking notification as read:", error)
@@ -87,6 +88,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
             notif.relatedid === meetingId ? { ...notif, invitationstatus: response, isread: true } : notif,
           ),
         )
+        window.dispatchEvent(new CustomEvent("notificationsUpdated"))
       } else {
         setError("Failed to respond to invitation")
       }
@@ -126,6 +128,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
       })
       if (response.ok) {
         setNotifications((prev) => prev.map((notif) => ({ ...notif, isread: true })))
+        window.dispatchEvent(new CustomEvent("notificationsUpdated"))
       }
     } catch (error) {
       console.error("Error marking all as read:", error)
@@ -180,8 +183,12 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
 
   // Get invitation status display
   const getInvitationStatusDisplay = (notification) => {
-    if (notification.type !== "meeting_invitation" || !notification.invitationstatus) {
-      return null
+    if (
+      notification.type !== "meeting_invitation" || 
+      !notification.invitationstatus ||
+      (notification.invitationstatus === "accepted" && notification.invitationtype === "mandatory")
+    ) {
+      return null;
     }
 
     const status = notification.invitationstatus

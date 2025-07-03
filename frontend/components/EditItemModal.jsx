@@ -1317,7 +1317,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                       type="email"
                       value={email}
                       onChange={(e) => handleNewMemberEmailChange(index, e.target.value)}
-                      className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="text-black flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter email to add new member"
                     />
                     <button

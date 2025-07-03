@@ -18,6 +18,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const [selectedTeam, setSelectedTeam] = useState(null)
   const [teamDetails, setTeamDetails] = useState(null)
   const [isEditingTeam, setIsEditingTeam] = useState(false)
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false)
   const [isAddingMeeting, setIsAddingMeeting] = useState(false)
   const [editingMeeting, setEditingMeeting] = useState(null)
   const [aiSuggestions, setAiSuggestions] = useState([])
@@ -45,6 +46,13 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     teamDescription: "",
     teamStartWorkingHour: "",
     teamEndWorkingHour: "",
+  })
+
+  // Team creation form
+  const [newTeam, setNewTeam] = useState({
+    name: "",
+    description: "",
+    memberEmails: [""],
   })
 
   const [newMeeting, setNewMeeting] = useState({
@@ -211,6 +219,38 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       }
     } catch (error) {
       console.error("Error fetching team details:", error)
+    }
+  }
+  
+  const handleCreateTeam = async (e) => {
+    e.preventDefault()
+    if (!newTeam.name.trim()) return
+
+    try {
+      const response = await fetch("http://localhost:5000/api/teams", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          teamName: newTeam.name,
+          teamDescription: newTeam.description,
+          createdByUserId: user.id,
+          memberEmails: newTeam.memberEmails.filter((email) => email.trim()),
+        }),
+      })
+
+      if (response.ok) {
+        setNewTeam({ name: "", description: "", memberEmails: [""] })
+        setIsCreatingTeam(false)
+        fetchUserData(user.id)
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || "Failed to create team")
+      }
+    } catch (error) {
+      console.error("Error creating team:", error)
+      alert("Error creating team")
     }
   }
 
@@ -389,6 +429,62 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     } catch (error) {
       console.error("Error updating team:", error)
       setError("Network error. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteTeam = async (teamId) => {
+    if (!confirm("Are you sure you want to delete this team? This will notify all members.")) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/teams/${teamId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        setSuccess("Team deleted successfully!")
+        handleBackToProfile()
+        await fetchUserTeams()
+        setTimeout(() => setSuccess(""), 3000)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.message || "Failed to delete team")
+      }
+    } catch (error) {
+      console.error("Error deleting team:", error)
+      setError("Error deleting team")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteMeeting = async (meetingId) => {
+    if (!confirm("Are you sure you want to delete this meeting? This will notify all members.")) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/meetings/${meetingId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        setSuccess("Meeting deleted successfully!")
+        window.dispatchEvent(new CustomEvent("refreshCalendarData"))
+        await fetchTeamDetails(selectedTeam.teamid)
+        setTimeout(() => setSuccess(""), 3000)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.message || "Failed to delete meeting")
+      }
+    } catch (error) {
+      console.error("Error deleting meeting:", error)
+      setError("Error deleting meeting")
     } finally {
       setIsLoading(false)
     }
@@ -885,6 +981,54 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       setIsLoading(false)
     }
   }
+  
+  const addMemberEmailField = () => {
+    if (isCreatingTeam) {
+      setNewTeam({
+        ...newTeam,
+        memberEmails: [...newTeam.memberEmails, ""],
+      })
+    } else if (useAIScheduling) {
+      setAiSchedulingData({
+        ...aiSchedulingData,
+        memberEmails: [...aiSchedulingData.memberEmails, ""],
+      })
+    }
+  }
+
+  const removeMemberEmailField = (index) => {
+    if (isCreatingTeam) {
+      const updatedEmails = newTeam.memberEmails.filter((_, i) => i !== index)
+      setNewTeam({
+        ...newTeam,
+        memberEmails: updatedEmails.length > 0 ? updatedEmails : [""],
+      })
+    } else if (useAIScheduling) {
+      const updatedEmails = aiSchedulingData.memberEmails.filter((_, i) => i !== index)
+      setAiSchedulingData({
+        ...aiSchedulingData,
+        memberEmails: updatedEmails.length > 0 ? updatedEmails : [""],
+      })
+    }
+  }
+
+  const updateMemberEmail = (index, value) => {
+    if (isCreatingTeam) {
+      const updatedEmails = [...newTeam.memberEmails]
+      updatedEmails[index] = value
+      setNewTeam({
+        ...newTeam,
+        memberEmails: updatedEmails,
+      })
+    } else if (useAIScheduling) {
+      const updatedEmails = [...aiSchedulingData.memberEmails]
+      updatedEmails[index] = value
+      setAiSchedulingData({
+        ...aiSchedulingData,
+        memberEmails: updatedEmails,
+      })
+    }
+  }
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -1002,15 +1146,27 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-lg font-medium">Team Information</h3>
-                  {selectedTeam.createdbyuserid === user?.userid && (
-                    <button
-                      onClick={() => setIsEditingTeam(!isEditingTeam)}
-                      className="p-1 text-blue-400 hover:text-blue-300 rounded"
-                      title="Edit Team"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    {selectedTeam.createdbyuserid === user?.userid && (
+                      <>
+                        <button
+                          onClick={() => setIsEditingTeam(!isEditingTeam)}
+                          className="p-1 text-blue-400 hover:text-blue-300 rounded"
+                          title="Edit Team"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTeam(selectedTeam.teamid)}
+                          className="p-1 text-red-400 hover:text-red-300 rounded"
+                          title="Delete Team"
+                          disabled={isLoading}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {isEditingTeam ? (
@@ -1435,19 +1591,29 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                               <Eye size={12} />
                             </button>
                             {selectedTeam.createdbyuserid === user?.userid && (
-                              <button
-                                onClick={() =>
-                                  setEditingMeeting({
-                                    ...meeting,
-                                    newMemberEmails: [""],
-                                    removedMembers: [],
-                                  })
-                                }
-                                className="p-1 text-blue-400 hover:text-blue-300 rounded"
-                                title="Edit Meeting"
-                              >
-                                <Edit2 size={12} />
-                              </button>
+                              <>
+                                <button
+                                  onClick={() =>
+                                    setEditingMeeting({
+                                      ...meeting,
+                                      newMemberEmails: [""],
+                                      removedMembers: [],
+                                    })
+                                  }
+                                  className="p-1 text-blue-400 hover:text-blue-300 rounded"
+                                  title="Edit Meeting"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteMeeting(meeting.teammeetingid)}
+                                  className="p-1 text-red-400 hover:text-red-300 rounded"
+                                  title="Delete Meeting"
+                                  disabled={isLoading}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -1887,48 +2053,143 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                     </div>
                   )}
 
+                  {/* Create Team Form */}
+                  {isCreatingTeam && (
+                    <div className="mb-6 bg-gray-800 rounded-md p-4">
+                      <h4 className="text-lg font-medium mb-3">Create New Team</h4>
+                      <form onSubmit={handleCreateTeam}>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm text-gray-400 mb-1">Team Name</label>
+                            <input
+                              type="text"
+                              value={newTeam.name}
+                              onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
+                              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-400 mb-1">Description</label>
+                            <textarea
+                              value={newTeam.description}
+                              onChange={(e) => setNewTeam({ ...newTeam, description: e.target.value })}
+                              rows="3"
+                              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-400 mb-1">Member Emails</label>
+                            {newTeam.memberEmails.map((email, index) => (
+                              <div key={index} className="flex items-center mb-2">
+                                <input
+                                  type="email"
+                                  value={email}
+                                  onChange={(e) => updateMemberEmail(index, e.target.value)}
+                                  className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                                  placeholder="Enter email"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeMemberEmailField(index)}
+                                  className="ml-2 text-red-400 hover:text-red-300"
+                                  disabled={newTeam.memberEmails.length === 1}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={addMemberEmailField}
+                              className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
+                            >
+                              <Plus size={12} className="mr-1" /> Add Email
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between mt-4">
+                          <button
+                            type="button"
+                            onClick={() => setIsCreatingTeam(false)}
+                            className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600 mr-2"
+                            disabled={isLoading}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                            disabled={isLoading}
+                          >
+                            {isLoading ? "Creating..." : "Create Team"}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="space-y-3">
-                    {!isEditing && !isChangingPassword && (
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md"
-                      >
-                        <Edit2 size={16} className="mr-2" />
-                        Edit Profile
-                      </button>
+                    {!isEditing && !isChangingPassword && !isCreatingTeam && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setIsEditing(true)
+                            setEditedUser({
+                              username: user.username || "",
+                              bio: user.userbio || "",
+                              dob: user.userdob || "",
+                              profilePicture: user.userprofilepicture || "",
+                            })
+                          }}
+                          className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                        >
+                          <Edit2 size={16} className="mr-2" />
+                          Edit Profile
+                        </button>
+
+                        <button
+                          onClick={() => setIsCreatingTeam(true)}
+                          className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                        >
+                          <Plus size={16} className="mr-2" />
+                          Create Team
+                        </button>
+
+                        {!isGoogleUser && (
+                          <button
+                            onClick={() => setIsChangingPassword(true)}
+                            className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700"
+                          >
+                            <Lock size={16} className="mr-2" />
+                            Change Password
+                          </button>
+                        )}
+
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                        >
+                          <LogOut size={16} className="mr-2" />
+                          Logout
+                        </button>
+
+                        <button
+                          onClick={handleDeleteAccount}
+                          className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-800 rounded-md hover:bg-red-900"
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          Delete Account
+                        </button>
+                      </>
                     )}
-
-                    {!isEditing && !isChangingPassword && !isGoogleUser && (
-                      <button
-                        onClick={() => setIsChangingPassword(true)}
-                        className="w-full flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md"
-                      >
-                        <Lock size={16} className="mr-2" />
-                        Change Password
-                      </button>
-                    )}
-
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md"
-                    >
-                      <LogOut size={16} className="mr-2" />
-                      Logout
-                    </button>
-
-                    <button
-                      onClick={handleDeleteAccount}
-                      className="w-full flex items-center justify-center px-4 py-2 bg-red-900 hover:bg-red-800 rounded-md"
-                    >
-                      <Trash2 size={16} className="mr-2" />
-                      Delete Account
-                    </button>
                   </div>
                 </>
               ) : (
-                <div className="flex justify-center items-center h-64">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                <div className="text-center">
+                  <p className="text-gray-400">Loading profile...</p>
                 </div>
               )}
             </>

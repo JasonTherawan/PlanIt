@@ -1032,6 +1032,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
       console.error("Error:", error)
       setApiError("Network error. Please check your connection and try again.")
     } finally {
+      window.dispatchEvent(new CustomEvent("refreshCalendarData"))
       setIsLoading(false)
     }
   }

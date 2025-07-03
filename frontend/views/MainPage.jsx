@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Sidebar from "../components/Sidebar"
 import CalendarGrid from "../components/CalendarGrid"
 import Header from "../components/Header"
@@ -18,6 +18,18 @@ export default function MainPage() {
   const addEvent = (newEvent) => {
     setEvents([...events, { id: Date.now(), ...newEvent }])
   }
+  
+  useEffect(() => {
+    const handleDataRefresh = () => {
+      setDataUpdateTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('refreshCalendarData', handleDataRefresh);
+
+    return () => {
+      window.removeEventListener('refreshCalendarData', handleDataRefresh);
+    };
+  }, [])
 
   const handleDataUpdate = () => {
     setDataUpdateTrigger((prev) => prev + 1)
@@ -56,6 +68,7 @@ export default function MainPage() {
               setCurrentDate={setCurrentDate}
               onProfileClick={handleProfileClick}
               onNotificationClick={handleNotificationClick}
+              dataUpdateTrigger={dataUpdateTrigger}
             />
           </div>
 
