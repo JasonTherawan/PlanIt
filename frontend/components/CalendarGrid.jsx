@@ -614,14 +614,26 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
   const goalTimelines = getGoalTimelinesForMonth()
 
   return (
-    <div className="flex-1 overflow-hidden">
-      <div className="flex h-full">
+    <div className="flex-1 overflow-hidden relative">
+      {/* Background Image Div */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: `url(https://picsum.photos/1920/1080)`,
+          filter: 'blur(4px)',
+          opacity: 0.2,
+          zIndex: 0,
+          transform: 'scale(1.1)', // To cover edges from blur
+        }}
+      ></div>
+
+      <div className="flex h-full relative z-10">
         {/* Time labels column - Fixed */}
-        <div className="w-16 flex-shrink-0 border-r z-10 bg-white">
-          <div className="h-12 border-b"></div> {/* Empty cell for the header row */}
+        <div className="w-16 flex-shrink-0 border-r border-gray-200/50 bg-white/70 backdrop-blur-sm">
+          <div className="h-12 border-b border-gray-200/50"></div> {/* Empty cell for the header row */}
           <div className="overflow-hidden h-[calc(100vh-112px)]" ref={gridRef}>
             {timeSlots.map((slot) => (
-              <div key={slot.hour} className="h-14 border-b flex items-start justify-end pr-2 text-xs text-gray-500">
+              <div key={slot.hour} className="h-14 border-b border-gray-200/50 flex items-start justify-end pr-2 text-xs text-gray-500">
                 <span className="mt-1">{slot.label}</span>
               </div>
             ))}
@@ -631,17 +643,17 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
         {/* Calendar grid with horizontal scrolling */}
         <div className="flex-1 overflow-hidden">
           {/* Fixed header container */}
-          <div className="sticky left-0 z-10 bg-white">
+          <div className="sticky left-0 z-10 bg-white/70 backdrop-blur-sm">
             {/* Day headers - Fixed position but showing scrollable content */}
-            <div className="flex border-b overflow-hidden relative">
+            <div className="flex border-b border-gray-200/50 overflow-hidden relative">
               <div className="flex" style={{ minWidth: `${daysInMonth.length * 100}px` }}>
                 {daysInMonth.map((day, index) => {
                   const { dayName, dayNumber, isTodayDate } = formatDayHeader(day)
                   return (
                     <div
                       key={index}
-                      className={`w-[100px] flex-shrink-0 h-12 flex flex-col items-center justify-center border-r
-                        ${isToday(day) ? "bg-blue-50" : ""}
+                      className={`w-[100px] flex-shrink-0 h-12 flex flex-col items-center justify-center border-r border-gray-200/50
+                        ${isToday(day) ? "bg-blue-100/50" : "bg-transparent"}
                       `}
                       onClick={() => setCurrentDate(new Date(day))}
                     >
@@ -710,12 +722,10 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                         goalprogress: timelineBlock.goal.goalprogress,
                       }
                       
-                      // Check if item is in past and switch sidebar tab accordingly
                       const itemDate = new Date(timelineBlock.timeline.timelineenddate)
                       const now = new Date()
                       const isItemInPast = itemDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-                      // Dispatch event to switch sidebar tab if needed
                       const switchTabEvent = new CustomEvent("switchSidebarTab", {
                         detail: { isPast: isItemInPast },
                       })
@@ -735,7 +745,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                     {timelineBlock.timeline.timelinestarttime && (
                       <div className="text-purple-600 text-xs">
                         {timelineBlock.timeline.timelinestarttime}
-                        {timelineBlock.timeline.timelineendtime && ` - ${timelineBlock.timeline.timelineendtime}`}
+                        {timelineBlock.timeline.timelineendtime && ` - ${timelineBlock.timeline.endtime}`}
                       </div>
                     )}
                   </div>
@@ -755,7 +765,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                 return (
                   <div
                     key={dayIndex}
-                    className={`w-[100px] flex-shrink-0 border-r relative ${isToday(day) ? "bg-blue-50" : ""}`}
+                    className={`w-[100px] flex-shrink-0 border-r border-gray-200/50 relative ${isToday(day) ? "bg-blue-100/30" : "bg-transparent"}`}
                   >
                     {dayItems.map((item, itemIndex) => {
                       const { startHour, duration } = item.type === 'activity'
@@ -906,7 +916,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                       const eventsInSlot = getEventsForTimeSlot(day, slot.hour)
 
                       return (
-                        <div key={slot.hour} className="h-14 border-b relative">
+                        <div key={slot.hour} className="h-14 border-b border-gray-200/50 relative">
                           {/* Regular events */}
                           {eventsInSlot.map((event) => (
                             <div

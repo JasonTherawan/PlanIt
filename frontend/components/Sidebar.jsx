@@ -851,7 +851,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     <div className="w-56 bg-[#002147] text-white flex flex-col h-full">
       <div className="p-4 pb-2 flex items-center justify-between">
         <button
-          className="w-8 h-8 rounded-full bg-black bg-opacity-10 flex items-center justify-center hover:bg-opacity-20"
+          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-600"
           onClick={() => setIsItemModalOpen(true)}
         >
           <Plus size={20} />
@@ -876,17 +876,17 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
             {viewDate.toLocaleString("default", { month: "long" })} {viewDate.getFullYear()}
           </h2>
           <div className="flex">
-            <button onClick={handlePrevMonth} className="p-1">
-              <ChevronLeft size={16} />
+            <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-gray-600">
+              <ChevronLeft size={20} />
             </button>
-            <button onClick={handleNextMonth} className="p-1">
-              <ChevronRight size={16} />
+            <button onClick={handleNextMonth} className="p-1 rounded-full hover:bg-gray-600">
+              <ChevronRight size={20} />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-7 text-center text-xs mb-1">
-          {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day, index) => (
+        <div className="grid grid-cols-7 text-center text-xs mb-1 font-bold">
+          {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
             <div key={index} className="h-6 flex items-center justify-center">
               {day}
             </div>

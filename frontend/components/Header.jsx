@@ -412,10 +412,10 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
     <div className="flex justify-between items-center p-4 border-b">
       {/* Navigation Section */}
       <div className="flex items-center space-x-4">
-        <button onClick={navigateToPreviousMonth} className="p-1 rounded-full hover:bg-gray-100">
+        <button onClick={navigateToPreviousMonth} className="p-1 rounded-full hover:bg-gray-200">
           <ChevronLeft size={20} />
         </button>
-        <button onClick={navigateToNextMonth} className="p-1 rounded-full hover:bg-gray-100">
+        <button onClick={navigateToNextMonth} className="p-1 rounded-full hover:bg-gray-200">
           <ChevronRight size={20} />
         </button>
         <h1 className="text-xl font-medium">{formatMonthYear()}</h1>
@@ -423,7 +423,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
 
       {/* Search and Profile */}
       <div className="flex items-center space-x-4">
-        <div className="relative" ref={searchRef}>
+        <div className="relative rounded-lg hover:ring-2 hover:ring-gray-400" ref={searchRef}>
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
           <input
             type="text"
@@ -431,7 +431,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
             value={searchQuery}
             onChange={handleSearchChange}
             onFocus={() => searchQuery && setShowResults(true)}
-            className="pl-10 pr-10 py-2 bg-gray-100 rounded-lg w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="pl-10 pr-10 py-2 bg-gray-100 rounded-lg w-80 focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
           {searchQuery && (
             <button
@@ -452,7 +452,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
                 <div
                   key={`${result.type}-${result.id}-${result.timelineId || index}`}
                   onClick={() => handleResultClick(result)}
-                  className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                 >
                   <div className="font-medium text-gray-900 truncate">{result.title}</div>
                   <div className="text-sm text-gray-500 truncate">{result.subtitle}</div>
@@ -473,7 +473,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
         <div className="relative">
           <button
             onClick={onNotificationClick}
-            className="p-2 rounded-full hover:bg-gray-100 relative"
+            className="p-2 rounded-full hover:bg-gray-200 relative"
             title="Notifications"
           >
             <Bell size={20} className="text-gray-600" />
@@ -485,7 +485,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
           </button>
         </div>
 
-        <button onClick={onProfileClick} className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden hover:ring-2 hover:ring-blue-500">
+        <button onClick={onProfileClick} className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden hover:ring-2 hover:ring-gray-400">
           {userProfileData?.imageUrl ? (
             <img
               src={userProfileData.imageUrl || "/placeholder.svg"}
