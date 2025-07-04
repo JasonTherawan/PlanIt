@@ -13,6 +13,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
   const [viewDate, setViewDate] = useState(new Date(currentDate))
   const [activities, setActivities] = useState([])
   const [goals, setGoals] = useState([])
+  const [goalDates, setGoalDates] = useState(new Set())
   const [teams, setTeams] = useState([])
   const [activeTab, setActiveTab] = useState("upcoming")
   const [highlightedSidebarItem, setHighlightedSidebarItem] = useState(null)
@@ -52,6 +53,29 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
   useEffect(() => {
     setViewDate(new Date(currentDate));
   }, [currentDate]);
+
+  // When goals are updated, update the goalDates set
+  useEffect(() => {
+    const newGoalDates = new Set()
+    goals.forEach(goal => {
+      if (goal.timelines) {
+        goal.timelines.forEach(timeline => {
+          const startDate = new Date(timeline.timelinestartdate)
+          const endDate = new Date(timeline.timelineenddate)
+          // Normalize start and end dates to avoid time zone issues
+          const start = new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
+          const end = new Date(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+          
+          let currentDate = new Date(start)
+          while (currentDate <= end) {
+            newGoalDates.add(currentDate.toDateString())
+            currentDate.setDate(currentDate.getDate() + 1)
+          }
+        })
+      }
+    })
+    setGoalDates(newGoalDates)
+  }, [goals])
 
   const fetchAllData = async () => {
     try {
@@ -334,6 +358,28 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     return mostUrgent
   }
 
+  const timeStringToMinutes = (timeString) => {
+    if (!timeString) return null;
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const getItemStartTime = (item) => {
+    let timeString;
+    if (item.type === "activity") timeString = item.activitystarttime;
+    else if (item.type === "meeting") timeString = item.meetingstarttime;
+    else if (item.type === "goal" && item.timeline) timeString = item.timeline.timelinestarttime;
+    return timeStringToMinutes(timeString) ?? 9999; // All-day events go last
+  };
+  
+  const getItemEndTime = (item) => {
+    let timeString;
+    if (item.type === "activity") timeString = item.activityendtime;
+    else if (item.type === "meeting") timeString = item.meetingendtime;
+    else if (item.type === "goal" && item.timeline) timeString = item.timeline.timelineendtime;
+    return timeStringToMinutes(timeString) ?? 9999;
+  };
+  
   // Get past activities, goals, and team meetings
   const getPastItems = () => {
     const now = new Date()
@@ -415,7 +461,32 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     })
 
     // Combine and sort by deadline (most recent first)
-    return [...pastActivities, ...pastGoals, ...pastMeetings].sort((a, b) => b.deadline - a.deadline)
+    const allItems = [...pastActivities, ...pastGoals, ...pastMeetings];
+  
+    // Custom sort: sort by date, then goals at the end of each day
+    return allItems.sort((a, b) => {
+        const dateA = new Date(a.deadline);
+        const dateB = new Date(b.deadline);
+      
+        // Sort by date descending
+        if (dateA.toDateString() !== dateB.toDateString()) {
+          return dateB - dateA;
+        }
+      
+        // If same day, goals go to the end
+        if (a.type === 'goal' && b.type !== 'goal') return 1;
+        if (a.type !== 'goal' && b.type === 'goal') return -1;
+      
+        // Then sort by start time
+        const startTimeA = getItemStartTime(a);
+        const startTimeB = getItemStartTime(b);
+        if (startTimeA !== startTimeB) {
+          return startTimeA - startTimeB;
+        }
+      
+        // If start times are the same, sort by end time
+        return getItemEndTime(a) - getItemEndTime(b);
+      });
   }
 
   // Get upcoming activities, goals, and team meetings sorted by deadline
@@ -428,10 +499,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     const upcomingActivities = activities
       .filter((activity) => {
         const activityDate = new Date(activity.activitydate)
-        // For activities, check if the date is today or later
         const activityDateOnly = new Date(activityDate.getFullYear(), activityDate.getMonth(), activityDate.getDate())
         const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
         return activityDateOnly >= todayOnly && activityDate <= nextMonth
       })
       .map((activity) => ({
@@ -442,21 +511,18 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
         id: activity.activityid,
       }))
 
-    // Filter and format upcoming goals (all timelines)
+    // Filter and format upcoming goals
     const upcomingGoals = []
     goals.forEach((goal) => {
       if (goal.timelines && goal.timelines.length > 0) {
         goal.timelines.forEach((timeline) => {
           const timelineStartDate = new Date(timeline.timelinestartdate)
           const timelineEndDate = new Date(timeline.timelineenddate)
-
-          // Create entries for each day the timeline spans
           const currentDate = new Date(timelineStartDate)
+
           while (currentDate <= timelineEndDate && currentDate <= nextMonth) {
-            // Include today's goals by checking date only, not time
             const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())
             const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
             if (currentDateOnly >= todayOnly) {
               const entryDate = new Date(currentDate)
               if (timeline.timelinestarttime) {
@@ -465,7 +531,6 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
               } else {
                 entryDate.setHours(0, 0)
               }
-
               upcomingGoals.push({
                 ...goal,
                 timeline,
@@ -488,7 +553,6 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
       if (team.meetings) {
         team.meetings.forEach((meeting) => {
           const meetingDate = new Date(meeting.meetingdate)
-          // For meetings, check if the date is today or later
           const meetingDateOnly = new Date(meetingDate.getFullYear(), meetingDate.getMonth(), meetingDate.getDate())
           const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
@@ -497,9 +561,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
               const [startHour, startMinute] = meeting.meetingstarttime.split(":").map(Number)
               meetingDate.setHours(startHour, startMinute)
             } else {
-              meetingDate.setHours(0, 0) // Start of day if no start time
+              meetingDate.setHours(0, 0)
             }
-
             upcomingMeetings.push({
               ...meeting,
               type: "meeting",
@@ -514,8 +577,24 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
       }
     })
 
-    // Combine and sort by deadline
-    return [...upcomingActivities, ...upcomingGoals, ...upcomingMeetings].sort((a, b) => a.deadline - b.deadline)
+    // Combine and sort by deadline and then by time
+    return [...upcomingActivities, ...upcomingGoals, ...upcomingMeetings].sort((a, b) => {
+        const dateA = new Date(a.deadline);
+        const dateB = new Date(b.deadline);
+        if (dateA.toDateString() !== dateB.toDateString()) {
+          return dateA - dateB;
+        }
+      
+        // Then sort by start time
+        const startTimeA = getItemStartTime(a);
+        const startTimeB = getItemStartTime(b);
+        if (startTimeA !== startTimeB) {
+          return startTimeA - startTimeB;
+        }
+      
+        // If start times are the same, sort by end time
+        return getItemEndTime(a) - getItemEndTime(b);
+      });
   }
 
   const formatTime = (timeString) => {
@@ -893,36 +972,53 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center text-xs">
-          {weeks.map((week, weekIndex) =>
-            week.map((day, dayIndex) => {
-              const mostUrgentActivity = getMostUrgentActivityForDate(day)
-              return (
-                <button
-                  key={`${weekIndex}-${dayIndex}`}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center relative
-                    ${day.month !== "current" ? "text-gray-500" : ""}
-                    ${isToday(day) ? "bg-blue-500 text-white" : ""}
-                    ${isSelected(day) && !isToday(day) ? "bg-gray-300 text-gray-800" : ""}
-                    ${day.month === "current" && !isToday(day) && !isSelected(day) ? "hover:bg-gray-300 hover:text-gray-800" : ""}
-                  `}
-                  onClick={() => {
-                    if (day.month === "current") {
-                      setCurrentDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), day.date))
-                    }
-                  }}
-                >
-                  {day.date}
-                  {mostUrgentActivity && (
-                    <div
-                      className="absolute -bottom-1 w-2 h-2 rounded-full"
-                      style={{ backgroundColor: urgencyColors[mostUrgentActivity.urgency] }}
-                    ></div>
-                  )}
-                </button>
-              )
-            }),
-          )}
+        <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
+            {weeks.map((week, weekIndex) =>
+                week.map((day, dayIndex) => {
+                const mostUrgentActivity = getMostUrgentActivityForDate(day);
+                // Construct the date string for the current day to check against goalDates
+                const dayDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day.date);
+                if (day.month === 'prev') {
+                    dayDate.setMonth(viewDate.getMonth() - 1);
+                } else if (day.month === 'next') {
+                    dayDate.setMonth(viewDate.getMonth() + 1);
+                }
+                const isGoalDay = day.month === "current" && goalDates.has(dayDate.toDateString());
+
+                return (
+                    <div key={`${weekIndex}-${dayIndex}`} className="h-6 flex justify-center items-center relative">
+                    <button
+                        className={`w-6 h-6 flex items-center justify-center rounded-full relative
+                        ${day.month !== "current" ? "text-gray-500" : ""}
+                        ${day.month === "current" ? "hover:bg-gray-700" : ""}
+                        ${isToday(day) ? "bg-blue-500 text-white" : ""}
+                        ${isSelected(day) && !isToday(day) ? "bg-gray-300 text-gray-800" : ""}
+                        `}
+                        onClick={() => {
+                        if (day.month === "current") {
+                            setCurrentDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), day.date));
+                        }
+                        }}
+                    >
+                        {day.date}
+                        {mostUrgentActivity && (
+                        <div
+                            className="absolute -bottom-1 w-2 h-2 rounded-full"
+                            style={{ backgroundColor: urgencyColors[mostUrgentActivity.urgency] }}
+                        ></div>
+                        )}
+                    </button>
+                    {isGoalDay && (
+                        <div 
+                        className="absolute bottom-[-6px] h-0.5 bg-purple-400 w-full"
+                        // The line will be contained within the parent div, which is centered.
+                        // This creates the continuous line effect across days.
+                        ></div>
+                    )}
+                    </div>
+                );
+                })
+            )}
         </div>
       </div>
 
