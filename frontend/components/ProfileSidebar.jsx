@@ -20,7 +20,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const [creator, setCreator] = useState(null);
   const [isEditingTeam, setIsEditingTeam] = useState(false)
   const [isAddingMeeting, setIsAddingMeeting] = useState(false)
-  const [editingMeeting, setEditingMeeting] = useState(null)
   const [aiSuggestions, setAiSuggestions] = useState([])
   const [isLoadingAI, setIsLoadingAI] = useState(false)
   const [selectedSuggestion, setSelectedSuggestion] = useState(null)
@@ -67,6 +66,11 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   // Handle click outside to close sidebar
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // Do not close the sidebar if the edit modal is open
+      if (document.querySelector('.edit-item-modal-container')) {
+        return;
+      }
+      
       if (sidebarRef.current && !sidebarRef.current.contains(event.target) && isOpen) {
         onClose();
         if (selectedTeam) {
@@ -245,7 +249,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     setCreator(null);
     setIsEditingTeam(false)
     setIsAddingMeeting(false)
-    setEditingMeeting(null)
   }
 
   const handleEditChange = (e) => {
@@ -797,52 +800,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     }
   }
 
-  const handleUpdateMeeting = async () => {
-    setIsLoading(true)
-    setError("")
-    setSuccess("")
-
-    try {
-      // Store original values for comparison
-      const originalMeeting = teamDetails.meetings.find((m) => m.teammeetingid === editingMeeting.teammeetingid)
-
-      const response = await fetch(`http://localhost:5000/api/meetings/${editingMeeting.teammeetingid}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          meetingTitle: editingMeeting.meetingtitle,
-          meetingDescription: editingMeeting.meetingdescription,
-          meetingDate: editingMeeting.meetingdate,
-          meetingStartTime: editingMeeting.meetingstarttime,
-          meetingEndTime: editingMeeting.meetingendtime,
-          invitationType: editingMeeting.invitationtype,
-          newMemberEmails: (editingMeeting.newMemberEmails || []).filter((email) => email.trim()),
-          removedMemberIds: (editingMeeting.removedMembers || []).map((member) => member.userid),
-          originalMeeting: originalMeeting, // Send original data for comparison
-        }),
-      })
-
-      if (response.ok) {
-        setSuccess("Meeting updated successfully!")
-        setEditingMeeting(null)
-        fetchTeamDetails(selectedTeam.teamid)
-        fetchUserTeams()
-
-        setTimeout(() => setSuccess(""), 3000)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.message || "Failed to update meeting")
-      }
-    } catch (error) {
-      console.error("Error updating meeting:", error)
-      setError("Network error. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleChangePassword = async (e) => {
     e.preventDefault()
     setIsLoading(true)
@@ -1084,6 +1041,13 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   
     // Close the profile sidebar
     onClose();
+  };
+
+  const openEditMeetingModal = (meeting) => {
+    const event = new CustomEvent("editCalendarItem", {
+        detail: { item: { ...meeting, id: meeting.teammeetingid, type: 'meeting'} },
+    });
+    window.dispatchEvent(event);
   };
 
   if (!isOpen) return null
@@ -1596,12 +1560,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                             {selectedTeam.createdbyuserid === user?.userid && (
                               <>
                                 <button
-                                  onClick={() =>
-                                    setEditingMeeting({
-                                      ...meeting,
-                                      newMemberEmails: [""],
-                                      removedMembers: [],
-                                    })
+                                  onClick={() => openEditMeetingModal(meeting)
                                   }
                                   className="p-1 text-blue-400 hover:text-blue-300 rounded"
                                   title="Edit Meeting"
@@ -1660,174 +1619,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                   )}
                 </div>
               </div>
-
-              {/* Edit Meeting Modal */}
-              {editingMeeting && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                  <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
-                    <h3 className="text-lg font-medium mb-4">Edit Meeting</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Meeting Title</label>
-                        <input
-                          type="text"
-                          value={editingMeeting.meetingtitle}
-                          onChange={(e) => setEditingMeeting({ ...editingMeeting, meetingtitle: e.target.value })}
-                          className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
-                        <textarea
-                          value={editingMeeting.meetingdescription || ""}
-                          onChange={(e) => setEditingMeeting({ ...editingMeeting, meetingdescription: e.target.value })}
-                          rows="2"
-                          className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
-                          <input
-                            type="date"
-                            value={editingMeeting.meetingdate}
-                            onChange={(e) => setEditingMeeting({ ...editingMeeting, meetingdate: e.target.value })}
-                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-1">Start</label>
-                          <input
-                            type="time"
-                            value={editingMeeting.meetingstarttime || ""}
-                            onChange={(e) => setEditingMeeting({ ...editingMeeting, meetingstarttime: e.target.value })}
-                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-1">End</label>
-                          <input
-                            type="time"
-                            value={editingMeeting.meetingendtime || ""}
-                            onChange={(e) => setEditingMeeting({ ...editingMeeting, meetingendtime: e.target.value })}
-                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                          />
-                        </div>
-                      </div>
-                      {/* Current Members Section */}
-                      <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Current Members {editingMeeting.invitationtype === 'mandatory' && '(Mandatory)'}
-                      </label>
-                        <div className="space-y-2 mb-3">
-                          {editingMeeting.members &&
-                            editingMeeting.members.map((member) => (
-                              <div
-                                key={member.userid}
-                                className="flex items-center justify-between bg-gray-700 rounded p-2"
-                              >
-                                <div className="flex items-center">
-                                  <span className="text-sm text-white">{member.username}</span>
-                                  <span className="text-xs text-gray-400 ml-2">({member.useremail})</span>
-                                  {editingMeeting.invitationtype === 'request' && (
-                                    <span
-                                        className={`text-xs px-2 py-1 rounded ml-2 ${
-                                        member.status === "accepted"
-                                            ? "bg-green-900 text-green-300"
-                                            : member.status === "declined"
-                                            ? "bg-red-900 text-red-300"
-                                            : "bg-yellow-900 text-yellow-300"
-                                        }`}
-                                    >
-                                        {member.status}
-                                    </span>
-                                  )}
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    const updatedMembers = editingMeeting.members.filter(
-                                      (m) => m.userid !== member.userid,
-                                    )
-                                    setEditingMeeting({
-                                      ...editingMeeting,
-                                      members: updatedMembers,
-                                      removedMembers: [...(editingMeeting.removedMembers || []), member],
-                                    })
-                                  }}
-                                  className="text-red-400 hover:text-red-300 p-1"
-                                  title="Remove member"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-
-                      {/* Add New Members Section */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Add New Members</label>
-                        {(editingMeeting.newMemberEmails || [""]).map((email, index) => (
-                          <div key={index} className="flex items-center mb-2">
-                            <input
-                              type="email"
-                              value={email}
-                              onChange={(e) => {
-                                const updatedEmails = [...(editingMeeting.newMemberEmails || [""])]
-                                updatedEmails[index] = e.target.value
-                                setEditingMeeting({ ...editingMeeting, newMemberEmails: updatedEmails })
-                              }}
-                              className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                              placeholder="Enter email to add new member"
-                            />
-                            <button
-                              onClick={() => {
-                                const updatedEmails = (editingMeeting.newMemberEmails || [""]).filter(
-                                  (_, i) => i !== index,
-                                )
-                                setEditingMeeting({
-                                  ...editingMeeting,
-                                  newMemberEmails: updatedEmails.length > 0 ? updatedEmails : [""],
-                                })
-                              }}
-                              className="ml-2 text-red-400 hover:text-red-300"
-                              disabled={(editingMeeting.newMemberEmails || [""]).length === 1}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          onClick={() => {
-                            setEditingMeeting({
-                              ...editingMeeting,
-                              newMemberEmails: [...(editingMeeting.newMemberEmails || [""]), ""],
-                            })
-                          }}
-                          className="text-blue-400 hover:text-blue-300 text-sm flex items-center"
-                        >
-                          <Plus size={12} className="mr-1" /> Add Email Field
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2 mt-4 justify-end">
-                      <button
-                        onClick={handleUpdateMeeting}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "Updating..." : "Update Meeting"}
-                      </button>
-                      <button
-                        onClick={() => setEditingMeeting(null)}
-                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             // Profile View

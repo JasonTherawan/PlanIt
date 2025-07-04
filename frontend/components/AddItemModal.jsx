@@ -1041,22 +1041,22 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="bg-gray-800 text-gray-300 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-800">Add New Item</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+        <div className="flex justify-between items-center p-4 border-b border-gray-700">
+          <h2 className="text-xl font-semibold text-white">Add New Item</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X size={20} />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b">
+        <div className="flex border-b border-gray-700">
           <button
             className={`px-6 py-3 font-medium ${
               activeTab === "activity"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700"
+                ? "text-blue-400 border-b-2 border-blue-400"
+                : "text-gray-400 hover:text-white"
             }`}
             onClick={() => setActiveTab("activity")}
           >
@@ -1064,7 +1064,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           </button>
           <button
             className={`px-6 py-3 font-medium ${
-              activeTab === "goal" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"
+              activeTab === "goal" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"
             }`}
             onClick={() => setActiveTab("goal")}
           >
@@ -1072,7 +1072,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           </button>
           <button
             className={`px-6 py-3 font-medium ${
-              activeTab === "team" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"
+              activeTab === "team" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"
             }`}
             onClick={() => setActiveTab("team")}
           >
@@ -1082,14 +1082,14 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
         {/* Status messages */}
         {apiError && (
-          <div className="mx-6 mt-4 flex items-center p-3 bg-red-100 text-red-700 rounded">
+          <div className="mx-6 mt-4 flex items-center p-3 bg-red-900 bg-opacity-50 border border-red-700 text-red-300 rounded">
             <AlertCircle size={18} className="mr-2" />
             {apiError}
           </div>
         )}
 
         {successMessage && (
-          <div className="mx-6 mt-4 flex items-center p-3 bg-green-100 text-green-700 rounded">
+          <div className="mx-6 mt-4 flex items-center p-3 bg-green-900 bg-opacity-50 border border-green-700 text-green-300 rounded">
             <CheckCircle size={18} className="mr-2" />
             {successMessage}
           </div>
@@ -1101,35 +1101,35 @@ const AddItemModal = ({ isOpen, onClose }) => {
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Activity Title</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Activity Title</label>
                   <input
                     type="text"
                     name="activityTitle"
                     value={activity.activityTitle}
                     onChange={handleActivityChange}
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
                   <textarea
                     name="activityDescription"
                     value={activity.activityDescription}
                     onChange={handleActivityChange}
                     rows="3"
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Category</label>
                   <select
                     name="activityCategory"
                     value={activity.activityCategory}
                     onChange={handleActivityChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select a category</option>
                     <option value="work">Work</option>
@@ -1142,12 +1142,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Urgency</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Urgency</label>
                   <select
                     name="activityUrgency"
                     value={activity.activityUrgency}
                     onChange={handleActivityChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -1157,37 +1157,37 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Date</label>
                   <input
                     type="date"
                     name="activityDate"
                     value={activity.activityDate}
                     onChange={handleActivityChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
 
                 <div className="flex space-x-4">
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Start Time</label>
                     <input
                       type="time"
                       name="activityStartTime"
                       value={activity.activityStartTime}
                       onChange={handleActivityChange}
-                      className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">End Time</label>
                     <input
                       type="time"
                       name="activityEndTime"
                       value={activity.activityEndTime}
                       onChange={handleActivityChange}
-                      className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -1197,7 +1197,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 mr-2"
+                  className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 rounded-md hover:bg-gray-700 mr-2"
                   disabled={isLoading}
                 >
                   Cancel
@@ -1217,35 +1217,35 @@ const AddItemModal = ({ isOpen, onClose }) => {
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Goal Title</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Goal Title</label>
                   <input
                     type="text"
                     name="goalTitle"
                     value={goal.goalTitle}
                     onChange={handleGoalChange}
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
                   <textarea
                     name="goalDescription"
                     value={goal.goalDescription}
                     onChange={handleGoalChange}
                     rows="3"
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Category</label>
                   <select
                     name="goalCategory"
                     value={goal.goalCategory}
                     onChange={handleGoalChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select a category</option>
                     <option value="career">Career</option>
@@ -1257,12 +1257,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Progress</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Progress</label>
                   <select
                     name="goalProgress"
                     value={goal.goalProgress}
                     onChange={handleGoalChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="not-started">Not Started</option>
                     <option value="in-progress">In Progress</option>
@@ -1274,24 +1274,24 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-medium text-gray-800">Timelines</h3>
+                  <h3 className="text-lg font-medium text-white">Timelines</h3>
                   <button
                     type="button"
                     onClick={addTimeline}
-                    className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                    className="flex items-center text-sm text-blue-400 hover:text-blue-300"
                   >
                     <Plus size={16} className="mr-1" /> Add Timeline
                   </button>
                 </div>
 
                 {timelines.map((timeline, index) => (
-                  <div key={index} className="border rounded-md p-4 mb-4 bg-gray-50">
+                  <div key={index} className="border border-gray-700 rounded-md p-4 mb-4 bg-gray-900">
                     <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium text-gray-700">Timeline {index + 1}</h4>
+                      <h4 className="font-medium">Timeline {index + 1}</h4>
                       <button
                         type="button"
                         onClick={() => removeTimeline(index)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-400 hover:text-red-300"
                         disabled={timelines.length === 1}
                       >
                         <Trash2 size={16} />
@@ -1300,60 +1300,60 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
                         <input
                           type="text"
                           name="timelineTitle"
                           value={timeline.timelineTitle}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Start Date</label>
                         <input
                           type="date"
                           name="timelineStartDate"
                           value={timeline.timelineStartDate}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">End Date</label>
                         <input
                           type="date"
                           name="timelineEndDate"
                           value={timeline.timelineEndDate}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Start Time</label>
                         <input
                           type="time"
                           name="timelineStartTime"
                           value={timeline.timelineStartTime}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">End Time</label>
                         <input
                           type="time"
                           name="timelineEndTime"
                           value={timeline.timelineEndTime}
                           onChange={(e) => handleTimelineChange(index, e)}
-                          className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </div>
@@ -1365,7 +1365,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 mr-2"
+                  className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 rounded-md hover:bg-gray-700 mr-2"
                   disabled={isLoading}
                 >
                   Cancel
@@ -1385,71 +1385,71 @@ const AddItemModal = ({ isOpen, onClose }) => {
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Team Name</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Team Name</label>
                   <input
                     type="text"
                     name="teamName"
                     value={team.teamName}
                     onChange={handleTeamChange}
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
                   <textarea
                     name="teamDescription"
                     value={team.teamDescription}
                     onChange={handleTeamChange}
                     rows="3"
-                    className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Working Hour</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Start Working Hour</label>
                   <input
                     type="time"
                     name="teamStartWorkingHour"
                     value={team.teamStartWorkingHour}
                     onChange={handleTeamChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Working Hour</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">End Working Hour</label>
                   <input
                     type="time"
                     name="teamEndWorkingHour"
                     value={team.teamEndWorkingHour}
                     onChange={handleTeamChange}
-                    className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
 
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-medium text-gray-800">Meetings</h3>
+                  <h3 className="text-lg font-medium text-white">Meetings</h3>
                   <button
                     type="button"
                     onClick={addMeeting}
-                    className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                    className="flex items-center text-sm text-blue-400 hover:text-blue-300"
                   >
                     <Plus size={16} className="mr-1" /> Add Meeting
                   </button>
                 </div>
 
                 {meetings.map((meeting, meetingIndex) => (
-                  <div key={meetingIndex} className="border rounded-md p-4 mb-4 bg-gray-50">
+                  <div key={meetingIndex} className="border border-gray-700 rounded-md p-4 mb-4 bg-gray-900">
                     <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium text-gray-700">Meeting {meetingIndex + 1}</h4>
+                      <h4 className="font-medium text-white">Meeting {meetingIndex + 1}</h4>
                       <button
                         type="button"
                         onClick={() => removeMeeting(meetingIndex)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-400 hover:text-red-300"
                         disabled={meetings.length === 1}
                       >
                         <Trash2 size={16} />
@@ -1458,13 +1458,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Title</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Meeting Title</label>
                         <input
                           type="text"
                           name="meetingTitle"
                           value={meeting.meetingTitle}
                           onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                          className="text-black w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
@@ -1482,19 +1482,19 @@ const AddItemModal = ({ isOpen, onClose }) => {
                           }}
                           className="rounded"
                         />
-                        <label htmlFor={`useAIScheduling-${meetingIndex}`} className="text-sm text-gray-700">
+                        <label htmlFor={`useAIScheduling-${meetingIndex}`} className="text-sm text-gray-300">
                           Use AI to find optimal meeting time
                         </label>
                       </div>
 
                       {meeting.useAIScheduling ? (
                         // AI Scheduling Form
-                        <div className="col-span-2 border border-blue-300 rounded p-3 bg-blue-50">
-                          <h5 className="text-sm font-medium text-blue-700 mb-3">AI Meeting Scheduler</h5>
+                        <div className="col-span-2 border border-blue-800 rounded p-3 bg-blue-950 bg-opacity-20">
+                          <h5 className="text-sm font-medium text-blue-300 mb-3">AI Meeting Scheduler</h5>
 
                           <div className="space-y-3">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                              <label className="block text-sm font-medium text-gray-400 mb-1">
                                 Team Members (Emails)
                               </label>
                               {meeting.invitedEmails.map((email, emailIndex) => (
@@ -1504,13 +1504,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                     value={email}
                                     onChange={(e) => handleInvitedEmailChange(meetingIndex, emailIndex, e.target.value)}
                                     placeholder="Enter email address"
-                                    className="text-gray-700 flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="text-white bg-gray-700 flex-1 p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                   />
                                   <button
                                     type="button"
                                     onClick={() => removeInvitedEmail(meetingIndex, emailIndex)}
-                                    className="ml-2 text-red-500 hover:text-red-700"
+                                    className="ml-2 text-red-400 hover:text-red-300"
                                     disabled={meeting.invitedEmails.length === 1}
                                   >
                                     <Trash2 size={16} />
@@ -1520,7 +1520,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                               <button
                                 type="button"
                                 onClick={() => addInvitedEmail(meetingIndex)}
-                                className="flex items-center text-xs text-blue-600 hover:text-blue-800"
+                                className="flex items-center text-xs text-blue-400 hover:text-blue-300"
                               >
                                 <Plus size={12} className="mr-1" /> Add Member Email
                               </button>
@@ -1528,7 +1528,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Start Date</label>
                                 <input
                                   type="date"
                                   value={meeting.dateRangeStart}
@@ -1537,11 +1537,11 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                     updatedMeetings[meetingIndex].dateRangeStart = e.target.value
                                     setMeetings(updatedMeetings)
                                   }}
-                                  className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">End Date</label>
                                 <input
                                   type="date"
                                   value={meeting.dateRangeEnd}
@@ -1550,14 +1550,14 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                     updatedMeetings[meetingIndex].dateRangeEnd = e.target.value
                                     setMeetings(updatedMeetings)
                                   }}
-                                  className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                               </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Duration (minutes)</label>
                                 <select
                                   value={meeting.duration}
                                   onChange={(e) => {
@@ -1565,7 +1565,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                     updatedMeetings[meetingIndex].duration = Number.parseInt(e.target.value)
                                     setMeetings(updatedMeetings)
                                   }}
-                                  className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                   <option value={30}>30 minutes</option>
                                   <option value={60}>1 hour</option>
@@ -1575,12 +1575,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Invitation Type</label>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Invitation Type</label>
                                 <select
                                   name="invitationType"
                                   value={meeting.invitationType}
                                   onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                                  className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                   <option value="mandatory">Mandatory (Auto-assign)</option>
                                   <option value="request">Request (Can accept/decline)</option>
@@ -1589,7 +1589,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Time Preference</label>
+                              <label className="block text-sm font-medium text-gray-400 mb-1">Time Preference</label>
                               <input
                                 type="text"
                                 value={meeting.timePreference}
@@ -1598,8 +1598,8 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                   updatedMeetings[meetingIndex].timePreference = e.target.value
                                   setMeetings(updatedMeetings)
                                 }}
-                                placeholder="e.g., morning, afternoon, after lunch, early morning"
-                                className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="e.g., morning, afternoon"
+                                className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               />
                             </div>
 
@@ -1612,12 +1612,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                 !meeting.dateRangeEnd ||
                                 !meeting.invitedEmails.some((email) => email.trim())
                               }
-                              className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 rounded text-sm text-white flex items-center justify-center"
+                              className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 rounded text-sm text-white flex items-center justify-center"
                             >
                               {isLoadingAI ? (
                                 <>
                                   <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                                  Analyzing member schedules...
+                                  Analyzing...
                                 </>
                               ) : (
                                 "Find Best Meeting Times"
@@ -1625,12 +1625,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
                             </button>
 
                             {selectedSuggestion && (
-                              <div className="bg-green-100 border border-green-300 rounded p-2">
-                                <p className="text-green-700 text-sm">
+                              <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded p-2">
+                                <p className="text-green-300 text-sm">
                                   Selected: {selectedSuggestion.date} at {selectedSuggestion.startTime} -{" "}
                                   {selectedSuggestion.endTime}
                                 </p>
-                                <p className="text-green-600 text-xs">{selectedSuggestion.reasoning}</p>
+                                <p className="text-green-400 text-xs">{selectedSuggestion.reasoning}</p>
                               </div>
                             )}
                           </div>
@@ -1639,24 +1639,24 @@ const AddItemModal = ({ isOpen, onClose }) => {
                         // Manual Scheduling Form
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                            <label className="block text-sm font-medium text-gray-400 mb-1">Date</label>
                             <input
                               type="date"
                               name="meetingDate"
                               value={meeting.meetingDate}
                               onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                              className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               required
                             />
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Invitation Type</label>
+                            <label className="block text-sm font-medium text-gray-400 mb-1">Invitation Type</label>
                             <select
                               name="invitationType"
                               value={meeting.invitationType}
                               onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                              className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                               <option value="mandatory">Mandatory (Auto-assign)</option>
                               <option value="request">Request (Can accept/decline)</option>
@@ -1664,34 +1664,34 @@ const AddItemModal = ({ isOpen, onClose }) => {
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                            <label className="block text-sm font-medium text-gray-400 mb-1">Start Time</label>
                             <input
                               type="time"
                               name="meetingStartTime"
                               value={meeting.meetingStartTime}
                               onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                              className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                            <label className="block text-sm font-medium text-gray-400 mb-1">End Time</label>
                             <input
                               type="time"
                               name="meetingEndTime"
                               value={meeting.meetingEndTime}
                               onChange={(e) => handleMeetingChange(meetingIndex, e)}
-                              className="text-gray-700 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="text-white bg-gray-700 w-full p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
 
                           <div className="col-span-2">
                             <div className="flex justify-between items-center mb-2">
-                              <label className="block text-sm font-medium text-gray-700">Invited Emails</label>
+                              <label className="block text-sm font-medium text-gray-400">Invited Emails</label>
                               <button
                                 type="button"
                                 onClick={() => addInvitedEmail(meetingIndex)}
-                                className="flex items-center text-xs text-blue-600 hover:text-blue-800"
+                                className="flex items-center text-xs text-blue-400 hover:text-blue-300"
                               >
                                 <Plus size={12} className="mr-1" /> Add Email
                               </button>
@@ -1704,13 +1704,13 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                   value={email}
                                   onChange={(e) => handleInvitedEmailChange(meetingIndex, emailIndex, e.target.value)}
                                   placeholder="Enter email address"
-                                  className="text-gray-700 flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="text-white bg-gray-700 flex-1 p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   required
                                 />
                                 <button
                                   type="button"
                                   onClick={() => removeInvitedEmail(meetingIndex, emailIndex)}
-                                  className="ml-2 text-red-500 hover:text-red-700"
+                                  className="ml-2 text-red-400 hover:text-red-300"
                                   disabled={meeting.invitedEmails.length === 1}
                                 >
                                   <Trash2 size={16} />
@@ -1726,29 +1726,29 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 {/* AI Suggestions Modal */}
                 {showAISuggestions && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
-                      <h3 className="text-lg font-medium mb-4 text-gray-800">AI Meeting Suggestions</h3>
+                    <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
+                      <h3 className="text-lg font-medium mb-4 text-white">AI Meeting Suggestions</h3>
                       {aiSuggestions.length > 0 ? (
                         <div className="space-y-3">
                           {aiSuggestions.map((suggestion, index) => (
                             <div
                               key={index}
-                              className="border border-gray-300 rounded p-3 hover:border-blue-500 cursor-pointer transition-colors"
+                              className="border border-gray-600 rounded p-3 hover:border-blue-500 cursor-pointer transition-colors"
                               onClick={() => selectAISuggestionForTeam(suggestion, 0)} // Assuming first meeting for now
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <div>
-                                  <h4 className="font-medium text-gray-800">
+                                  <h4 className="font-medium text-white">
                                     {suggestion.date} • {suggestion.startTime} - {suggestion.endTime}
                                   </h4>
                                   <div className="flex items-center mt-1">
                                     <span
                                       className={`text-xs px-2 py-1 rounded ${
                                         suggestion.score >= 90
-                                          ? "bg-green-100 text-green-700"
+                                          ? "bg-green-900 text-green-300"
                                           : suggestion.score >= 70
-                                            ? "bg-yellow-100 text-yellow-700"
-                                            : "bg-red-100 text-red-700"
+                                            ? "bg-yellow-900 text-yellow-300"
+                                            : "bg-red-900 text-red-300"
                                       }`}
                                     >
                                       Score: {suggestion.score}/100
@@ -1756,11 +1756,11 @@ const AddItemModal = ({ isOpen, onClose }) => {
                                   </div>
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-600 mb-2">{suggestion.reasoning}</p>
+                              <p className="text-sm text-gray-400 mb-2">{suggestion.reasoning}</p>
                               {suggestion.advantages && suggestion.advantages.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
                                   {suggestion.advantages.map((advantage, i) => (
-                                    <span key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                    <span key={i} className="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded">
                                       {advantage}
                                     </span>
                                   ))}
@@ -1770,14 +1770,14 @@ const AddItemModal = ({ isOpen, onClose }) => {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-gray-600">
+                        <p className="text-gray-400">
                           No suitable meeting times found. Try adjusting your preferences.
                         </p>
                       )}
                       <div className="flex justify-end mt-4">
                         <button
                           onClick={() => setShowAISuggestions(false)}
-                          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 rounded text-sm text-white"
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm text-white"
                         >
                           Close
                         </button>
@@ -1791,7 +1791,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 mr-2"
+                  className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 rounded-md hover:bg-gray-700 mr-2"
                   disabled={isLoading}
                 >
                   Cancel
