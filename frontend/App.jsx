@@ -9,14 +9,16 @@ import RegisterPage from './views/RegisterPage'
 import googleAuthService from './services/googleAuth'
 
 function App() {
+  // Initialize Google Auth Service once when the app loads
   useEffect(() => {
     googleAuthService.initialize();
   }, [])
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<MainPage />} />
-        <Route path="/landing" element={<LandingPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/app" element={<MainPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
       </Routes>

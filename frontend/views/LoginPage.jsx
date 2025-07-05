@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Calendar, User, Eye, EyeOff } from "lucide-react"
 import loginpageimage from "../assets/loginpageimage.png"
@@ -18,7 +18,16 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState("")
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // Check if the user is already logged in
+    const user = localStorage.getItem("user");
+    if (user) {
+      navigate("/app");
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -67,6 +76,7 @@ const LoginPage = () => {
           body: JSON.stringify({
             email: credentials.email,
             password: credentials.password,
+            rememberMe: rememberMe,
           }),
         })
 
@@ -80,7 +90,7 @@ const LoginPage = () => {
           localStorage.setItem("user", JSON.stringify(data.user))
 
           // Navigate to calendar
-          navigate("/")
+          navigate("/app")
         } else {
           // Login failed
           console.error("Login failed:", data)
@@ -110,7 +120,6 @@ const LoginPage = () => {
           <img src={bottomleftshape} alt="Bottom left shape" className="w-auto h-auto" />
         </div>
 
-
         {/* Main content */}
         <div className="relative z-10 flex-1 flex flex-col md:flex-row max-w-6xl mx-auto w-full shadow-lg rounded-lg overflow-hidden my-10">
           {/* Left side - Illustration */}
@@ -131,7 +140,7 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-2">
               <div>
                 <label htmlFor="email" className="block text-white mb-2">
                   Email
@@ -143,10 +152,12 @@ const LoginPage = () => {
                     name="email"
                     value={credentials.email}
                     onChange={handleChange}
-                    className={`w-full p-3 pr-10 rounded bg-white ${errors.email ? "border-2 border-red-500" : ""}`}
+                    className={`w-full p-3 pr-10 rounded bg-white text-black ${errors.email ? "border-2 border-red-500" : ""}`}
                     placeholder="Enter your email"
                   />
                   <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+                </div>
+                <div className="h-5">
                   {errors.email && <p className="text-red-300 text-sm mt-1">{errors.email}</p>}
                 </div>
               </div>
@@ -162,7 +173,7 @@ const LoginPage = () => {
                     name="password"
                     value={credentials.password}
                     onChange={handleChange}
-                    className={`w-full p-3 pr-10 rounded bg-white ${errors.password ? "border-2 border-red-500" : ""}`}
+                    className={`w-full p-3 pr-10 rounded bg-white text-black ${errors.password ? "border-2 border-red-500" : ""}`}
                     placeholder="Enter your password"
                   />
                   <button
@@ -172,8 +183,23 @@ const LoginPage = () => {
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
+                </div>
+                <div className="h-5">
                   {errors.password && <p className="text-red-300 text-sm mt-1">{errors.password}</p>}
                 </div>
+              </div>
+              
+              <div className="flex items-center pb-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                />
+                <label htmlFor="rememberMe" className="ml-2 block text-sm text-white">
+                  Remember Me
+                </label>
               </div>
 
               {apiError && (
@@ -183,19 +209,19 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mb-4 bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 disabled:opacity-70"
+                className="w-full bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 disabled:opacity-70"
               >
                 {isLoading ? "Logging in..." : "Login"}
               </button>
             </form>
-
-            <GoogleSignInButton className="w-full" />
 
             <div className="flex items-center my-4">
               <div className="flex-1 border-t border-gray-300"></div>
               <div className="px-4 text-sm text-gray-500">or</div>
               <div className="flex-1 border-t border-gray-300"></div>
             </div>
+            
+            <GoogleSignInButton className="w-full" rememberMe={rememberMe} />
 
             <div className="mt-6 text-center">
               <p className="text-white text-sm">

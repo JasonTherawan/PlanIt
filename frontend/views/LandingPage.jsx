@@ -29,27 +29,26 @@ const LandingPage = () => {
       {/* Hero Section with Background Image */}
       <main className="flex-1 relative">
         {/* Background Image */}
-        <img
-            src={bgImage}
-            alt="Hero background"
-            className="absolute inset-0 w-full h-full object-cover z-0"
+        <div
+          className="absolute inset-0 w-full h-full bg-cover bg-center"
+          style={{ backgroundImage: `url(${bgImage})` }}
         />
 
         {/* Dark Overlay */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center">
-          <h2 className="text-white text-2xl md:text-3xl mb-8">
+        <div className="absolute inset-0 bg-black/50 z-10 flex flex-col items-center justify-center px-4 text-center">
+          <h2 className="text-white text-4xl font-bold mb-8">
             The all-in-one solution for scheduling, reminders, and productivity.
           </h2>
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
             <Link
               to="/register"
-              className="px-8 py-3 border border-white text-white hover:bg-white hover:bg-opacity-10 transition-colors duration-300"
+              className="px-8 py-3 border border-white text-white bg-transparent hover:bg-white hover:text-blue-900 transition-colors duration-300 rounded-md"
             >
               Sign up for free
             </Link>
             <Link
               to="/learn-more"
-              className="px-8 py-3 border border-white text-white hover:bg-white hover:bg-opacity-10 transition-colors duration-300"
+              className="px-8 py-3 border border-white text-white bg-transparent hover:bg-white hover:text-blue-900 transition-colors duration-300 rounded-md"
             >
               Learn more
             </Link>

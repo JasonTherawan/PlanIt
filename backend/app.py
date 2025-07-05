@@ -1,13 +1,15 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import psycopg2
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, time
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
+import secrets
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+app.secret_key = secrets.token_hex(16)
+CORS(app)
 
 # Database connection parameters
 load_dotenv()
@@ -176,6 +178,13 @@ def login():
     """Handle user login"""
     # Get data from request
     data = request.get_json()
+
+    """Handle user login"""
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    google_id = data.get('googleId')
+    remember_me = data.get('rememberMe', False)
     
     # Extract login credentials
     email = data.get('email')
@@ -198,54 +207,47 @@ def login():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
         if google_id:
             # Google OAuth login
             cur.execute("SELECT UserId, UserName, UserEmail FROM Users WHERE GoogleId = %s", (google_id,))
             user = cur.fetchone()
-            
-            if user:
-                return jsonify({
-                    'success': True,
-                    'message': 'Login successful',
-                    'user': {
-                        'id': str(user[0]),  # Convert to string to handle large numbers
-                        'userId': str(user[0]),
-                        'username': user[1],
-                        'email': user[2],
-                        'isGoogleUser': True
-                    }
-                }), 200
-            else:
-                return jsonify({'success': False, 'message': 'Google account not found. Please register first.'}), 401
         else:
             # Regular email/password login
             cur.execute("SELECT UserId, UserName, UserEmail, UserPassword FROM Users WHERE UserEmail = %s", (email,))
             user = cur.fetchone()
-            
-            # Check if user exists and password is correct
-            if user and user[3] and check_password_hash(user[3], password):
-                # Return user info (excluding password)
-                return jsonify({
-                    'success': True,
-                    'message': 'Login successful',
-                    'user': {
-                        'id': str(user[0]),  # Convert to string to handle large numbers
-                        'userId': str(user[0]),
-                        'username': user[1],
-                        'email': user[2],
-                        'isGoogleUser': False
-                    }
-                }), 200
+
+        if user and (google_id or (user[3] and check_password_hash(user[3], password))):
+            # Set session duration based on "Remember Me"
+            if remember_me:
+                session.permanent = True
+                app.permanent_session_lifetime = timedelta(days=30)
             else:
-                return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
-        
+                session.permanent = True
+                app.permanent_session_lifetime = timedelta(days=1)
+            
+            user_id = str(user[0])
+            session['user_id'] = user_id
+            
+            return jsonify({
+                'success': True,
+                'message': 'Login successful',
+                'user': {
+                    'id': user_id,
+                    'userId': user_id,
+                    'username': user[1],
+                    'email': user[2],
+                    'isGoogleUser': google_id is not None
+                }
+            }), 200
+        else:
+            return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+    
     except Exception as e:
         print(f"Error: {str(e)}")
         return jsonify({'success': False, 'message': 'Login failed', 'error': str(e)}), 500
     
     finally:
-        # Close connection
         if conn:
             conn.close()
 

@@ -153,7 +153,7 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-1">
               <div>
                 <label htmlFor="username" className="block text-white mb-2">
                   Username
@@ -165,10 +165,12 @@ const RegisterPage = () => {
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
-                    className={`w-full p-3 pr-10 rounded bg-white ${errors.username ? "border-2 border-red-500" : ""}`}
+                    className={`w-full p-3 pr-10 rounded bg-white text-black ${errors.username ? "border-2 border-red-500" : ""}`}
                     placeholder="Create a username"
                   />
                   <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+                </div>
+                <div className="h-5">
                   {errors.username && <p className="text-red-300 text-sm mt-1">{errors.username}</p>}
                 </div>
               </div>
@@ -184,10 +186,12 @@ const RegisterPage = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full p-3 pr-10 rounded bg-white ${errors.email ? "border-2 border-red-500" : ""}`}
+                    className={`w-full p-3 pr-10 rounded bg-white text-black ${errors.email ? "border-2 border-red-500" : ""}`}
                     placeholder="Enter your email"
                   />
                   <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+                </div>
+                <div className="h-5">
                   {errors.email && <p className="text-red-300 text-sm mt-1">{errors.email}</p>}
                 </div>
               </div>
@@ -203,7 +207,7 @@ const RegisterPage = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`w-full p-3 pr-10 rounded bg-white ${errors.password ? "border-2 border-red-500" : ""}`}
+                    className={`w-full p-3 pr-10 rounded bg-white text-black ${errors.password ? "border-2 border-red-500" : ""}`}
                     placeholder="Create a password"
                   />
                   <button
@@ -213,6 +217,8 @@ const RegisterPage = () => {
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
+                </div>
+                <div className="h-5">
                   {errors.password && <p className="text-red-300 text-sm mt-1">{errors.password}</p>}
                 </div>
               </div>
@@ -228,7 +234,7 @@ const RegisterPage = () => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className={`w-full p-3 pr-10 rounded bg-white ${errors.confirmPassword ? "border-2 border-red-500" : ""}`}
+                    className={`w-full p-3 pr-10 rounded bg-white text-black ${errors.confirmPassword ? "border-2 border-red-500" : ""}`}
                     placeholder="Confirm your password"
                   />
                   <button
@@ -238,6 +244,8 @@ const RegisterPage = () => {
                   >
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
+                </div>
+                <div className="h-5">
                   {errors.confirmPassword && <p className="text-red-300 text-sm mt-1">{errors.confirmPassword}</p>}
                 </div>
               </div>
@@ -251,13 +259,13 @@ const RegisterPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mb-4 bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 mt-6 disabled:opacity-70"
+                className="w-full my-2 bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 disabled:opacity-70"
               >
                 {isLoading ? "Registering..." : "Register"}
               </button>
             </form>
 
-            <div className="mt-4">
+            <div className="mt-2">
               <GoogleSignInButton mode="signup" className="w-full" />
             </div>
 
