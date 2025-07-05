@@ -855,6 +855,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
 
           // Dispatch refresh event
           window.dispatchEvent(new CustomEvent("refreshCalendarData"))
+          window.dispatchEvent(new CustomEvent("refreshTeamData"))
 
           // Close modal after a delay
           setTimeout(() => {

@@ -8,7 +8,7 @@ class GmailService {
     this.gapi = gapiInstance
   }
 
-  async getMessages(maxResults = 50, query = "") {
+  async getMessages(maxResults = 50, query = "", pageToken = null) {
     if (!this.gapi) {
       throw new Error("Gmail service not initialized. Please call setGapi first.")
     }
@@ -19,15 +19,18 @@ class GmailService {
         userId: "me",
         maxResults: maxResults,
         q: query,
+        pageToken: pageToken,
       })
 
-      if (!listResponse.result.messages) {
-        return []
+      const result = listResponse.result;
+
+      if (!result.messages) {
+        return { messages: [], nextPageToken: null };
       }
 
       // Get full message details for each message
       const messages = await Promise.all(
-        listResponse.result.messages.map(async (message) => {
+        result.messages.map(async (message) => {
           const messageResponse = await this.gapi.client.gmail.users.messages.get({
             userId: "me",
             id: message.id,
@@ -37,12 +40,27 @@ class GmailService {
         }),
       )
 
-      return messages
+      return { messages, nextPageToken: result.nextPageToken };
     } catch (error) {
       console.error("Error fetching messages:", error)
       throw error
     }
   }
+
+  findPart = (parts, mimeType) => {
+    for (const part of parts) {
+      if (part.mimeType === mimeType) {
+        return part;
+      }
+      if (part.parts) {
+        const found = this.findPart(part.parts, mimeType);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
+  };
 
   parseMessage(message) {
     const headers = message.payload.headers
@@ -51,25 +69,21 @@ class GmailService {
       return header ? header.value : ""
     }
 
-    // Get message body
     let body = ""
-    if (message.payload.body && message.payload.body.data) {
-      body = this.decodeBase64(message.payload.body.data)
-    } else if (message.payload.parts) {
-      // Multi-part message
-      const textPart = message.payload.parts.find((part) => part.mimeType === "text/plain")
-      if (textPart && textPart.body && textPart.body.data) {
-        body = this.decodeBase64(textPart.body.data)
-      } else {
-        // Try HTML part if no plain text
-        const htmlPart = message.payload.parts.find((part) => part.mimeType === "text/html")
-        if (htmlPart && htmlPart.body && htmlPart.body.data) {
-          body = this.decodeBase64(htmlPart.body.data)
-          // Strip HTML tags for plain text display
-          body = body.replace(/<[^>]*>/g, "")
+    if (message.payload.parts) {
+        const htmlPart = this.findPart(message.payload.parts, 'text/html');
+        if (htmlPart && htmlPart.body.data) {
+            body = this.decodeBase64(htmlPart.body.data);
+        } else {
+            const plainPart = this.findPart(message.payload.parts, 'text/plain');
+            if (plainPart && plainPart.body.data) {
+                body = this.decodeBase64(plainPart.body.data);
+            }
         }
-      }
+    } else if (message.payload.body.data) {
+        body = this.decodeBase64(message.payload.body.data);
     }
+
 
     return {
       id: message.id,
@@ -109,6 +123,22 @@ class GmailService {
     } catch (error) {
       console.error("Error marking message as read:", error)
       throw error
+    }
+  }
+  
+  async deleteMessage(messageId) {
+    if (!this.gapi) {
+      throw new Error("Gmail service not initialized");
+    }
+
+    try {
+      await this.gapi.client.gmail.users.messages.trash({
+        userId: "me",
+        id: messageId,
+      });
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      throw error;
     }
   }
 

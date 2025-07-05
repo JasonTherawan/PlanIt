@@ -212,37 +212,37 @@ class AIService {
       })
 
       const prompt = `
-        You are an intelligent meeting scheduler. Analyze the following data and suggest the best meeting times that avoid ALL conflicts.
+        You are an intelligent meeting scheduler. Your task is to analyze team member schedules and suggest the best times for a new meeting.
 
-        TEAM MEMBERS: ${teamMembers.map((m) => m.username).join(", ")}
-        
-        DATE RANGE: ${dateRange.startDate} to ${dateRange.endDate}
-        MEETING DURATION: ${duration} minutes
-        WORKING HOURS: ${workingHours.start} to ${workingHours.end}
-        CREATOR PREFERENCE: "${creatorPreference}"
-        
-        DETAILED MEMBER SCHEDULES AND CONFLICTS:
+        **Team & Meeting Details:**
+        - **Team Members:** ${teamMembers.map((m) => m.username).join(", ")}
+        - **Date Range:** ${dateRange.startDate} to ${dateRange.endDate}
+        - **Meeting Duration:** ${duration} minutes
+        - **Working Hours:** ${workingHours.start} to ${workingHours.end}
+        - **Creator's Preference:** "${creatorPreference}"
+
+        **Detailed Member Schedules & Conflicts:**
         ${JSON.stringify(memberScheduleAnalysis, null, 2)}
 
-        CRITICAL INSTRUCTIONS:
-        1. NEVER suggest times that conflict with ANY member's existing activities, goals, or meetings
-        2. For activities/meetings with specific times, avoid those exact time slots
-        3. For goal timelines with specific times, avoid those time periods on relevant dates
-        4. For all-day goals/activities, consider them as lower priority but still note as potential conflicts
-        5. Respect working hours (${workingHours.start} to ${workingHours.end})
-        6. Consider the creator's time preference: "${creatorPreference}"
-        7. Suggest 5-10 optimal meeting times with NO conflicts
-        8. Prioritize times that match the creator's preference
-        9. Consider lunch breaks (12:00-13:00) as less optimal but not forbidden
-        10. Score based on actual availability and preference matching
+        **Critical Instructions:**
+        1.  **Prioritize Standard Start Times:** Suggestions should start on the hour or half-hour (e.g., 09:00, 09:30, 10:00).
+        2.  **Prioritize No-Conflict Times:** The best suggestions are times with zero conflicts. These should have the highest scores.
+        3.  **Allow Low-Impact Conflicts:** You MAY suggest times that conflict with low-urgency activities, but these suggestions MUST receive a lower score. Clearly state the conflict in the "reasoning".
+        4.  **Strictly Avoid High-Urgency Conflicts:** NEVER suggest a time that conflicts with another meeting, a goal with specific hours, or a high/urgent activity.
+        5.  **Working Hours:** All suggestions must be within the specified working hours.
+        6.  **Provide 5-10 Suggestions:** Generate a list of the best possible times, sorted by score.
+        7.  **Scoring:** Use the provided scoring system to rate each suggestion accurately.
 
-        CONFLICT DETECTION RULES:
-        - If a member has an activity from 10:00-11:00 on a date, DO NOT suggest any overlapping times
-        - If a member has a goal timeline with specific hours, avoid those hours on dates within the timeline
-        - If a member has team meetings, avoid those exact times
-        - High urgency activities should be weighted more heavily in conflict detection
+        **Scoring System (0-100):**
+        - **Base Score:** 100
+        - **Penalties:**
+            -   **-20 points** for each conflict with a "medium" urgency activity.
+            -   **-10 points** for each conflict with a "low" urgency activity.
+            -   **-10 points** for scheduling during a typical lunch hour (12:00-13:00).
+            -   **-10 points** if the time does not match the creator's preference.
 
-        Return a JSON response with this exact structure:
+        **Output Format:**
+        Return a JSON object with the following structure. Ensure the JSON is valid.
         {
           "success": true,
           "suggestions": [
@@ -251,27 +251,15 @@ class AIService {
               "startTime": "HH:MM",
               "endTime": "HH:MM",
               "score": 85,
-              "reasoning": "No conflicts detected for any team member, matches morning preference",
-              "conflicts": [],
-              "advantages": ["All members available", "Matches creator preference", "No scheduling conflicts"],
+              "reasoning": "A brief explanation of why this time was chosen and any potential conflicts.",
+              "conflicts": ["List of any conflicts, or an empty array."],
+              "advantages": ["List of positive aspects, like 'All members available' or 'Matches creator preference'."],
               "memberAvailability": {
-                "memberName": "available/conflict details"
+                "memberName": "available" 
               }
             }
           ]
         }
-
-        SCORING CRITERIA (0-100):
-        - Start with 100 points
-        - Subtract 50 points for ANY direct time conflict
-        - Subtract 30 points for high urgency activity conflicts
-        - Subtract 20 points for goal timeline conflicts
-        - Subtract 15 points for lunch time scheduling
-        - Subtract 10 points for preference mismatch
-        - Subtract 5 points for end-of-day scheduling
-
-        Only suggest times with scores above 60. Sort suggestions by score (highest first).
-        Be extremely careful about conflict detection - it's better to suggest fewer times than to suggest conflicting times.
       `
 
       const requestBody = {
@@ -285,7 +273,7 @@ class AIService {
           },
         ],
         generationConfig: {
-          temperature: 0.1, // Lower temperature for more consistent conflict detection
+          temperature: 0.2, 
           topK: 1,
           topP: 1,
           maxOutputTokens: 3000,
@@ -346,8 +334,7 @@ class AIService {
             suggestion.reasoning &&
             this.isValidDate(suggestion.date) &&
             this.isValidTime(suggestion.startTime) &&
-            this.isValidTime(suggestion.endTime) &&
-            suggestion.score >= 60 // Only include suggestions with decent scores
+            this.isValidTime(suggestion.endTime)
           )
         })
 

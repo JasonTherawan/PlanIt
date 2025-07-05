@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { X, Mail, Reply, Forward, Calendar, Search, RefreshCw, AlertCircle } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { X, Mail, Reply, Forward, Calendar, Search, RefreshCw, AlertCircle, Trash2 } from "lucide-react"
 import googleAuthService from "../services/googleAuth"
 import gmailService from "../services/gmailService"
 import aiService from "../services/aiService"
@@ -18,6 +18,9 @@ const GmailInbox = ({ isOpen, onClose }) => {
   const [forwardText, setForwardText] = useState("")
   const [isProcessingAI, setIsProcessingAI] = useState(false)
   const [authError, setAuthError] = useState("")
+  const iframeRef = useRef(null);
+  const [nextPageToken, setNextPageToken] = useState(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -25,12 +28,39 @@ const GmailInbox = ({ isOpen, onClose }) => {
     }
   }, [isOpen])
 
+  // When a new message is selected, update the iframe content and add the click listener
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (selectedMessage && iframe) {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(selectedMessage.body);
+      doc.close();
+
+      const handleLinkClick = (event) => {
+        const link = event.target.closest('a');
+        if (link && link.href) {
+          event.preventDefault();
+          window.open(link.href, '_blank', 'noopener,noreferrer');
+        }
+      };
+      
+      doc.addEventListener('click', handleLinkClick);
+
+      return () => {
+        doc.removeEventListener('click', handleLinkClick);
+      };
+    }
+  }, [selectedMessage]);
+
   const initializeGmail = async () => {
     try {
       setIsLoading(true)
       setAuthError("")
 
       console.log("Initializing Gmail...")
+
+      await googleAuthService.initialize();
 
       // Check if user is signed in with Google
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
@@ -77,19 +107,22 @@ const GmailInbox = ({ isOpen, onClose }) => {
       await loadMessages()
     } catch (error) {
       console.error("Error initializing Gmail:", error)
-      setAuthError(`Failed to initialize Gmail: ${error.message}`)
+      setAuthError(`Failed to initialize Gmail: ${error.message || 'An unknown error occurred'}`)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const loadMessages = async (query = "") => {
+  const loadMessages = async (query = "", pageToken = null) => {
+    const loadingMore = pageToken !== null;
+    if (loadingMore) {
+        setIsLoadingMore(true);
+    } else {
+        setIsLoading(true);
+    }
+    setAuthError("");
+
     try {
-      setIsLoading(true)
-      setAuthError("")
-
-      console.log("Loading messages with query:", query)
-
       // Ensure we have valid authentication
       const accessToken = googleAuthService.getAccessToken()
       if (!accessToken) {
@@ -99,30 +132,43 @@ const GmailInbox = ({ isOpen, onClose }) => {
       // Set the token for gapi client
       if (googleAuthService.gapi) {
         googleAuthService.gapi.client.setToken({ access_token: accessToken })
-        console.log("Access token set for gapi client")
       }
 
-      const fetchedMessages = await gmailService.getMessages(50, query)
-      console.log("Messages loaded:", fetchedMessages.length)
-      setMessages(fetchedMessages)
+      const { messages: fetchedMessages, nextPageToken: newNextPageToken } = await gmailService.getMessages(50, query, pageToken);
+
+      if (loadingMore) {
+        setMessages((prev) => [...prev, ...fetchedMessages]);
+      } else {
+        setMessages(fetchedMessages);
+      }
+      setNextPageToken(newNextPageToken);
     } catch (error) {
       console.error("Error loading messages:", error)
-      if (error.message.includes("401") || error.message.includes("UNAUTHENTICATED")) {
+      if (error.message && error.message.includes("401")) {
         setAuthError("Authentication expired. Please refresh and sign in again.")
       } else {
-        setAuthError(`Failed to load messages: ${error.message}`)
+        setAuthError(`Failed to load messages: ${error.message || 'An unknown error occurred'}`)
       }
     } finally {
-      setIsLoading(false)
+        setIsLoading(false);
+        setIsLoadingMore(false);
     }
   }
 
   const handleSearch = () => {
+    setSelectedMessage(null);
     loadMessages(searchQuery)
   }
 
   const handleRefresh = () => {
+    setSelectedMessage(null);
     loadMessages()
+  }
+
+  const handleLoadMore = () => {
+    if (nextPageToken) {
+        loadMessages(searchQuery, nextPageToken);
+    }
   }
 
   const handleMessageClick = async (message) => {
@@ -139,6 +185,28 @@ const GmailInbox = ({ isOpen, onClose }) => {
       }
     }
   }
+  
+  const handleDeleteMessage = async () => {
+    if (!selectedMessage) return;
+
+    if (window.confirm("Are you sure you want to delete this email?")) {
+      try {
+        setIsLoading(true);
+        await gmailService.deleteMessage(selectedMessage.id);
+        
+        // Remove from local state
+        setMessages((prev) => prev.filter((m) => m.id !== selectedMessage.id));
+        setSelectedMessage(null); // Deselect the message
+
+        alert("Email moved to trash.");
+      } catch (error) {
+        console.error("Error deleting email:", error);
+        alert("Failed to delete email.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const handleReply = async () => {
     if (!selectedMessage || !replyText.trim()) return
@@ -259,45 +327,32 @@ const GmailInbox = ({ isOpen, onClose }) => {
     if (text.length <= maxLength) return text
     return text.substring(0, maxLength) + "..."
   }
-
-  // Clean up email body content
-  const cleanEmailBody = (body) => {
-    if (!body) return ""
-
-    // Remove HTML tags and decode HTML entities
-    let cleanedBody = body
-      .replace(/<style[^>]*>.*?<\/style>/gis, "") // Remove style tags and content
-      .replace(/<script[^>]*>.*?<\/script>/gis, "") // Remove script tags and content
-      .replace(/<[^>]*>/g, "") // Remove all HTML tags
-      .replace(/&nbsp;/g, " ") // Replace non-breaking spaces
-      .replace(/&amp;/g, "&") // Replace HTML entities
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&apos;/g, "'")
-      .replace(/&zwnj;/g, "")
-      .replace(/\r\n/g, "\n") // Normalize line endings
-      .replace(/\n{3,}/g, "\n\n") // Replace 3+ line breaks with 2
-      .replace(/[ \t]+/g, " ") // Replace multiple spaces/tabs with single space
-      .replace(/^\s+|\s+$/g, "") // Trim start and end
-      .replace(/\n\s*\n\s*\n/g, "\n\n") // Remove excessive blank lines
-
-    // Handle quoted text sections
-    cleanedBody = cleanedBody
-      .replace(/^>.*$/gm, "") // Remove quoted lines starting with >
-      .replace(/On .* wrote:.*$/gm, "") // Remove "On ... wrote:" lines
-      .replace(/From:.*$/gm, "") // Remove email headers in body
-      .replace(/To:.*$/gm, "")
-      .replace(/Subject:.*$/gm, "")
-      .replace(/Date:.*$/gm, "")
-      .replace(/Sent:.*$/gm, "")
-
-    // Final cleanup
-    return cleanedBody
-      .replace(/\n{3,}/g, "\n\n") // Final line break cleanup
-      .trim()
-  }
+  
+  const searchControls = (
+    <div className="p-2 border-b bg-gray-100">
+        <div className="flex items-center space-x-2">
+            <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
+            <input
+                type="text"
+                placeholder="Search emails..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            </div>
+            <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="p-2 text-gray-600 hover:text-gray-800 disabled:text-gray-400 hover:bg-gray-200 rounded-lg transition-colors"
+            title="Refresh"
+            >
+            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+            </button>
+        </div>
+    </div>
+  );
 
   if (!isOpen) return null
 
@@ -306,19 +361,18 @@ const GmailInbox = ({ isOpen, onClose }) => {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[90vh] overflow-hidden flex">
         {/* Header */}
         <div className="w-full flex flex-col">
-          <div className="flex justify-between items-center p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Mail className="text-blue-600" size={24} />
+          <div className="flex justify-between items-center p-3 border-b bg-gray-100">
+            <div className="flex items-center space-x-2">
+              <div className="p-2 bg-blue-200 rounded-lg">
+                <Mail className="text-blue-700" size={20} />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">Gmail Inbox</h2>
-                <p className="text-sm text-gray-600">Manage your emails and create calendar events</p>
+                <h2 className="text-lg font-semibold text-gray-800">Gmail Inbox</h2>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-200 rounded-lg transition-colors"
             >
               <X size={20} />
             </button>
@@ -342,41 +396,12 @@ const GmailInbox = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* Search and Controls */}
-          <div className="p-4 border-b bg-gray-50">
-            <div className="flex items-center space-x-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search emails..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <button
-                onClick={handleSearch}
-                disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
-              >
-                Search
-              </button>
-              <button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="p-2 text-gray-600 hover:text-gray-800 disabled:text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Refresh"
-              >
-                <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
-              </button>
-            </div>
-          </div>
+          {!selectedMessage && searchControls}
 
           <div className="flex flex-1 overflow-hidden">
             {/* Email List */}
-            <div className="w-1/3 border-r overflow-y-auto bg-gray-50">
+            <div className="w-1/3 border-r overflow-y-auto bg-gray-100 flex flex-col">
+                {selectedMessage && searchControls}
               {isLoading && messages.length === 0 ? (
                 <div className="flex items-center justify-center h-32">
                   <div className="text-gray-500 flex items-center space-x-2">
@@ -410,9 +435,9 @@ const GmailInbox = ({ isOpen, onClose }) => {
                     <div
                       key={message.id}
                       onClick={() => handleMessageClick(message)}
-                      className={`p-4 cursor-pointer hover:bg-white transition-colors ${
-                        selectedMessage?.id === message.id ? "bg-blue-50 border-r-4 border-blue-500" : ""
-                      } ${message.isUnread ? "bg-blue-25" : ""}`}
+                      className={`p-4 cursor-pointer hover:bg-gray-200 transition-colors ${
+                        selectedMessage?.id === message.id ? "bg-blue-100 border-r-4 border-blue-500" : ""
+                      } ${message.isUnread ? "font-semibold" : ""}`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
@@ -435,6 +460,13 @@ const GmailInbox = ({ isOpen, onClose }) => {
                       </div>
                     </div>
                   ))}
+                  {nextPageToken && (
+                    <div className="p-4 text-center">
+                        <button onClick={handleLoadMore} disabled={isLoadingMore} className="text-blue-600 hover:underline">
+                            {isLoadingMore ? 'Loading...' : 'Load More'}
+                        </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -444,18 +476,14 @@ const GmailInbox = ({ isOpen, onClose }) => {
               {selectedMessage ? (
                 <>
                   {/* Email Header */}
-                  <div className="p-6 border-b bg-gray-50 flex-shrink-0">
+                  <div className="p-4 border-b bg-gray-100 flex-shrink-0">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3">{selectedMessage.subject}</h3>
-                        <div className="text-sm text-gray-600 space-y-2">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedMessage.subject}</h3>
+                        <div className="text-sm text-gray-600 space-y-1">
                           <div className="flex items-center">
                             <span className="font-medium w-12">From:</span>
                             <span className="ml-2">{selectedMessage.from}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <span className="font-medium w-12">To:</span>
-                            <span className="ml-2">{selectedMessage.to}</span>
                           </div>
                           <div className="flex items-center">
                             <span className="font-medium w-12">Date:</span>
@@ -479,6 +507,14 @@ const GmailInbox = ({ isOpen, onClose }) => {
                           <Forward size={18} />
                         </button>
                         <button
+                          onClick={handleDeleteMessage}
+                          disabled={isLoading}
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                        <button
                           onClick={handleForwardToPlanner}
                           disabled={isProcessingAI}
                           className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:bg-green-400 flex items-center space-x-2 transition-colors"
@@ -492,22 +528,12 @@ const GmailInbox = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* Email Body */}
-                  <div className="flex-1 overflow-hidden">
-                    <div className="h-full p-6 overflow-y-auto">
-                      <div className="prose max-w-none">
-                        <div
-                          className="whitespace-pre-wrap text-gray-800 leading-relaxed break-words"
-                          style={{
-                            fontFamily: "system-ui, -apple-system, sans-serif",
-                            wordWrap: "break-word",
-                            overflowWrap: "break-word",
-                            maxWidth: "100%",
-                          }}
-                        >
-                          {cleanEmailBody(selectedMessage.body)}
-                        </div>
-                      </div>
-                    </div>
+                  <div className="flex-1 overflow-auto">
+                    <iframe
+                      ref={iframeRef}
+                      className="w-full h-full border-0"
+                      title="Email Content"
+                    />
                   </div>
                 </>
               ) : (
@@ -541,13 +567,13 @@ const GmailInbox = ({ isOpen, onClose }) => {
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Type your reply..."
                 rows="8"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full p-3 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
             </div>
-            <div className="flex justify-end space-x-2 p-4 border-t bg-gray-50">
+            <div className="flex justify-end space-x-2 p-4 border-t bg-gray-100">
               <button
                 onClick={() => setShowReplyModal(false)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
@@ -581,7 +607,7 @@ const GmailInbox = ({ isOpen, onClose }) => {
                   value={forwardTo}
                   onChange={(e) => setForwardTo(e.target.value)}
                   placeholder="Enter email address"
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -591,14 +617,14 @@ const GmailInbox = ({ isOpen, onClose }) => {
                   onChange={(e) => setForwardText(e.target.value)}
                   placeholder="Add a message..."
                   rows="4"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full p-3 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>
             </div>
-            <div className="flex justify-end space-x-2 p-4 border-t bg-gray-50">
+            <div className="flex justify-end space-x-2 p-4 border-t bg-gray-100">
               <button
                 onClick={() => setShowForwardModal(false)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>

@@ -665,7 +665,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       // Validate date range
       const startDate = new Date(newMeeting.dateRangeStart)
       const endDate = new Date(newMeeting.dateRangeEnd)
-      if (startDate >= endDate) {
+      if (startDate > endDate) {
         setError("End date must be after start date")
         setIsLoadingAI(false)
         return
@@ -1025,7 +1025,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           type: "meeting",
           timelineId: null,
         },
-      });
+      })
       window.dispatchEvent(highlightEvent)
 
       // Highlight the item in the main sidebar
@@ -1035,20 +1035,35 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           type: "meeting",
           timelineId: null,
         },
-      });
+      })
       window.dispatchEvent(sidebarEvent)
     }, 100)
   
     // Close the profile sidebar
-    onClose();
-  };
+    onClose()
+  }
 
   const openEditMeetingModal = (meeting) => {
     const event = new CustomEvent("editCalendarItem", {
         detail: { item: { ...meeting, id: meeting.teammeetingid, type: 'meeting'} },
-    });
-    window.dispatchEvent(event);
-  };
+    })
+    window.dispatchEvent(event)
+  }
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (selectedTeam) {
+        fetchTeamDetails(selectedTeam.teamid)
+      }
+      fetchUserTeams()
+    }
+
+    window.addEventListener('refreshTeamData', handleRefresh)
+
+    return () => {
+      window.removeEventListener('refreshTeamData', handleRefresh)
+    }
+  }, [selectedTeam])
 
   if (!isOpen) return null
 
@@ -1281,7 +1296,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                                   type="email"
                                   value={email}
                                   onChange={(e) => handleInvitedEmailChange(index, e.target.value)}
-                                  className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                                  className="flex-1 p-2 pr-1 bg-gray-700 border border-gray-600 rounded text-white"
                                   placeholder="Enter email"
                                 />
                                 <button
@@ -1301,25 +1316,23 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
-                              <input
-                                type="date"
-                                value={newMeeting.dateRangeStart}
-                                onChange={(e) => setNewMeeting((prev) => ({ ...prev, dateRangeStart: e.target.value }))}
-                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
-                              <input
-                                type="date"
-                                value={newMeeting.dateRangeEnd}
-                                onChange={(e) => setNewMeeting((prev) => ({ ...prev, dateRangeEnd: e.target.value }))}
-                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                              />
-                            </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+                            <input
+                              type="date"
+                              value={newMeeting.dateRangeStart}
+                              onChange={(e) => setNewMeeting((prev) => ({ ...prev, dateRangeStart: e.target.value }))}
+                              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
+                            <input
+                              type="date"
+                              value={newMeeting.dateRangeEnd}
+                              onChange={(e) => setNewMeeting((prev) => ({ ...prev, dateRangeEnd: e.target.value }))}
+                              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
                           </div>
 
                           <div>
@@ -1382,7 +1395,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                         </div>
                       ) : (
                         // Manual Scheduling Form
-                        <div className="grid grid-cols-3 gap-2">
+                        <>
                           <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
                             <input
@@ -1393,27 +1406,29 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                               className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Start</label>
-                            <input
-                              type="time"
-                              name="meetingStartTime"
-                              value={newMeeting.meetingStartTime}
-                              onChange={handleMeetingChange}
-                              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                            />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-1">Start</label>
+                              <input
+                                type="time"
+                                name="meetingStartTime"
+                                value={newMeeting.meetingStartTime}
+                                onChange={handleMeetingChange}
+                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-1">End</label>
+                              <input
+                                type="time"
+                                name="meetingEndTime"
+                                value={newMeeting.meetingEndTime}
+                                onChange={handleMeetingChange}
+                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">End</label>
-                            <input
-                              type="time"
-                              name="meetingEndTime"
-                              value={newMeeting.meetingEndTime}
-                              onChange={handleMeetingChange}
-                              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                            />
-                          </div>
-                        </div>
+                        </>
                       )}
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Invitation Type</label>
@@ -1482,8 +1497,16 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                 {/* AI Suggestions Modal */}
                 {showAISuggestions && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
-                      <h3 className="text-lg font-medium mb-4 text-white">AI Meeting Suggestions</h3>
+                    <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto relative">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium text-white">AI Meeting Suggestions</h3>
+                        <button 
+                          onClick={() => setShowAISuggestions(false)} 
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
                       {aiSuggestions.length > 0 ? (
                         <div className="space-y-3">
                           {aiSuggestions.map((suggestion, index) => (

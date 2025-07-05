@@ -757,7 +757,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
       // Validate date range
       const startDate = new Date(meeting.dateRangeStart)
       const endDate = new Date(meeting.dateRangeEnd)
-      if (startDate >= endDate) {
+      if (startDate > endDate) {
         setApiError("End date must be after start date")
         setIsLoadingAI(false)
         return
@@ -1726,8 +1726,16 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 {/* AI Suggestions Modal */}
                 {showAISuggestions && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
-                      <h3 className="text-lg font-medium mb-4 text-white">AI Meeting Suggestions</h3>
+                    <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto relative">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium text-white">AI Meeting Suggestions</h3>
+                        <button 
+                          onClick={() => setShowAISuggestions(false)} 
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
                       {aiSuggestions.length > 0 ? (
                         <div className="space-y-3">
                           {aiSuggestions.map((suggestion, index) => (
