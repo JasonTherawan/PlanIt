@@ -5,14 +5,11 @@ import bgImage from '../assets/landingpagebg.png'
 const LandingPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Navigation Bar */}
-      <header className="bg-[#003366] text-white py-4 px-6 flex items-center justify-between">
+      <header className="bg-[#001a33] text-white py-4 px-6 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <div className="text-white">
-            <Calendar className="w-10 h-10" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-wider">PLANIT</h1>
+          <img src="/planitLogo.png" alt="PlanIt Logo" className="w-10 h-10"/>
+          <div className="font-bold">
+            <h1 className="text-2xl tracking-wider">PLANIT</h1>
             <p className="text-sm text-gray-300">Plan Smarter. Work Better.</p>
           </div>
         </div>
@@ -26,15 +23,11 @@ const LandingPage = () => {
         </nav>
       </header>
 
-      {/* Hero Section with Background Image */}
       <main className="flex-1 relative">
-        {/* Background Image */}
         <div
           className="absolute inset-0 w-full h-full bg-cover bg-center"
           style={{ backgroundImage: `url(${bgImage})` }}
         />
-
-        {/* Dark Overlay */}
         <div className="absolute inset-0 bg-black/50 z-10 flex flex-col items-center justify-center px-4 text-center">
           <h2 className="text-white text-4xl font-bold mb-8">
             The all-in-one solution for scheduling, reminders, and productivity.

@@ -1,4 +1,3 @@
-// Google OAuth and Gmail API service using new Google Identity Services
 class GoogleAuthService {
   constructor() {
     this.gapi = null
@@ -24,29 +23,15 @@ class GoogleAuthService {
 
   async _doInitialize() {
     try {
-      console.log("Starting Google Identity Services initialization...")
-
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
       if (!clientId) {
         throw new Error("VITE_GOOGLE_CLIENT_ID is not set in environment variables")
       }
-
-      // Load Google Identity Services script
       await this.loadGoogleIdentityScript()
-
-      // Load Google API script for Gmail API
       await this.loadGoogleApiScript()
-
-      // Initialize Google API client
       await this.initializeGoogleApi()
-
-      // Initialize Google Identity Services
       this.initializeGoogleIdentity()
-
-      // Check for existing authentication
       await this.checkExistingAuth()
-
-      console.log("Google Identity Services initialization completed")
       this.isInitialized = true
     } catch (error) {
       console.error("Google Identity Services initialization failed:", error)
@@ -94,7 +79,6 @@ class GoogleAuthService {
               discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest"],
             })
             this.gapi = window.gapi
-            console.log("Google API client initialized")
             resolve()
           } catch (error) {
             console.error("gapi.client.init failed:", error)
@@ -112,7 +96,6 @@ class GoogleAuthService {
   initializeGoogleIdentity() {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
-    // Initialize the token client for OAuth 2.0 flow
     this.tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: clientId,
       scope: [
@@ -124,12 +107,9 @@ class GoogleAuthService {
         "https://www.googleapis.com/auth/gmail.modify",
       ].join(" "),
       callback: (tokenResponse) => {
-        console.log("Token received:", tokenResponse)
         this.handleTokenResponse(tokenResponse)
       },
     })
-
-    console.log("Google Identity Services token client initialized")
   }
 
   handleTokenResponse(tokenResponse) {
@@ -141,17 +121,13 @@ class GoogleAuthService {
     this.accessToken = tokenResponse.access_token
     localStorage.setItem("googleAccessToken", tokenResponse.access_token)
 
-    // Set the access token for gapi client
     if (this.gapi) {
       this.gapi.client.setToken({ access_token: tokenResponse.access_token })
-      console.log("Access token set for gapi client")
     }
   }
 
   async signIn() {
     try {
-      console.log("Starting sign-in process...")
-
       await this.initialize()
 
       if (!this.tokenClient) {
@@ -169,7 +145,6 @@ class GoogleAuthService {
 
             this.handleTokenResponse(tokenResponse)
 
-            // Get user info using the access token
             const userInfo = await this.getUserInfo()
 
             const user = {
@@ -181,9 +156,6 @@ class GoogleAuthService {
             }
 
             this.currentUser = user
-            localStorage.setItem("user", JSON.stringify(user))
-
-            console.log("Sign-in successful:", user.email)
             resolve(user)
           } catch (error) {
             console.error("Error processing token response:", error)
@@ -191,7 +163,6 @@ class GoogleAuthService {
           }
         }
 
-        // Request access token
         this.tokenClient.requestAccessToken({ prompt: "consent" })
       })
     } catch (error) {
@@ -226,10 +197,7 @@ class GoogleAuthService {
   async signOut() {
     try {
       if (this.accessToken) {
-        // Revoke the access token
-        window.google.accounts.oauth2.revoke(this.accessToken, () => {
-          console.log("Access token revoked")
-        })
+        window.google.accounts.oauth2.revoke(this.accessToken)
       }
 
       this.accessToken = null
@@ -237,12 +205,9 @@ class GoogleAuthService {
       localStorage.removeItem("user")
       localStorage.removeItem("googleAccessToken")
 
-      // Clear gapi client token
       if (this.gapi) {
         this.gapi.client.setToken(null)
       }
-
-      console.log("Sign-out successful")
     } catch (error) {
       console.error("Sign-out error:", error)
       throw error
@@ -277,7 +242,6 @@ class GoogleAuthService {
       const storedUser = localStorage.getItem("user")
 
       if (storedToken && storedUser) {
-        // Verify token is still valid
         try {
           const response = await fetch("https://www.googleapis.com/oauth2/v1/tokeninfo", {
             method: "GET",
@@ -290,16 +254,12 @@ class GoogleAuthService {
             this.accessToken = storedToken
             this.currentUser = JSON.parse(storedUser)
 
-            // Set token for gapi client
             if (this.gapi) {
               this.gapi.client.setToken({ access_token: storedToken })
-              console.log("Existing auth restored and token set for gapi client")
             }
 
-            console.log("Existing auth restored:", this.currentUser.email)
             return this.currentUser
           } else {
-            // Token is invalid, clear stored data
             this.signOut()
           }
         } catch (error) {
@@ -311,21 +271,6 @@ class GoogleAuthService {
       console.error("Error checking existing auth:", error)
     }
     return null
-  }
-
-  // Helper method to ensure we have a valid token before making API calls
-  async ensureValidToken() {
-    if (!this.accessToken) {
-      throw new Error("No access token available. Please sign in first.")
-    }
-
-    // Set token for gapi client if not already set
-    if (this.gapi && !this.gapi.client.getToken()) {
-      this.gapi.client.setToken({ access_token: this.accessToken })
-      console.log("Access token set for gapi client")
-    }
-
-    return this.accessToken
   }
 }
 

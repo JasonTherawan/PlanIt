@@ -22,16 +22,14 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
   const [currentUserId, setCurrentUserId] = useState(null)
   const scrollContainerRef = useRef(null)
 
-  // Urgency color mapping
   const urgencyColors = {
-    low: "#10B981", // green
-    medium: "#F59E0B", // yellow
-    "medium-high": "#FF6B35", // orange (for meetings)
-    high: "#EF4444", // red
-    urgent: "#DC2626", // dark red
+    low: "#10B981",
+    medium: "#FFBB00",
+    "medium-high": "#3B82F6",
+    high: "#FF0000",
+    urgent: "#FF00C3",
   }
 
-  // Get user ID from localStorage
   const getUserId = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}")
     return user.id
@@ -51,8 +49,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
   }, [])
 
   useEffect(() => {
-    setViewDate(new Date(currentDate));
-  }, [currentDate]);
+    setViewDate(new Date(currentDate))
+  }, [currentDate])
 
   // When goals are updated, update the goalDates set
   useEffect(() => {
@@ -63,8 +61,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
           const startDate = new Date(timeline.timelinestartdate)
           const endDate = new Date(timeline.timelineenddate)
           // Normalize start and end dates to avoid time zone issues
-          const start = new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
-          const end = new Date(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+          const start = new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate())
+          const end = new Date(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate())
           
           let currentDate = new Date(start)
           while (currentDate <= end) {
@@ -171,9 +169,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     }
   }
 
-  // Delete team meeting - only for team creators
+  // Delete team meeting (only for team creators)
   const deleteTeamMeeting = async (meetingId, teamCreatorId) => {
-    // Check if current user is the team creator
     if (currentUserId !== teamCreatorId) {
       alert("Only team creators can delete meetings")
       return
@@ -197,27 +194,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     }
   }
 
-  // Delete team
-  const deleteTeam = async (teamId) => {
-    if (!confirm("Are you sure you want to delete this team and all its meetings?")) return
-
-    try {
-      const response = await fetch(`http://localhost:5000/api/teams/${teamId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        fetchAllData() // Refresh data
-      } else {
-        alert("Failed to delete team")
-      }
-    } catch (error) {
-      console.error("Error deleting team:", error)
-      alert("Error deleting team")
-    }
-  }
-
-  // Handle edit - only allow editing for creators or own items
+  // Handle edit (only allow editing for creators or own items)
   const handleEdit = (item) => {
     // For activities and goals, always allow editing (they belong to the user)
     if (item.type === "activity" || item.type === "goal") {
@@ -240,11 +217,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     }
   }
 
-  // Get the first day of the month
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1)
-  // Get the day of the week for the first day (0 = Sunday, 1 = Monday, etc.)
   const firstDayOfWeek = firstDayOfMonth.getDay()
-  // Get the number of days in the month
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()
 
   // Get the previous month's days that appear in the first week
@@ -260,7 +234,6 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     }
   }
 
-  // Current month days
   const currentMonthDays = []
   for (let i = 1; i <= daysInMonth; i++) {
     currentMonthDays.push({
@@ -280,7 +253,6 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     })
   }
 
-  // Combine all days
   const allDays = [...prevMonthDays, ...currentMonthDays, ...nextMonthDays]
 
   // Group days into weeks
@@ -316,16 +288,13 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     )
   }
 
-  // Get most urgent activity or meeting for a specific date
   const getMostUrgentActivityForDate = (day) => {
     if (day.month !== "current") return null
 
     const dateString = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}-${String(day.date).padStart(2, "0")}`
     
-    // Get activities for this date
     const dayActivities = activities.filter((activity) => activity.activitydate === dateString)
 
-    // Get meetings for this date
     const dayMeetings = []
     teams.forEach((team) => {
       if (team.meetings) {
@@ -341,7 +310,6 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
       }
     })
 
-    // Combine activities and meetings
     const allItems = [
       ...dayActivities.map(activity => ({ ...activity, type: "activity", urgency: activity.activityurgency })),
       ...dayMeetings
@@ -349,36 +317,35 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
 
     if (allItems.length === 0) return null
 
-    // Sort by urgency priority
-    const urgencyPriority = { urgent: 4, high: 3, "medium-high": 2.5, medium: 2, low: 1 }
+    const urgencyPriority = { urgent: 5, high: 4, "medium-high": 3, medium: 2, low: 1 }
     const mostUrgent = allItems.reduce((prev, current) => {
-      return urgencyPriority[current.urgency] > urgencyPriority[prev.urgency] ? current : prev
+      return (urgencyPriority[current.urgency] || 0) > (urgencyPriority[prev.urgency] || 0) ? current : prev
     })
 
     return mostUrgent
   }
 
   const timeStringToMinutes = (timeString) => {
-    if (!timeString) return null;
-    const [hours, minutes] = timeString.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
+    if (!timeString) return null
+    const [hours, minutes] = timeString.split(':').map(Number)
+    return hours * 60 + minutes
+  }
 
   const getItemStartTime = (item) => {
-    let timeString;
-    if (item.type === "activity") timeString = item.activitystarttime;
-    else if (item.type === "meeting") timeString = item.meetingstarttime;
-    else if (item.type === "goal" && item.timeline) timeString = item.timeline.timelinestarttime;
-    return timeStringToMinutes(timeString) ?? 9999; // All-day events go last
-  };
+    let timeString
+    if (item.type === "activity") timeString = item.activitystarttime
+    else if (item.type === "meeting") timeString = item.meetingstarttime
+    else if (item.type === "goal" && item.timeline) timeString = item.timeline.timelinestarttime
+    return timeStringToMinutes(timeString) ?? 9999 // All-day events go last
+  }
   
   const getItemEndTime = (item) => {
-    let timeString;
-    if (item.type === "activity") timeString = item.activityendtime;
-    else if (item.type === "meeting") timeString = item.meetingendtime;
-    else if (item.type === "goal" && item.timeline) timeString = item.timeline.timelineendtime;
-    return timeStringToMinutes(timeString) ?? 9999;
-  };
+    let timeString
+    if (item.type === "activity") timeString = item.activityendtime
+    else if (item.type === "meeting") timeString = item.meetingendtime
+    else if (item.type === "goal" && item.timeline) timeString = item.timeline.timelineendtime
+    return timeStringToMinutes(timeString) ?? 9999
+  }
   
   // Get past activities, goals, and team meetings
   const getPastItems = () => {
@@ -461,32 +428,32 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     })
 
     // Combine and sort by deadline (most recent first)
-    const allItems = [...pastActivities, ...pastGoals, ...pastMeetings];
+    const allItems = [...pastActivities, ...pastGoals, ...pastMeetings]
   
     // Custom sort: sort by date, then goals at the end of each day
     return allItems.sort((a, b) => {
-        const dateA = new Date(a.deadline);
-        const dateB = new Date(b.deadline);
+        const dateA = new Date(a.deadline)
+        const dateB = new Date(b.deadline)
       
         // Sort by date descending
         if (dateA.toDateString() !== dateB.toDateString()) {
-          return dateB - dateA;
+          return dateB - dateA
         }
       
         // If same day, goals go to the end
-        if (a.type === 'goal' && b.type !== 'goal') return 1;
-        if (a.type !== 'goal' && b.type === 'goal') return -1;
+        if (a.type === 'goal' && b.type !== 'goal') return 1
+        if (a.type !== 'goal' && b.type === 'goal') return -1
       
         // Then sort by start time
-        const startTimeA = getItemStartTime(a);
-        const startTimeB = getItemStartTime(b);
+        const startTimeA = getItemStartTime(a)
+        const startTimeB = getItemStartTime(b)
         if (startTimeA !== startTimeB) {
-          return startTimeA - startTimeB;
+          return startTimeA - startTimeB
         }
       
         // If start times are the same, sort by end time
-        return getItemEndTime(a) - getItemEndTime(b);
-      });
+        return getItemEndTime(a) - getItemEndTime(b)
+      })
   }
 
   // Get upcoming activities, goals, and team meetings sorted by deadline
@@ -579,22 +546,22 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
 
     // Combine and sort by deadline and then by time
     return [...upcomingActivities, ...upcomingGoals, ...upcomingMeetings].sort((a, b) => {
-        const dateA = new Date(a.deadline);
-        const dateB = new Date(b.deadline);
+        const dateA = new Date(a.deadline)
+        const dateB = new Date(b.deadline)
         if (dateA.toDateString() !== dateB.toDateString()) {
-          return dateA - dateB;
+          return dateA - dateB
         }
       
         // Then sort by start time
-        const startTimeA = getItemStartTime(a);
-        const startTimeB = getItemStartTime(b);
+        const startTimeA = getItemStartTime(a)
+        const startTimeB = getItemStartTime(b)
         if (startTimeA !== startTimeB) {
-          return startTimeA - startTimeB;
+          return startTimeA - startTimeB
         }
       
         // If start times are the same, sort by end time
-        return getItemEndTime(a) - getItemEndTime(b);
-      });
+        return getItemEndTime(a) - getItemEndTime(b)
+      })
   }
 
   const formatTime = (timeString) => {
@@ -649,7 +616,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
 
         return formatDateRange(startDate, endDate)
       } else {
-        // Ongoing goals or in 'upcoming' tab: use HH:MM time format
+        // Use HH:MM time format
         const startTime = item.timeline.timelinestarttime?.slice(0, 5)
         const endTime = item.timeline.timelineendtime?.slice(0, 5)
 
@@ -677,22 +644,11 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
   // Helper function to get color for event type
   const getEventColor = (item) => {
     if (item.type === "activity") {
-      switch (item.activityurgency) {
-        case "urgent":
-          return "#DC2626"
-        case "high":
-          return "#EF4444"
-        case "medium":
-          return "#F59E0B"
-        case "low":
-          return "#10B981"
-        default:
-          return "#6B7280"
-      }
+      return urgencyColors[item.activityurgency] || "#6B7280"
     } else if (item.type === "goal") {
       return "#8B5CF6"
     } else if (item.type === "meeting") {
-      return "#F97316"
+      return urgencyColors['medium-high']
     }
     return "#6B7280"
   }
@@ -707,7 +663,6 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
         ? `${item.type}-${item.id}-${item.timelineId}-${item.deadline.toDateString()}`
         : `${item.type}-${item.id || index}`
 
-    // Function to scroll to the item on the calendar grid
     const scrollToItemOnGrid = () => {
       // Find the date of the item
       let itemDate
@@ -721,8 +676,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
         itemDate = item.deadline
       }
 
-      setViewDate(new Date(itemDate));
-      setCurrentDate(new Date(itemDate));
+      setViewDate(new Date(itemDate))
+      setCurrentDate(new Date(itemDate))
 
       // Dispatch a custom event that CalendarGrid can listen for
       const event = new CustomEvent("highlightCalendarItem", {
@@ -731,8 +686,8 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
           type: item.type,
           timelineId: item.timelineId || (item.timeline ? item.timeline.timelineid : null),
         },
-      });
-      window.dispatchEvent(event);
+      })
+      window.dispatchEvent(event)
     }
 
     // Check if this item is highlighted
@@ -863,7 +818,6 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
         }
       }, 100)
 
-      // Clear highlight after 3 seconds
       setTimeout(() => {
         setHighlightedSidebarItem(null)
       }, 3000)
@@ -938,7 +892,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
         <button
           className={`w-8 h-8 rounded-full flex items-center justify-center ${
             isGoogleUser
-              ? "bg-black bg-opacity-10 hover:bg-opacity-20 text-white cursor-pointer"
+              ? "hover:bg-gray-600 text-white cursor-pointer"
               : "bg-gray-600 text-gray-400 cursor-not-allowed"
           }`}
           onClick={() => isGoogleUser && setIsGmailInboxOpen(true)}
@@ -975,15 +929,15 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
         <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
             {weeks.map((week, weekIndex) =>
                 week.map((day, dayIndex) => {
-                const mostUrgentActivity = getMostUrgentActivityForDate(day);
+                const mostUrgentActivity = getMostUrgentActivityForDate(day)
                 // Construct the date string for the current day to check against goalDates
-                const dayDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day.date);
+                const dayDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day.date)
                 if (day.month === 'prev') {
-                    dayDate.setMonth(viewDate.getMonth() - 1);
+                    dayDate.setMonth(viewDate.getMonth() - 1)
                 } else if (day.month === 'next') {
-                    dayDate.setMonth(viewDate.getMonth() + 1);
+                    dayDate.setMonth(viewDate.getMonth() + 1)
                 }
-                const isGoalDay = day.month === "current" && goalDates.has(dayDate.toDateString());
+                const isGoalDay = day.month === "current" && goalDates.has(dayDate.toDateString())
 
                 return (
                     <div key={`${weekIndex}-${dayIndex}`} className="h-6 flex justify-center items-center relative">
@@ -996,7 +950,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
                         `}
                         onClick={() => {
                         if (day.month === "current") {
-                            setCurrentDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), day.date));
+                            setCurrentDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), day.date))
                         }
                         }}
                     >
@@ -1009,20 +963,16 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
                         )}
                     </button>
                     {isGoalDay && (
-                        <div 
-                        className="absolute bottom-[-6px] h-0.5 bg-purple-400 w-full"
-                        // The line will be contained within the parent div, which is centered.
-                        // This creates the continuous line effect across days.
-                        ></div>
+                        <div className="absolute bottom-[-6px] h-0.5 bg-purple-400 w-full"></div>
                     )}
                     </div>
-                );
+                )
                 })
             )}
         </div>
       </div>
 
-      {/* ONGOING Section - Fixed position above tabs */}
+      {/* Ongoing */}
       <div className="px-4 pb-2">
         <h3 className="text-sm font-bold mb-1.5 text-gray-300">ONGOING</h3>
         {(() => {

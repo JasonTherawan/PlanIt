@@ -1,4 +1,3 @@
-// AI service for analyzing emails and extracting event information using Google Gemini
 class AIService {
   constructor() {
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY
@@ -7,9 +6,7 @@ class AIService {
 
   async analyzeEmailForEvents(emailContent) {
     try {
-      // If no Gemini API key is configured, return no events
       if (!this.apiKey) {
-        console.log("No Gemini API key configured")
         return {
           hasEvent: false,
           events: [],
@@ -88,10 +85,8 @@ class AIService {
       const aiResponse = data.candidates[0].content.parts[0].text
 
       try {
-        // Clean the response to extract JSON
         const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
         if (!jsonMatch) {
-          console.log("No JSON found in Gemini response")
           return {
             hasEvent: false,
             events: [],
@@ -100,16 +95,13 @@ class AIService {
 
         const parsedResponse = JSON.parse(jsonMatch[0])
 
-        // Validate the response structure
         if (typeof parsedResponse.hasEvent !== "boolean") {
-          console.log("Invalid response structure from Gemini")
           return {
             hasEvent: false,
             events: [],
           }
         }
 
-        // If no events detected, return early
         if (!parsedResponse.hasEvent || !parsedResponse.events || parsedResponse.events.length === 0) {
           return {
             hasEvent: false,
@@ -117,7 +109,6 @@ class AIService {
           }
         }
 
-        // Validate each event has required fields
         const validEvents = parsedResponse.events.filter((event) => {
           return (
             event.title &&
@@ -152,9 +143,7 @@ class AIService {
 
   async findOptimalMeetingTimes(teamMembers, dateRange, duration, workingHours, creatorPreference, memberSchedules) {
     try {
-      // If no Gemini API key is configured, return empty suggestions
       if (!this.apiKey) {
-        console.log("No Gemini API key configured")
         return {
           success: false,
           suggestions: [],
@@ -162,7 +151,6 @@ class AIService {
         }
       }
 
-      // Create detailed schedule analysis for each member
       const memberScheduleAnalysis = {}
       Object.keys(memberSchedules).forEach((userId) => {
         const member = teamMembers.find((m) => m.userid === userId)
@@ -171,7 +159,6 @@ class AIService {
         const schedule = memberSchedules[userId]
         const conflicts = []
 
-        // Add activities as conflicts
         schedule.activities.forEach((activity) => {
           conflicts.push({
             type: "activity",
@@ -183,7 +170,6 @@ class AIService {
           })
         })
 
-        // Add goal timelines as conflicts
         schedule.goals.forEach((goal) => {
           goal.timelines.forEach((timeline) => {
             conflicts.push({
@@ -197,7 +183,6 @@ class AIService {
           })
         })
 
-        // Add team meetings as conflicts
         schedule.meetings.forEach((meeting) => {
           conflicts.push({
             type: "meeting",
@@ -232,6 +217,7 @@ class AIService {
         5.  **Working Hours:** All suggestions must be within the specified working hours.
         6.  **Provide 5-10 Suggestions:** Generate a list of the best possible times, sorted by score.
         7.  **Scoring:** Use the provided scoring system to rate each suggestion accurately.
+        8.  **Last Resort:** If all members have activities colliding each other, suggest the time where most of them are free.
 
         **Scoring System (0-100):**
         - **Base Score:** 100
@@ -301,10 +287,8 @@ class AIService {
       const aiResponse = data.candidates[0].content.parts[0].text
 
       try {
-        // Clean the response to extract JSON
         const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
         if (!jsonMatch) {
-          console.log("No JSON found in Gemini response:", aiResponse)
           return {
             success: false,
             suggestions: [],
@@ -314,9 +298,7 @@ class AIService {
 
         const parsedResponse = JSON.parse(jsonMatch[0])
 
-        // Validate the response structure
         if (!parsedResponse.success || !Array.isArray(parsedResponse.suggestions)) {
-          console.log("Invalid response structure from Gemini:", parsedResponse)
           return {
             success: false,
             suggestions: [],
@@ -324,7 +306,6 @@ class AIService {
           }
         }
 
-        // Validate each suggestion
         const validSuggestions = parsedResponse.suggestions.filter((suggestion) => {
           return (
             suggestion.date &&
@@ -338,16 +319,13 @@ class AIService {
           )
         })
 
-        console.log(`AI generated ${validSuggestions.length} valid suggestions`)
-
         return {
           success: true,
-          suggestions: validSuggestions.slice(0, 10), // Limit to 10 suggestions
+          suggestions: validSuggestions.slice(0, 10),
           error: null,
         }
       } catch (parseError) {
         console.error("Error parsing Gemini response:", parseError)
-        console.log("Raw AI response:", aiResponse)
         return {
           success: false,
           suggestions: [],
@@ -364,7 +342,6 @@ class AIService {
     }
   }
 
-  // Validate date format YYYY-MM-DD
   isValidDate(dateString) {
     const regex = /^\d{4}-\d{2}-\d{2}$/
     if (!regex.test(dateString)) return false
@@ -373,7 +350,6 @@ class AIService {
     return date instanceof Date && !isNaN(date)
   }
 
-  // Validate time format HH:MM
   isValidTime(timeString) {
     const regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
     return regex.test(timeString)

@@ -8,13 +8,10 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
   const [apiError, setApiError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
-
-  // State for existing data to check overlaps
   const [activities, setActivities] = useState([])
   const [goals, setGoals] = useState([])
   const [teams, setTeams] = useState([])
 
-  // Activity form state
   const [activity, setActivity] = useState({
     activityTitle: "",
     activityDescription: "",
@@ -25,7 +22,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     activityEndTime: "",
   })
 
-  // Goal form state
   const [goal, setGoal] = useState({
     goalTitle: "",
     goalDescription: "",
@@ -33,7 +29,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     goalProgress: "not-started",
   })
 
-  // Timeline entries for goal
   const [timelines, setTimelines] = useState([
     {
       timelineId: null,
@@ -45,7 +40,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     },
   ])
 
-  // Meeting form state
   const [meeting, setMeeting] = useState({
     meetingTitle: "",
     meetingDescription: "",
@@ -57,10 +51,9 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     removedMembers: [],
   })
 
-  // Get user ID from localStorage
   const getUserId = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}")
-    return user.id || 1
+    return user.id || null
   }
 
   // Fetch existing data when modal opens
@@ -74,21 +67,18 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     try {
       const userId = getUserId()
 
-      // Fetch activities
       const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
-      // Fetch goals
       const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
-      // Fetch teams
       const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
@@ -99,10 +89,8 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     }
   }
   
-  // Fetch meeting details for meetings
   const fetchMeetingDetails = async (meetingId) => {
     try {
-      // Find the team that contains this meeting
       const team = teams.find((t) => t.meetings && t.meetings.some((m) => m.teammeetingid === meetingId))
       if (team) {
         const response = await fetch(`http://localhost:5000/api/teams/${team.teamid}`)
@@ -167,7 +155,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     }
   }, [item, teams])
 
-  // Handle activity form changes
   const handleActivityChange = (e) => {
     const { name, value } = e.target
     setActivity({
@@ -176,7 +163,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     })
   }
 
-  // Handle goal form changes
   const handleGoalChange = (e) => {
     const { name, value } = e.target
     setGoal({
@@ -185,7 +171,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     })
   }
 
-  // Handle meeting form changes
   const handleMeetingChange = (e) => {
     const { name, value } = e.target
     setMeeting({
@@ -194,7 +179,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     })
   }
 
-  // Handle timeline changes
   const handleTimelineChange = (index, e) => {
     const { name, value } = e.target
     const updatedTimelines = [...timelines]
@@ -222,8 +206,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
       })
 
       if (response.ok) {
-        setSuccessMessage("Goal deleted successfully!");
-        // Notify other components to refresh data
+        setSuccessMessage("Goal deleted successfully!")
         window.dispatchEvent(new CustomEvent("refreshCalendarData"))
         setTimeout(() => {
           onClose()
@@ -240,7 +223,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     }
   }
 
-  // Add new timeline
   const addTimeline = () => {
     setTimelines([
       ...timelines,
@@ -255,7 +237,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     ])
   }
 
-  // Remove timeline
   const removeTimeline = (index) => {
     if (timelines.length > 1) {
       const updatedTimelines = [...timelines]
@@ -264,7 +245,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     }
   }
 
-  // Handle new member email changes
   const handleNewMemberEmailChange = (index, value) => {
     const updatedEmails = [...meeting.newMemberEmails]
     updatedEmails[index] = value
@@ -274,7 +254,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     })
   }
 
-  // Add new member email field
   const addNewMemberEmail = () => {
     setMeeting({
       ...meeting,
@@ -282,7 +261,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     })
   }
 
-  // Remove new member email field
   const removeNewMemberEmail = (index) => {
     if (meeting.newMemberEmails.length > 1) {
       const updatedEmails = [...meeting.newMemberEmails]
@@ -294,7 +272,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     }
   }
 
-  // Remove existing member
   const removeMember = (member) => {
     const updatedMembers = meeting.members.filter((m) => m.userid !== member.userid)
     setMeeting({
@@ -304,7 +281,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     })
   }
 
-  // Check for activity overlaps (excluding current item)
   const checkActivityOverlaps = (newActivity) => {
     if (!newActivity.activityStartTime || !newActivity.activityEndTime) {
       return []
@@ -445,9 +421,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           const existingStart = new Date(existingTimeline.timelinestartdate)
           const existingEnd = new Date(existingTimeline.timelineenddate)
 
-          // Check for date range overlap first
           if (newStart <= existingEnd && newEnd >= existingStart) {
-            // Only trigger alert if BOTH timelines have specific start and end times
             if (
               newTimeline.timelineStartTime &&
               newTimeline.timelineEndTime &&
@@ -460,7 +434,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
               const existingTimelineStartTime = new Date(`${commonDay.toDateString()} ${existingTimeline.timelinestarttime}`)
               const existingTimelineEndTime = new Date(`${commonDay.toDateString()} ${existingTimeline.timelineendtime}`)
 
-              // If times overlap, then it's a conflict
               if (newTimelineStartTime < existingTimelineEndTime && newTimelineEndTime > existingTimelineStartTime) {
                 overlaps.push({
                   type: "goal",
@@ -634,7 +607,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     return true
   }
 
-  // Validate meeting form
   const validateMeetingForm = () => {
     if (!meeting.meetingTitle.trim()) {
       setApiError("Meeting title is required")
@@ -647,7 +619,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     return true
   }
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
     setApiError("")
@@ -656,13 +627,11 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
 
     try {
       if (item.type === "activity") {
-        // Validate activity form
         if (!validateActivityForm()) {
           setIsLoading(false)
           return
         }
         
-        // Check for overlaps
         const overlaps = checkActivityOverlaps(activity)
         if (overlaps.length > 0) {
           const overlapDetails = overlaps
@@ -678,7 +647,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           }
         }
 
-        // Prepare activity data for API
         const activityData = {
           activityTitle: activity.activityTitle,
           activityDescription: activity.activityDescription,
@@ -689,7 +657,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           activityEndTime: activity.activityEndTime,
         }
 
-        // Make API call to update activity
         const response = await fetch(`http://localhost:5000/api/activities/${item.id}`, {
           method: "PUT",
           headers: {
@@ -701,13 +668,9 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
         const data = await response.json()
 
         if (response.ok) {
-          console.log("Activity updated successfully:", data)
           setSuccessMessage("Activity updated successfully!")
-
-          // Dispatch refresh event
           window.dispatchEvent(new CustomEvent("refreshCalendarData"))
 
-          // Close modal after a delay
           setTimeout(() => {
             onClose()
           }, 1500)
@@ -716,13 +679,11 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           setApiError(data.message || "Failed to update activity. Please try again.")
         }
       } else if (item.type === "goal") {
-        // Validate goal form
         if (!validateGoalForm()) {
           setIsLoading(false)
           return
         }
         
-        // Check for overlaps in all timelines
         const allOverlaps = []
         timelines.forEach((timeline, index) => {
           if (timeline.timelineTitle.trim() && timeline.timelineStartDate && timeline.timelineEndDate) {
@@ -755,7 +716,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           }
         }
 
-        // Prepare goal data for API
         const goalData = {
           goalTitle: goal.goalTitle,
           goalDescription: goal.goalDescription,
@@ -771,7 +731,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           })),
         }
 
-        // Make API call to update goal
         const response = await fetch(`http://localhost:5000/api/goals/${item.id}`, {
           method: "PUT",
           headers: {
@@ -783,13 +742,9 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
         const data = await response.json()
 
         if (response.ok) {
-          console.log("Goal updated successfully:", data)
           setSuccessMessage("Goal updated successfully!")
-
-          // Dispatch refresh event
           window.dispatchEvent(new CustomEvent("refreshCalendarData"))
 
-          // Close modal after a delay
           setTimeout(() => {
             onClose()
           }, 1500)
@@ -798,13 +753,11 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           setApiError(data.message || "Failed to update goal. Please try again.")
         }
       } else if (item.type === "meeting") {
-        // Validate meeting form
         if (!validateMeetingForm()) {
           setIsLoading(false)
           return
         }
 
-        // Check for overlaps if meeting has times
         if (meeting.meetingStartTime && meeting.meetingEndTime) {
           const overlaps = checkMeetingOverlaps(meeting)
           if (overlaps.length > 0) {
@@ -822,11 +775,9 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           }
         }
         
-        // Find the original meeting data for comparison
         const team = teams.find((t) => t.meetings && t.meetings.some((m) => m.teammeetingid === item.id))
         const originalMeeting = team?.meetings.find((m) => m.teammeetingid === item.id)
 
-        // Prepare meeting data for API
         const meetingData = {
           meetingTitle: meeting.meetingTitle,
           meetingDescription: meeting.meetingDescription,
@@ -838,7 +789,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           originalMeeting: originalMeeting,
         }
 
-        // Make API call to update meeting
         const response = await fetch(`http://localhost:5000/api/meetings/${item.id}`, {
           method: "PUT",
           headers: {
@@ -850,14 +800,10 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
         const data = await response.json()
 
         if (response.ok) {
-          console.log("Meeting updated successfully:", data)
           setSuccessMessage("Meeting updated successfully!")
-
-          // Dispatch refresh event
           window.dispatchEvent(new CustomEvent("refreshCalendarData"))
           window.dispatchEvent(new CustomEvent("refreshTeamData"))
 
-          // Close modal after a delay
           setTimeout(() => {
             onClose()
           }, 1500)
@@ -946,7 +892,6 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                     <option value="health">Health</option>
                     <option value="education">Education</option>
                     <option value="social">Social</option>
-                    <option value="meeting">Meeting</option>
                   </select>
                 </div>
 
@@ -1057,7 +1002,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
                     <option value="">Select a category</option>
                     <option value="career">Career</option>
                     <option value="personal">Personal</option>
-                    <option value="health">Health & Fitness</option>
+                    <option value="health">Health</option>
                     <option value="education">Education</option>
                     <option value="financial">Financial</option>
                   </select>

@@ -18,9 +18,19 @@ const GmailInbox = ({ isOpen, onClose }) => {
   const [forwardText, setForwardText] = useState("")
   const [isProcessingAI, setIsProcessingAI] = useState(false)
   const [authError, setAuthError] = useState("")
-  const iframeRef = useRef(null);
-  const [nextPageToken, setNextPageToken] = useState(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [nextPageToken, setNextPageToken] = useState(null)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const iframeRef = useRef(null)
+
+  const decodeHtmlEntities = (text) => {
+    // This is a browser-only solution
+    if (typeof window === 'undefined') {
+      return text
+    }
+    const textarea = document.createElement('textarea')
+    textarea.innerHTML = text
+    return textarea.value
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -30,28 +40,28 @@ const GmailInbox = ({ isOpen, onClose }) => {
 
   // When a new message is selected, update the iframe content and add the click listener
   useEffect(() => {
-    const iframe = iframeRef.current;
+    const iframe = iframeRef.current
     if (selectedMessage && iframe) {
-      const doc = iframe.contentDocument || iframe.contentWindow.document;
-      doc.open();
-      doc.write(selectedMessage.body);
-      doc.close();
+      const doc = iframe.contentDocument || iframe.contentWindow.document
+      doc.open()
+      doc.write(selectedMessage.body)
+      doc.close()
 
       const handleLinkClick = (event) => {
-        const link = event.target.closest('a');
+        const link = event.target.closest('a')
         if (link && link.href) {
-          event.preventDefault();
-          window.open(link.href, '_blank', 'noopener,noreferrer');
+          event.preventDefault()
+          window.open(link.href, '_blank', 'noopener,noreferrer')
         }
-      };
+      }
       
-      doc.addEventListener('click', handleLinkClick);
+      doc.addEventListener('click', handleLinkClick)
 
       return () => {
-        doc.removeEventListener('click', handleLinkClick);
-      };
+        doc.removeEventListener('click', handleLinkClick)
+      }
     }
-  }, [selectedMessage]);
+  }, [selectedMessage])
 
   const initializeGmail = async () => {
     try {
@@ -60,9 +70,8 @@ const GmailInbox = ({ isOpen, onClose }) => {
 
       console.log("Initializing Gmail...")
 
-      await googleAuthService.initialize();
+      await googleAuthService.initialize()
 
-      // Check if user is signed in with Google
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
       const isGoogleUser = !!storedUser.googleId || !!storedUser.accessToken
 
@@ -83,27 +92,18 @@ const GmailInbox = ({ isOpen, onClose }) => {
         }
       }
 
-      // Ensure we have a valid access token
       const accessToken = googleAuthService.getAccessToken()
       if (!accessToken) {
         setAuthError("No access token available. Please sign in with Google.")
         return
       }
-
-      console.log("Access token available:", !!accessToken)
-
-      // Initialize Gmail service
-      gmailService.setGapi(gapi)
-
-      // Set the gapi instance for Gmail service
+      
       if (googleAuthService.gapi) {
         gmailService.setGapi(googleAuthService.gapi)
-        console.log("Gmail service initialized with gapi")
       } else {
         throw new Error("Google API not initialized")
       }
 
-      // Load messages
       await loadMessages()
     } catch (error) {
       console.error("Error initializing Gmail:", error)
@@ -114,34 +114,32 @@ const GmailInbox = ({ isOpen, onClose }) => {
   }
 
   const loadMessages = async (query = "", pageToken = null) => {
-    const loadingMore = pageToken !== null;
+    const loadingMore = pageToken !== null
     if (loadingMore) {
-        setIsLoadingMore(true);
+        setIsLoadingMore(true)
     } else {
-        setIsLoading(true);
+        setIsLoading(true)
     }
-    setAuthError("");
+    setAuthError("")
 
     try {
-      // Ensure we have valid authentication
       const accessToken = googleAuthService.getAccessToken()
       if (!accessToken) {
         throw new Error("No access token available")
       }
 
-      // Set the token for gapi client
       if (googleAuthService.gapi) {
         googleAuthService.gapi.client.setToken({ access_token: accessToken })
       }
 
-      const { messages: fetchedMessages, nextPageToken: newNextPageToken } = await gmailService.getMessages(50, query, pageToken);
+      const { messages: fetchedMessages, nextPageToken: newNextPageToken } = await gmailService.getMessages(50, query, pageToken)
 
       if (loadingMore) {
-        setMessages((prev) => [...prev, ...fetchedMessages]);
+        setMessages((prev) => [...prev, ...fetchedMessages])
       } else {
-        setMessages(fetchedMessages);
+        setMessages(fetchedMessages)
       }
-      setNextPageToken(newNextPageToken);
+      setNextPageToken(newNextPageToken)
     } catch (error) {
       console.error("Error loading messages:", error)
       if (error.message && error.message.includes("401")) {
@@ -150,35 +148,34 @@ const GmailInbox = ({ isOpen, onClose }) => {
         setAuthError(`Failed to load messages: ${error.message || 'An unknown error occurred'}`)
       }
     } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        setIsLoading(false)
+        setIsLoadingMore(false)
     }
   }
 
   const handleSearch = () => {
-    setSelectedMessage(null);
+    setSelectedMessage(null)
     loadMessages(searchQuery)
   }
 
   const handleRefresh = () => {
-    setSelectedMessage(null);
+    setSelectedMessage(null)
+    setSearchQuery("")
     loadMessages()
   }
 
   const handleLoadMore = () => {
     if (nextPageToken) {
-        loadMessages(searchQuery, nextPageToken);
+        loadMessages(searchQuery, nextPageToken)
     }
   }
 
   const handleMessageClick = async (message) => {
     setSelectedMessage(message)
 
-    // Mark as read if unread
     if (message.isUnread) {
       try {
         await gmailService.markAsRead(message.id)
-        // Update local state
         setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, isUnread: false } : m)))
       } catch (error) {
         console.error("Error marking message as read:", error)
@@ -187,26 +184,25 @@ const GmailInbox = ({ isOpen, onClose }) => {
   }
   
   const handleDeleteMessage = async () => {
-    if (!selectedMessage) return;
+    if (!selectedMessage) return
 
     if (window.confirm("Are you sure you want to delete this email?")) {
       try {
-        setIsLoading(true);
-        await gmailService.deleteMessage(selectedMessage.id);
+        setIsLoading(true)
+        await gmailService.deleteMessage(selectedMessage.id)
         
-        // Remove from local state
-        setMessages((prev) => prev.filter((m) => m.id !== selectedMessage.id));
-        setSelectedMessage(null); // Deselect the message
+        setMessages((prev) => prev.filter((m) => m.id !== selectedMessage.id))
+        setSelectedMessage(null)
 
-        alert("Email moved to trash.");
+        alert("Email moved to trash.")
       } catch (error) {
-        console.error("Error deleting email:", error);
-        alert("Failed to delete email.");
+        console.error("Error deleting email:", error)
+        alert("Failed to delete email.")
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
     }
-  };
+  }
 
   const handleReply = async () => {
     if (!selectedMessage || !replyText.trim()) return
@@ -231,10 +227,15 @@ const GmailInbox = ({ isOpen, onClose }) => {
     try {
       setIsLoading(true)
       await gmailService.forwardEmail(selectedMessage, forwardTo, forwardText)
+      
       setShowForwardModal(false)
       setForwardTo("")
       setForwardText("")
       alert("Email forwarded successfully!")
+
+      setSelectedMessage(null)
+      setSearchQuery("")
+      await loadMessages()
     } catch (error) {
       console.error("Error forwarding email:", error)
       alert("Failed to forward email")
@@ -258,11 +259,9 @@ const GmailInbox = ({ isOpen, onClose }) => {
         let createdCount = 0
         for (const event of aiResult.events) {
           try {
-            // Get user ID
             const user = JSON.parse(localStorage.getItem("user") || "{}")
             const userId = user.id
 
-            // Prepare activity data for API
             const activityData = {
               userId: userId,
               activityTitle: event.title,
@@ -274,7 +273,6 @@ const GmailInbox = ({ isOpen, onClose }) => {
               activityEndTime: event.endTime,
             }
 
-            // Create activity via API
             const response = await fetch("http://localhost:5000/api/activities", {
               method: "POST",
               headers: {
@@ -284,7 +282,6 @@ const GmailInbox = ({ isOpen, onClose }) => {
             })
 
             if (response.ok) {
-              console.log("Event created from email:", event.title)
               createdCount++
             } else {
               console.error("Failed to create event from email")
@@ -296,8 +293,6 @@ const GmailInbox = ({ isOpen, onClose }) => {
 
         if (createdCount > 0) {
           alert(`Successfully created ${createdCount} event(s) from this email!`)
-
-          // Trigger data refresh in parent components
           const refreshEvent = new CustomEvent("refreshCalendarData")
           window.dispatchEvent(refreshEvent)
         } else {
@@ -322,37 +317,6 @@ const GmailInbox = ({ isOpen, onClose }) => {
       minute: "2-digit",
     })
   }
-
-  const truncateText = (text, maxLength) => {
-    if (text.length <= maxLength) return text
-    return text.substring(0, maxLength) + "..."
-  }
-  
-  const searchControls = (
-    <div className="p-2 border-b bg-gray-100">
-        <div className="flex items-center space-x-2">
-            <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
-            <input
-                type="text"
-                placeholder="Search emails..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            </div>
-            <button
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="p-2 text-gray-600 hover:text-gray-800 disabled:text-gray-400 hover:bg-gray-200 rounded-lg transition-colors"
-            title="Refresh"
-            >
-            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
-            </button>
-        </div>
-    </div>
-  );
 
   if (!isOpen) return null
 
@@ -396,79 +360,104 @@ const GmailInbox = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {!selectedMessage && searchControls}
-
           <div className="flex flex-1 overflow-hidden">
-            {/* Email List */}
-            <div className="w-1/3 border-r overflow-y-auto bg-gray-100 flex flex-col">
-                {selectedMessage && searchControls}
-              {isLoading && messages.length === 0 ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="text-gray-500 flex items-center space-x-2">
-                    <RefreshCw className="animate-spin" size={16} />
-                    <span>Loading emails...</span>
-                  </div>
-                </div>
-              ) : authError ? (
-                <div className="flex items-center justify-center h-32 p-4">
-                  <div className="text-red-500 text-center">
-                    <AlertCircle className="mx-auto mb-2" size={24} />
-                    <p className="font-medium">Unable to load emails</p>
-                    <button
-                      onClick={initializeGmail}
-                      className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Try Again
-                    </button>
-                  </div>
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="text-gray-500 text-center">
-                    <Mail className="mx-auto mb-2" size={24} />
-                    <p>No emails found</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      onClick={() => handleMessageClick(message)}
-                      className={`p-4 cursor-pointer hover:bg-gray-200 transition-colors ${
-                        selectedMessage?.id === message.id ? "bg-blue-100 border-r-4 border-blue-500" : ""
-                      } ${message.isUnread ? "font-semibold" : ""}`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <div
-                              className={`text-sm ${message.isUnread ? "font-bold" : "font-medium"} text-gray-900 truncate`}
-                            >
-                              {message.from.split("<")[0].trim() || message.from}
-                            </div>
-                            {message.isUnread && <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>}
-                          </div>
-                          <div
-                            className={`text-sm ${message.isUnread ? "font-semibold" : ""} text-gray-700 truncate mb-1`}
-                          >
-                            {message.subject}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate">{message.snippet}</div>
-                        </div>
-                        <div className="text-xs text-gray-400 ml-2 flex-shrink-0">{formatDate(message.date)}</div>
+            {/* Email List Column */}
+            <div className="w-1/3 border-r bg-gray-100 flex flex-col">
+              {/* Search Controls */}
+              <div className="p-2 border-b bg-gray-100">
+                  <div className="flex items-center space-x-2">
+                      <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
+                      <input
+                          type="text"
+                          placeholder="Search emails..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
                       </div>
+                      <button
+                      onClick={handleRefresh}
+                      disabled={isLoading}
+                      className="p-2 text-gray-600 hover:text-gray-800 disabled:text-gray-400 hover:bg-gray-200 rounded-lg transition-colors"
+                      title="Refresh"
+                      >
+                      <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+                      </button>
+                  </div>
+              </div>
+
+              {/* Scrollable Email List */}
+              <div className="flex-1 overflow-y-auto">
+                {isLoading && messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-gray-500 flex items-center space-x-2">
+                      <RefreshCw className="animate-spin" size={16} />
+                      <span>Loading emails...</span>
                     </div>
-                  ))}
-                  {nextPageToken && (
-                    <div className="p-4 text-center">
-                        <button onClick={handleLoadMore} disabled={isLoadingMore} className="text-blue-600 hover:underline">
-                            {isLoadingMore ? 'Loading...' : 'Load More'}
-                        </button>
+                  </div>
+                ) : authError ? (
+                  <div className="flex items-center justify-center h-32 p-4">
+                    <div className="text-red-500 text-center">
+                      <AlertCircle className="mx-auto mb-2" size={24} />
+                      <p className="font-medium">Unable to load emails</p>
+                      <button
+                        onClick={initializeGmail}
+                        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Try Again
+                      </button>
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-gray-500 text-center">
+                      <Mail className="mx-auto mb-2" size={24} />
+                      <p>No emails found</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        onClick={() => handleMessageClick(message)}
+                        className={`p-4 cursor-pointer hover:bg-gray-200 transition-colors ${
+                          selectedMessage?.id === message.id ? "bg-blue-100 border-r-4 border-blue-500" : ""
+                        } ${message.isUnread ? "font-semibold" : ""}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <div
+                                className={`text-sm ${message.isUnread ? "font-bold" : "font-medium"} text-gray-900 truncate`}
+                              >
+                                {decodeHtmlEntities(message.from.split("<")[0].trim() || message.from)}
+                              </div>
+                              {message.isUnread && <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>}
+                            </div>
+                            <div
+                              className={`text-sm ${message.isUnread ? "font-semibold" : ""} text-gray-700 truncate mb-1`}
+                            >
+                              {decodeHtmlEntities(message.subject)}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">{decodeHtmlEntities(message.snippet)}</div>
+                          </div>
+                          <div className="text-xs text-gray-400 ml-2 flex-shrink-0">{formatDate(message.date)}</div>
+                        </div>
+                      </div>
+                    ))}
+                    {nextPageToken && (
+                      <div className="p-4 text-center">
+                          <button onClick={handleLoadMore} disabled={isLoadingMore} className="text-blue-600 hover:underline">
+                              {isLoadingMore ? 'Loading...' : 'Load More'}
+                          </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Email Content */}
@@ -479,7 +468,7 @@ const GmailInbox = ({ isOpen, onClose }) => {
                   <div className="p-4 border-b bg-gray-100 flex-shrink-0">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedMessage.subject}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{decodeHtmlEntities(selectedMessage.subject)}</h3>
                         <div className="text-sm text-gray-600 space-y-1">
                           <div className="flex items-center">
                             <span className="font-medium w-12">From:</span>
@@ -556,7 +545,7 @@ const GmailInbox = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
             <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-lg font-semibold">Reply to: {selectedMessage?.subject}</h3>
+              <h3 className="text-lg text-black font-semibold">Reply to: {selectedMessage?.subject}</h3>
               <button onClick={() => setShowReplyModal(false)} className="text-gray-500 hover:text-gray-700">
                 <X size={20} />
               </button>
@@ -594,7 +583,7 @@ const GmailInbox = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
             <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-lg font-semibold">Forward: {selectedMessage?.subject}</h3>
+              <h3 className="text-lg text-black font-semibold">Forward: {selectedMessage?.subject}</h3>
               <button onClick={() => setShowForwardModal(false)} className="text-gray-500 hover:text-gray-700">
                 <X size={20} />
               </button>

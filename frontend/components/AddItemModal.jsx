@@ -8,13 +8,14 @@ const AddItemModal = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
-
-  // State for existing data to check overlaps
   const [activities, setActivities] = useState([])
   const [goals, setGoals] = useState([])
   const [teams, setTeams] = useState([])
+  const [aiSuggestions, setAiSuggestions] = useState([])
+  const [isLoadingAI, setIsLoadingAI] = useState(false)
+  const [selectedSuggestion, setSelectedSuggestion] = useState(null)
+  const [showAISuggestions, setShowAISuggestions] = useState(false)
 
-  // Activity form state
   const [activity, setActivity] = useState({
     activityTitle: "",
     activityDescription: "",
@@ -25,7 +26,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     activityEndTime: "",
   })
 
-  // Goal form state
   const [goal, setGoal] = useState({
     goalTitle: "",
     goalDescription: "",
@@ -33,7 +33,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     goalProgress: "not-started",
   })
 
-  // Timeline entries for goal
   const [timelines, setTimelines] = useState([
     {
       timelineTitle: "",
@@ -44,13 +43,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     },
   ])
 
-  // AI scheduling state variables
-  const [aiSuggestions, setAiSuggestions] = useState([])
-  const [isLoadingAI, setIsLoadingAI] = useState(false)
-  const [selectedSuggestion, setSelectedSuggestion] = useState(null)
-  const [showAISuggestions, setShowAISuggestions] = useState(false)
-
-  // Team form state
   const [team, setTeam] = useState({
     teamName: "",
     teamDescription: "",
@@ -67,7 +59,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
       meetingEndTime: "",
       invitationType: "mandatory",
       invitedEmails: [""],
-      // AI Scheduling fields
       useAIScheduling: false,
       dateRangeStart: "",
       dateRangeEnd: "",
@@ -76,10 +67,9 @@ const AddItemModal = ({ isOpen, onClose }) => {
     },
   ])
 
-  // Get user ID from localStorage
   const getUserId = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}")
-    return user.id || 1
+    return user.id || null
   }
 
   // Fetch existing data when modal opens
@@ -93,21 +83,18 @@ const AddItemModal = ({ isOpen, onClose }) => {
     try {
       const userId = getUserId()
 
-      // Fetch activities
       const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
-      // Fetch goals
       const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
-      // Fetch teams
       const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
@@ -123,7 +110,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     if (isOpen) {
       setApiError("")
       setSuccessMessage("")
-      // Reset forms
       setActivity({
         activityTitle: "",
         activityDescription: "",
@@ -173,7 +159,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     }
   }, [isOpen])
 
-  // Handle activity form changes
   const handleActivityChange = (e) => {
     const { name, value } = e.target
     setActivity({
@@ -182,7 +167,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     })
   }
 
-  // Handle goal form changes
   const handleGoalChange = (e) => {
     const { name, value } = e.target
     setGoal({
@@ -191,7 +175,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     })
   }
 
-  // Handle timeline changes
   const handleTimelineChange = (index, e) => {
     const { name, value } = e.target
     const updatedTimelines = [...timelines]
@@ -202,7 +185,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     setTimelines(updatedTimelines)
   }
 
-  // Add new timeline
   const addTimeline = () => {
     setTimelines([
       ...timelines,
@@ -216,7 +198,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     ])
   }
 
-  // Remove timeline
   const removeTimeline = (index) => {
     if (timelines.length > 1) {
       const updatedTimelines = [...timelines]
@@ -225,7 +206,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     }
   }
 
-  // Handle team form changes
   const handleTeamChange = (e) => {
     const { name, value } = e.target
     setTeam({
@@ -234,7 +214,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     })
   }
 
-  // Handle meeting changes
   const handleMeetingChange = (index, e) => {
     const { name, value } = e.target
     const updatedMeetings = [...meetings]
@@ -245,21 +224,18 @@ const AddItemModal = ({ isOpen, onClose }) => {
     setMeetings(updatedMeetings)
   }
 
-  // Handle invited email changes
   const handleInvitedEmailChange = (meetingIndex, emailIndex, value) => {
     const updatedMeetings = [...meetings]
     updatedMeetings[meetingIndex].invitedEmails[emailIndex] = value
     setMeetings(updatedMeetings)
   }
 
-  // Add new invited email
   const addInvitedEmail = (meetingIndex) => {
     const updatedMeetings = [...meetings]
     updatedMeetings[meetingIndex].invitedEmails.push("")
     setMeetings(updatedMeetings)
   }
 
-  // Remove invited email
   const removeInvitedEmail = (meetingIndex, emailIndex) => {
     const updatedMeetings = [...meetings]
     if (updatedMeetings[meetingIndex].invitedEmails.length > 1) {
@@ -268,7 +244,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     }
   }
 
-  // Add new meeting
   const addMeeting = () => {
     setMeetings([
       ...meetings,
@@ -289,7 +264,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     ])
   }
 
-  // Remove meeting
   const removeMeeting = (index) => {
     if (meetings.length > 1) {
       const updatedMeetings = [...meetings]
@@ -298,7 +272,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     }
   }
 
-  // Check for activity overlaps
   const checkActivityOverlaps = (newActivity) => {
     if (!newActivity.activityStartTime || !newActivity.activityEndTime) {
       return []
@@ -382,7 +355,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     return overlaps
   }
 
-  // Check for goal timeline overlaps
   const checkGoalTimelineOverlaps = (newTimeline) => {
     const overlaps = []
 
@@ -437,23 +409,19 @@ const AddItemModal = ({ isOpen, onClose }) => {
           const existingStart = new Date(existingTimeline.timelinestartdate)
           const existingEnd = new Date(existingTimeline.timelineenddate)
 
-          // Check for date range overlap first
           if (newStart <= existingEnd && newEnd >= existingStart) {
-            // Only trigger alert if BOTH timelines have specific start and end times
             if (
               newTimeline.timelineStartTime &&
               newTimeline.timelineEndTime &&
               existingTimeline.timelinestarttime &&
               existingTimeline.timelineendtime
             ) {
-              // Find a common day to compare times
               const commonDay = new Date(Math.max(newStart.getTime(), existingStart.getTime()))
               const newTimelineStartTime = new Date(`${commonDay.toDateString()} ${newTimeline.timelineStartTime}`)
               const newTimelineEndTime = new Date(`${commonDay.toDateString()} ${newTimeline.timelineEndTime}`)
               const existingTimelineStartTime = new Date(`${commonDay.toDateString()} ${existingTimeline.timelinestarttime}`)
               const existingTimelineEndTime = new Date(`${commonDay.toDateString()} ${existingTimeline.timelineendtime}`)
 
-              // If times overlap, then it's a conflict
               if (newTimelineStartTime < existingTimelineEndTime && newTimelineEndTime > existingTimelineStartTime) {
                 overlaps.push({
                   type: "goal",
@@ -463,7 +431,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 })
               }
             }
-            // If one or both are "all-day", it's not a direct time conflict, so no alert.
           }
         })
       }
@@ -511,7 +478,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     return overlaps
   }
 
-  // Validate activity form
   const validateActivityForm = () => {
     if (!activity.activityTitle.trim()) {
       setApiError("Activity title is required")
@@ -524,7 +490,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     return true
   }
 
-  // Validate goal form
   const validateGoalForm = () => {
     if (!goal.goalTitle.trim()) {
       setApiError("Goal title is required")
@@ -543,7 +508,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     return true
   }
 
-  // Validate team form
   const validateTeamForm = () => {
     if (!team.teamName.trim()) {
       setApiError("Team name is required")
@@ -570,7 +534,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     try {
       const meeting = meetings[meetingIndex]
 
-      // Get team members from invited emails
       const validEmails = meeting.invitedEmails.filter((email) => email.trim())
       if (validEmails.length === 0) {
         setApiError("Please add at least one team member email")
@@ -578,21 +541,15 @@ const AddItemModal = ({ isOpen, onClose }) => {
         return
       }
 
-      // Include creator in the analysis
       const currentUser = JSON.parse(localStorage.getItem("user") || "{}")
       const allMemberEmails = [currentUser.email, ...validEmails]
-
-      // Get user data and activities for all members
       const memberActivities = {}
       const teamMembers = []
       const memberGoals = {}
       const memberTeams = {}
 
-      console.log("Fetching data for members:", allMemberEmails)
-
       for (const email of allMemberEmails) {
         try {
-          // Get user by email
           const userResponse = await fetch(`http://localhost:5000/api/users/by-email/${encodeURIComponent(email)}`)
 
           if (userResponse.ok) {
@@ -605,15 +562,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
               email: userData.user.useremail,
             })
 
-            console.log(`Found user ${userData.user.username} (${email})`)
-
             // Get their activities
             const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
             if (activitiesResponse.ok) {
               const activitiesData = await activitiesResponse.json()
-              console.log(`Raw activities for ${userData.user.username}:`, activitiesData.activities)
 
-              // Filter activities within date range with better date handling
+              // Filter activities within date range
               const filteredActivities = activitiesData.activities.filter((activity) => {
                 if (!activity.activitydate) return false
 
@@ -621,7 +575,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 const startDate = new Date(meeting.dateRangeStart)
                 const endDate = new Date(meeting.dateRangeEnd)
 
-                // Ensure dates are valid
                 if (isNaN(activityDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
                   console.warn(`Invalid date found for activity: ${activity.activitytitle}`, {
                     activityDate: activity.activitydate,
@@ -632,14 +585,10 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 }
 
                 const isInRange = activityDate >= startDate && activityDate <= endDate
-                console.log(
-                  `Activity "${activity.activitytitle}" on ${activity.activitydate}: ${isInRange ? "INCLUDED" : "EXCLUDED"}`,
-                )
                 return isInRange
               })
 
               memberActivities[userId] = filteredActivities
-              console.log(`Found ${filteredActivities.length} activities for ${userData.user.username} in date range`)
             } else {
               console.warn(`Failed to fetch activities for ${userData.user.username}`)
               memberActivities[userId] = []
@@ -649,7 +598,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
             const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
             if (goalsResponse.ok) {
               const goalsData = await goalsResponse.json()
-              console.log(`Raw goals for ${userData.user.username}:`, goalsData.goals)
 
               // Filter goal timelines within date range
               const filteredGoals = goalsData.goals
@@ -663,7 +611,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     const rangeStart = new Date(meeting.dateRangeStart)
                     const rangeEnd = new Date(meeting.dateRangeEnd)
 
-                    // Check for valid dates
                     if (
                       isNaN(timelineStart.getTime()) ||
                       isNaN(timelineEnd.getTime()) ||
@@ -675,16 +622,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     }
 
                     const overlaps = timelineStart <= rangeEnd && timelineEnd >= rangeStart
-                    console.log(
-                      `Timeline "${timeline.timelinetitle}" (${timeline.timelinestartdate} to ${timeline.timelineenddate}): ${overlaps ? "INCLUDED" : "EXCLUDED"}`,
-                    )
                     return overlaps
                   }),
                 }))
                 .filter((goal) => goal.timelines.length > 0)
 
               memberGoals[userId] = filteredGoals
-              console.log(`Found ${filteredGoals.length} relevant goals for ${userData.user.username}`)
             } else {
               console.warn(`Failed to fetch goals for ${userData.user.username}`)
               memberGoals[userId] = []
@@ -707,7 +650,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
                 })
               })
               memberTeams[userId] = allMeetings
-              console.log(`Found ${allMeetings.length} team meetings for ${userData.user.username}`)
             } else {
               memberTeams[userId] = []
             }
@@ -737,7 +679,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
         }
       }
 
-      // Combine all scheduling conflicts for comprehensive analysis
       const allMemberSchedules = {}
       Object.keys(memberActivities).forEach((userId) => {
         allMemberSchedules[userId] = {
@@ -747,14 +688,12 @@ const AddItemModal = ({ isOpen, onClose }) => {
         }
       })
 
-      // Validate that we have the required date range
       if (!meeting.dateRangeStart || !meeting.dateRangeEnd) {
         setApiError("Please specify both start and end dates for the meeting range")
         setIsLoadingAI(false)
         return
       }
 
-      // Validate date range
       const startDate = new Date(meeting.dateRangeStart)
       const endDate = new Date(meeting.dateRangeEnd)
       if (startDate > endDate) {
@@ -763,32 +702,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
         return
       }
 
-      console.log(`Analyzing schedules for date range: ${meeting.dateRangeStart} to ${meeting.dateRangeEnd}`)
-
-      // Log summary of collected data
-      console.log("=== SCHEDULE ANALYSIS SUMMARY ===")
-      Object.keys(allMemberSchedules).forEach((userId) => {
-        const member = teamMembers.find((m) => m.userid === userId)
-        const memberName = member ? member.username : userId
-        const schedule = allMemberSchedules[userId]
-
-        console.log(`${memberName}:`)
-        console.log(`  - Activities: ${schedule.activities.length}`)
-        console.log(`  - Goals: ${schedule.goals.length}`)
-        console.log(`  - Meetings: ${schedule.meetings.length}`)
-
-        // Log specific conflicts
-        schedule.activities.forEach((activity) => {
-          console.log(
-            `    Activity: ${activity.activitytitle} on ${activity.activitydate} ${activity.activitystarttime || "all day"}`,
-          )
-        })
-      })
-      console.log("=== END SUMMARY ===")
-
-      console.log("Complete member schedules:", allMemberSchedules)
-
-      // Call AI service with comprehensive data
       const aiService = (await import("../services/aiService.js")).default
       const result = await aiService.findOptimalMeetingTimes(
         teamMembers,
@@ -809,7 +722,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
         setAiSuggestions(result.suggestions)
         setSelectedSuggestion(null)
         setShowAISuggestions(true)
-        console.log("AI suggestions generated:", result.suggestions)
       } else {
         setApiError(result.error || "Failed to generate meeting suggestions")
       }
@@ -834,7 +746,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
     setShowAISuggestions(false)
   }
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
     setApiError("")
@@ -843,13 +754,11 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
     try {
       if (activeTab === "activity") {
-        // Validate activity form
         if (!validateActivityForm()) {
           setIsLoading(false)
           return
         }
 
-        // Check for overlaps
         const overlaps = checkActivityOverlaps(activity)
         if (overlaps.length > 0) {
           const overlapDetails = overlaps
@@ -865,7 +774,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
           }
         }
 
-        // Prepare activity data for API
         const activityData = {
           userId: getUserId(),
           activityTitle: activity.activityTitle,
@@ -877,7 +785,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
           activityEndTime: activity.activityEndTime,
         }
 
-        // Make API call
         const response = await fetch("http://localhost:5000/api/activities", {
           method: "POST",
           headers: {
@@ -889,10 +796,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
         const data = await response.json()
 
         if (response.ok) {
-          console.log("Activity created successfully:", data)
           setSuccessMessage("Activity created successfully!")
-
-          // Close modal after a delay
           setTimeout(() => {
             onClose()
           }, 1500)
@@ -901,13 +805,11 @@ const AddItemModal = ({ isOpen, onClose }) => {
           setApiError(data.message || "Failed to create activity. Please try again.")
         }
       } else if (activeTab === "goal") {
-        // Validate goal form
         if (!validateGoalForm()) {
           setIsLoading(false)
           return
         }
 
-        // Check for overlaps in all timelines
         const allOverlaps = []
         timelines.forEach((timeline, index) => {
           if (timeline.timelineTitle.trim() && timeline.timelineStartDate && timeline.timelineEndDate) {
@@ -940,7 +842,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
           }
         }
 
-        // Prepare goal data for API
         const goalData = {
           userId: getUserId(),
           goalTitle: goal.goalTitle,
@@ -956,7 +857,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
           })),
         }
 
-        // Make API call
         const response = await fetch("http://localhost:5000/api/goals", {
           method: "POST",
           headers: {
@@ -968,10 +868,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
         const data = await response.json()
 
         if (response.ok) {
-          console.log("Goal created successfully:", data)
           setSuccessMessage("Goal created successfully!")
-
-          // Close modal after a delay
           setTimeout(() => {
             onClose()
           }, 1500)
@@ -980,13 +877,11 @@ const AddItemModal = ({ isOpen, onClose }) => {
           setApiError(data.message || "Failed to create goal. Please try again.")
         }
       } else if (activeTab === "team") {
-        // Validate team form
         if (!validateTeamForm()) {
           setIsLoading(false)
           return
         }
 
-        // Prepare team data for API
         const teamData = {
           createdByUserId: getUserId(),
           teamName: team.teamName,
@@ -1004,7 +899,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
           })),
         }
 
-        // Make API call
         const response = await fetch("http://localhost:5000/api/teams", {
           method: "POST",
           headers: {
@@ -1016,10 +910,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
         const data = await response.json()
 
         if (response.ok) {
-          console.log("Team created successfully:", data)
           setSuccessMessage("Team created successfully!")
-
-          // Close modal after a delay
           setTimeout(() => {
             onClose()
           }, 1500)
@@ -1087,7 +978,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
             {apiError}
           </div>
         )}
-
         {successMessage && (
           <div className="mx-6 mt-4 flex items-center p-3 bg-green-900 bg-opacity-50 border border-green-700 text-green-300 rounded">
             <CheckCircle size={18} className="mr-2" />
@@ -1137,7 +1027,6 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     <option value="health">Health</option>
                     <option value="education">Education</option>
                     <option value="social">Social</option>
-                    <option value="meeting">Meeting</option>
                   </select>
                 </div>
 
@@ -1250,7 +1139,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     <option value="">Select a category</option>
                     <option value="career">Career</option>
                     <option value="personal">Personal</option>
-                    <option value="health">Health & Fitness</option>
+                    <option value="health">Health</option>
                     <option value="education">Education</option>
                     <option value="financial">Financial</option>
                   </select>
@@ -1723,6 +1612,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
                     </div>
                   </div>
                 ))}
+                
                 {/* AI Suggestions Modal */}
                 {showAISuggestions && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

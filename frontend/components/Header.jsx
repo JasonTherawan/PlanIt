@@ -2,10 +2,8 @@
 
 import { Search, ChevronLeft, ChevronRight, User, X, Bell } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-import googleAuthService from "../services/googleAuth"
 
 const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationClick, dataUpdateTrigger }) => {
-  const [user, setUser] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState([])
   const [showResults, setShowResults] = useState(false)
@@ -13,57 +11,21 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
   const [goals, setGoals] = useState([])
   const [teams, setTeams] = useState([])
   const [userProfileData, setUserProfileData] = useState(null)
-  const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const searchRef = useRef(null)
-  const resultsRef = useRef(null)
 
-  // Get user ID from localStorage or Google Auth
   const getUserId = () => {
     const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
-    return storedUser.id || storedUser.userId || 1
+    return storedUser.id || storedUser.userId || null
   }
 
-  // Get user info
-  const fetchUser = async () => {
-    try {
-      // First try to get from Google Auth service
-      const currentUser = googleAuthService.getCurrentUser()
-      if (currentUser) {
-        setUser(currentUser)
-        return currentUser
-      }
-
-      // Fallback to localStorage
-      const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
-      if (storedUser.id || storedUser.email) {
-        setUser(storedUser)
-        return storedUser
-      }
-
-      // If no user found, try to restore from existing auth
-      const restoredUser = await googleAuthService.checkExistingAuth()
-      if (restoredUser) {
-        setUser(restoredUser)
-        return restoredUser
-      }
-
-      console.log("No user found in storage or auth service")
-      return null
-    } catch (error) {
-      console.error("Error fetching user in Header:", error)
-      return null
-    }
-  }
-
-  // Fetch notifications
   const fetchNotifications = async () => {
     try {
       const userId = getUserId()
+      if (!userId) return;
       const response = await fetch(`http://localhost:5000/api/notifications?userId=${userId}`)
       if (response.ok) {
         const data = await response.json()
-        setNotifications(data.notifications || [])
         setUnreadCount(data.unreadCount || 0)
       }
     } catch (error) {
@@ -71,116 +33,95 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
     }
   }
 
+  const fetchUserProfile = async () => {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+      if (!storedUser.id) return
+
+      const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
+      if (response.ok) {
+        const { user: apiUser } = await response.json()
+        setUserProfileData({
+          imageUrl: apiUser.userprofilepicture || null,
+          username: apiUser.username,
+          isGoogleUser: !!apiUser.isgoogleuser,
+        })
+      } else {
+         setUserProfileData({
+          imageUrl: null,
+          username: storedUser.name || storedUser.username,
+          isGoogleUser: !!storedUser.googleId || !!storedUser.accessToken,
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error)
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+      if (storedUser.id) {
+          setUserProfileData({
+              imageUrl: null,
+              username: storedUser.name || storedUser.username,
+              isGoogleUser: !!storedUser.googleId || !!storedUser.accessToken,
+          })
+      }
+    }
+  }
+
   useEffect(() => {
-    fetchUser()
     fetchAllData()
     fetchNotifications()
+    fetchUserProfile()
 
     const notificationInterval = setInterval(fetchNotifications, 30000)
     
     const handleNotificationsUpdate = () => fetchNotifications()
     window.addEventListener("notificationsUpdated", handleNotificationsUpdate)
 
+    const handleProfileUpdate = () => fetchUserProfile()
+    window.addEventListener("profileUpdated", handleProfileUpdate)
+
     return () => {
       clearInterval(notificationInterval)
       window.removeEventListener("notificationsUpdated", handleNotificationsUpdate)
+      window.removeEventListener("profileUpdated", handleProfileUpdate)
     }
   }, [dataUpdateTrigger])
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
-        if (storedUser.id) {
-          // Check if Google user
-          const isGoogleUser = !!storedUser.googleId || !!storedUser.accessToken
-
-          if (isGoogleUser) {
-            // For Google users, try to get from API first, fallback to stored data
-            try {
-              const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
-              if (response.ok) {
-                const userData = await response.json()
-                // If user has custom profile picture, use it; otherwise use Google's
-                setUserProfileData({
-                  imageUrl: userData.user.userprofilepicture || storedUser.imageUrl,
-                  username: userData.user.username,
-                  isGoogleUser: true,
-                })
-              } else {
-                // Fallback to stored Google data
-                setUserProfileData({
-                  imageUrl: storedUser.imageUrl,
-                  username: storedUser.username || storedUser.name,
-                  isGoogleUser: true,
-                })
-              }
-            } catch (error) {
-              // Fallback to stored Google data
-              setUserProfileData({
-                imageUrl: storedUser.imageUrl,
-                username: storedUser.username || storedUser.name,
-                isGoogleUser: true,
-              })
-            }
-          } else {
-            // For regular users, fetch from API
-            const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
-            if (response.ok) {
-              const userData = await response.json()
-              setUserProfileData({
-                imageUrl: userData.user.userprofilepicture,
-                username: userData.user.username,
-                isGoogleUser: false,
-              })
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user profile:", error)
-      }
-    }
-
-    fetchUserProfile()
-  }, [])
 
   const fetchAllData = async () => {
     try {
       const userId = getUserId()
-      console.log("Fetching data for user ID:", userId)
+      if (!userId) return;
 
-      // Fetch activities
-      const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
-      if (activitiesResponse.ok) {
-        const activitiesData = await activitiesResponse.json()
+      const [activitiesRes, goalsRes, teamsRes] = await Promise.all([
+        fetch(`http://localhost:5000/api/activities?userId=${userId}`),
+        fetch(`http://localhost:5000/api/goals?userId=${userId}`),
+        fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+      ]);
+      
+      if (activitiesRes.ok) {
+        const activitiesData = await activitiesRes.json()
         setActivities(activitiesData.activities || [])
       } else {
-        console.error("Failed to fetch activities:", activitiesResponse.status)
+        console.error("Failed to fetch activities:", activitiesRes.status)
       }
 
-      // Fetch goals
-      const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
-      if (goalsResponse.ok) {
-        const goalsData = await goalsResponse.json()
+      if (goalsRes.ok) {
+        const goalsData = await goalsRes.json()
         setGoals(goalsData.goals || [])
       } else {
-        console.error("Failed to fetch goals:", goalsResponse.status)
+        console.error("Failed to fetch goals:", goalsRes.status)
       }
 
-      // Fetch teams
-      const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
-      if (teamsResponse.ok) {
-        const teamsData = await teamsResponse.json()
+      if (teamsRes.ok) {
+        const teamsData = await teamsRes.json()
         setTeams(teamsData.teams || [])
       } else {
-        console.error("Failed to fetch teams:", teamsResponse.status)
+        console.error("Failed to fetch teams:", teamsRes.status)
       }
     } catch (error) {
       console.error("Error fetching data:", error)
     }
   }
 
-  // Search function
   const performSearch = (query) => {
     if (!query.trim()) {
       setSearchResults([])
@@ -191,7 +132,6 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
     const results = []
     const lowerQuery = query.toLowerCase()
 
-    // Search activities
     activities.forEach((activity) => {
       if (activity.activitytitle?.toLowerCase().includes(lowerQuery)) {
         results.push({
@@ -199,22 +139,11 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
           type: "activity",
           title: activity.activitytitle,
           subtitle: `Activity - ${activity.activitydate}`,
-          data: {
-            id: activity.activityid,
-            type: "activity",
-            activitytitle: activity.activitytitle,
-            activitydate: activity.activitydate,
-            activitystarttime: activity.activitystarttime,
-            activityendtime: activity.activityendtime,
-            activitydescription: activity.activitydescription,
-            activitycategory: activity.activitycategory,
-            activityurgency: activity.activityurgency,
-          },
+          data: activity,
         })
       }
     })
 
-    // Search goal timelines
     goals.forEach((goal) => {
       if (goal.timelines) {
         goal.timelines.forEach((timeline) => {
@@ -230,28 +159,13 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
               timelineId: timeline.timelineid,
               title: goalTimelineTitle,
               subtitle: `Goal - ${timeline.timelinestartdate} to ${timeline.timelineenddate}`,
-              data: {
-                id: goal.goalid,
-                type: "goal",
-                timelineId: timeline.timelineid,
-                goaltitle: goal.goaltitle,
-                timelinetitle: timeline.timelinetitle,
-                timelinestartdate: timeline.timelinestartdate,
-                timelineenddate: timeline.timelineenddate,
-                timelinestarttime: timeline.timelinestarttime,
-                timelineendtime: timeline.timelineendtime,
-                goaldescription: goal.goaldescription,
-                goalcategory: goal.goalcategory,
-                goalprogress: goal.goalprogress,
-                timelines: goal.timelines,
-              },
+              data: { ...goal, ...timeline },
             })
           }
         })
       }
     })
 
-    // Search team meetings
     teams.forEach((team) => {
       if (team.meetings) {
         team.meetings.forEach((meeting) => {
@@ -261,23 +175,13 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
               type: "meeting",
               title: meeting.meetingtitle,
               subtitle: `Meeting - ${team.teamname} - ${meeting.meetingdate}`,
-              data: {
-                id: meeting.teammeetingid,
-                type: "meeting",
-                meetingtitle: meeting.meetingtitle,
-                meetingdate: meeting.meetingdate,
-                meetingstarttime: meeting.meetingstarttime,
-                meetingendtime: meeting.meetingendtime,
-                meetingdescription: meeting.meetingdescription,
-                teamname: team.teamname,
-              },
+              data: { ...meeting, teamname: team.teamname },
             })
           }
         })
       }
     })
 
-    // Sort results by relevance (exact matches first, then partial matches)
     results.sort((a, b) => {
       const aExact = a.title.toLowerCase() === lowerQuery
       const bExact = b.title.toLowerCase() === lowerQuery
@@ -286,93 +190,49 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
       return a.title.localeCompare(b.title)
     })
 
-    setSearchResults(results.slice(0, 10)) // Limit to 10 results
+    setSearchResults(results.slice(0, 10))
     setShowResults(true)
   }
 
-  // Handle search input change
   const handleSearchChange = (e) => {
     const query = e.target.value
     setSearchQuery(query)
     performSearch(query)
   }
 
-  // Handle search result click
   const handleResultClick = (result) => {
-    // Clear search
     setSearchQuery("")
     setSearchResults([])
     setShowResults(false)
 
-    // Navigate to the item's date
-    let itemDate
+    let itemDate;
     if (result.type === "activity") {
-      itemDate = new Date(result.data.activitydate)
+      itemDate = new Date(result.data.activitydate);
     } else if (result.type === "meeting") {
-      itemDate = new Date(result.data.meetingdate)
+      itemDate = new Date(result.data.meetingdate);
     } else if (result.type === "goal") {
-      itemDate = new Date(result.data.timelinestartdate)
+      itemDate = new Date(result.data.timelinestartdate);
     }
 
     if (itemDate) {
-      setCurrentDate(new Date(itemDate))
+      setCurrentDate(new Date(itemDate));
     }
 
-    // Highlight the item on calendar grid
-    const highlightEvent = new CustomEvent("highlightCalendarItem", {
-      detail: {
-        id: result.id,
-        type: result.type,
-        timelineId: result.timelineId || null,
-      },
-    })
-    window.dispatchEvent(highlightEvent)
+    const highlightDetail = {
+      id: result.id,
+      type: result.type,
+      timelineId: result.timelineId || null,
+    };
 
-    // Highlight the item in sidebar
-    const sidebarEvent = new CustomEvent("highlightSidebarItem", {
-      detail: {
-        id: result.id,
-        type: result.type,
-        timelineId: result.timelineId || null,
-      },
-    })
-    window.dispatchEvent(sidebarEvent)
+    window.dispatchEvent(new CustomEvent("highlightCalendarItem", { detail: highlightDetail }));
+    window.dispatchEvent(new CustomEvent("highlightSidebarItem", { detail: highlightDetail }));
 
-    // Show info modal
     setTimeout(() => {
-      // Prepare complete item data for info modal
-      let completeItemData = result.data
-
-      if (result.type === "goal") {
-        // For goals, ensure we have the complete structure
-        completeItemData = {
-          ...result.data,
-          id: result.id,
-          type: "goal",
-          timelineId: result.timelineId,
-        }
-      } else if (result.type === "activity") {
-        completeItemData = {
-          ...result.data,
-          id: result.id,
-          type: "activity",
-        }
-      } else if (result.type === "meeting") {
-        completeItemData = {
-          ...result.data,
-          id: result.id,
-          type: "meeting",
-        }
-      }
-
-      const infoEvent = new CustomEvent("showInfoModal", {
-        detail: { item: completeItemData },
-      })
-      window.dispatchEvent(infoEvent)
-    }, 500)
+      const completeItemData = { ...result.data, id: result.id, type: result.type, timelineId: result.timelineId || null };
+      window.dispatchEvent(new CustomEvent("showInfoModal", { detail: { item: completeItemData } }));
+    }, 500);
   }
 
-  // Handle click outside to close search results
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -387,15 +247,19 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
   }, [])
 
   const navigateToPreviousMonth = () => {
-    const newDate = new Date(currentDate)
-    newDate.setMonth(newDate.getMonth() - 1)
-    setCurrentDate(newDate)
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
   }
 
   const navigateToNextMonth = () => {
-    const newDate = new Date(currentDate)
-    newDate.setMonth(newDate.getMonth() + 1)
-    setCurrentDate(newDate)
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
   }
 
   const formatMonthYear = () => {
@@ -410,7 +274,6 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
   
   return (
     <div className="flex justify-between items-center p-4 border-b">
-      {/* Navigation Section */}
       <div className="flex items-center space-x-4">
         <button onClick={navigateToPreviousMonth} className="p-1 rounded-full hover:bg-gray-200">
           <ChevronLeft size={20} />
@@ -421,7 +284,6 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
         <h1 className="text-xl font-medium">{formatMonthYear()}</h1>
       </div>
 
-      {/* Search and Profile */}
       <div className="flex items-center space-x-4">
         <div className="relative rounded-lg hover:ring-2 hover:ring-gray-400" ref={searchRef}>
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
@@ -442,15 +304,13 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
             </button>
           )}
 
-          {/* Search Results Dropdown */}
           {showResults && searchResults.length > 0 && (
             <div
-              ref={resultsRef}
               className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
             >
-              {searchResults.map((result, index) => (
+              {searchResults.map((result) => (
                 <div
-                  key={`${result.type}-${result.id}-${result.timelineId || index}`}
+                  key={`${result.type}-${result.id}-${result.timelineId || ''}`}
                   onClick={() => handleResultClick(result)}
                   className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                 >
@@ -461,7 +321,6 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
             </div>
           )}
 
-          {/* No Results Message */}
           {showResults && searchQuery && searchResults.length === 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4">
               <div className="text-gray-500 text-center">No results found for "{searchQuery}"</div>
@@ -469,7 +328,6 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
           )}
         </div>
 
-        {/* Notification Bell */}
         <div className="relative">
           <button
             onClick={onNotificationClick}
@@ -488,11 +346,10 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
         <button onClick={onProfileClick} className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden hover:ring-2 hover:ring-gray-400">
           {userProfileData?.imageUrl ? (
             <img
-              src={userProfileData.imageUrl || "/placeholder.svg"}
+              src={userProfileData.imageUrl}
               alt="Profile"
               className="w-full h-full object-cover"
               onError={(e) => {
-                // Fallback to default avatar if image fails to load
                 e.target.style.display = "none"
                 e.target.nextSibling.style.display = "flex"
               }}

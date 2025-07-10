@@ -13,16 +13,10 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
     try {
       setIsLoading(true)
       setError("")
-
-      console.log(`Starting Google ${mode}...`)
       const user = await googleAuthService.signIn()
 
-      console.log("Google authentication successful, user:", user)
-
-      // For new users (sign up), register them in the database
       if (mode === "signup") {
         try {
-          console.log("Registering new Google user in database...")
           const registerResponse = await fetch("http://localhost:5000/api/register", {
             method: "POST",
             headers: {
@@ -32,28 +26,24 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
               username: user.name,
               email: user.email,
               googleId: user.id,
-              rememberMe: rememberMe, // Pass rememberMe status
-              // No password needed for Google users
+              imageUrl: user.imageUrl,
+              rememberMe: rememberMe,
             }),
           })
 
           const registerData = await registerResponse.json()
 
           if (registerResponse.ok) {
-            console.log("User registered successfully:", registerData)
-            // Update stored user with database user ID
             const updatedUser = {
               ...user,
-              id: registerData.userId, // Store database UserId as id
+              id: registerData.userId,
               userId: registerData.userId,
             }
             localStorage.setItem("user", JSON.stringify(updatedUser))
-
-            // Navigate to main app
             navigate("/app")
           } else {
             // If registration fails (e.g., user already exists), try to login
-            console.log("Registration failed, attempting login:", registerData.message)
+            console.log("Registration failed, attempting login...")
 
             const loginResponse = await fetch("http://localhost:5000/api/login", {
               method: "POST",
@@ -62,24 +52,21 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
               },
               body: JSON.stringify({
                 email: user.email,
-                googleId: user.id, // This is correct - user.id is the Google ID from OAuth
-                rememberMe: rememberMe, // Pass rememberMe status
+                googleId: user.id,
+                imageUrl: user.imageUrl,
+                rememberMe: rememberMe,
               }),
             })
 
             const loginData = await loginResponse.json()
 
             if (loginResponse.ok) {
-              console.log("Login successful:", loginData)
-              // Update stored user with database user ID
               const updatedUser = {
                 ...user,
-                id: loginData.user.userId, // Store database UserId as id
+                id: loginData.user.userId,
                 userId: loginData.user.userId,
               }
               localStorage.setItem("user", JSON.stringify(updatedUser))
-
-              // Navigate to main app
               navigate("/app")
             } else {
               console.error("Both registration and login failed:", loginData.message)
@@ -93,7 +80,6 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
       } else {
         // For sign in, try to login with Google ID
         try {
-          console.log("Logging in existing Google user...")
           const loginResponse = await fetch("http://localhost:5000/api/login", {
             method: "POST",
             headers: {
@@ -101,24 +87,21 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
             },
             body: JSON.stringify({
               email: user.email,
-              googleId: user.id, // This is correct - user.id is the Google ID from OAuth
-              rememberMe: rememberMe, // Pass rememberMe status
+              googleId: user.id,
+              imageUrl: user.imageUrl,
+              rememberMe: rememberMe,
             }),
           })
 
           const loginData = await loginResponse.json()
 
           if (loginResponse.ok) {
-            console.log("Login successful:", loginData)
-            // Update stored user with database user ID
             const updatedUser = {
               ...user,
-              id: loginData.user.userId, // Store database UserId as id
+              id: loginData.user.userId,
               userId: loginData.user.userId,
             }
             localStorage.setItem("user", JSON.stringify(updatedUser))
-
-            // Navigate to main app
             navigate("/app")
           } else {
             console.error("Login failed:", loginData.message)
@@ -142,7 +125,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
       <button
         onClick={handleGoogleSignIn}
         disabled={isLoading}
-        className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
           <div className="flex items-center">

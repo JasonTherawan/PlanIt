@@ -1,0 +1,78 @@
+import { Link } from "react-router-dom"
+import bottomleftshape from "../assets/bottomleftshape.png"
+import toprightshape from "../assets/toprightshape.png"
+import planitLogo from '/planitLogo.png'
+
+const PrivacyPolicy = () => {
+  return (
+    <div className="bg-white">
+      <div className="fixed top-0 left-0 z-0">
+        <img src={toprightshape} alt="Top right shape" className="w-auto h-auto" />
+      </div>
+      <div className="fixed bottom-0 right-0 z-0">
+        <img src={bottomleftshape} alt="Bottom left shape" className="w-auto h-auto" />
+      </div>
+
+      <header className="bg-[#001a33] text-white py-4 px-6 flex items-center justify-between fixed top-0 w-full z-20">
+        <Link to="/" className="flex items-center space-x-4">
+          <img src={planitLogo} alt="PlanIt Logo" className="w-10 h-10"/>
+          <div className="font-bold">
+            <h1 className="text-2xl tracking-wider">PLANIT</h1>
+            <p className="text-sm text-gray-300">Plan Smarter. Work Better.</p>
+          </div>
+        </Link>
+        <nav className="flex items-center space-x-8">
+          <Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link>
+          <Link to="/about" className="hover:underline">About us</Link>
+          <Link to="/learn-more" className="hover:underline">Learn More</Link>
+          <Link to="/login" className="hover:underline">Login</Link>
+          <Link to="/register" className="hover:underline">Register</Link>
+        </nav>
+      </header>
+
+      <main className="relative z-10 container mx-auto mt-20 px-6 py-20">
+        <div className="max-w-4xl mx-auto bg-gray-100 backdrop-blur-sm p-8 md:p-12 rounded-lg shadow-2xl">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-extrabold text-gray-900">Privacy Policy</h1>
+            <p className="mt-4 text-sm text-gray-500">Last updated: July 10, 2025</p>
+          </div>
+
+          <div className="prose prose-lg max-w-none text-gray-700 space-y-4">
+            <p>This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.</p>
+            <p>We use Your Personal data to provide and improve the Service. By using the Service, You agree to the collection and use of information in accordance with this Privacy Policy.</p>
+            
+            <h2 className="!text-2xl !font-semibold !text-gray-800 pt-4 border-t border-gray-200 !mt-8">Interpretation and Definitions</h2>
+            <h3 className="!text-xl !font-semibold !text-gray-800">Interpretation</h3>
+            <p>The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
+            
+            <h3 className="!text-xl !font-semibold !text-gray-800">Definitions</h3>
+            <p>For the purposes of this Privacy Policy:</p>
+            <ul className="list-disc list-inside space-y-2">
+                <li><strong>Account</strong> means a unique account created for You to access our Service or parts of our Service.</li>
+                <li><strong>Affiliate</strong> means an entity that controls, is controlled by or is under common control with a party, where &quot;control&quot; means ownership of 50% or more of the shares, equity interest or other securities entitled to vote for election of directors or other managing authority.</li>
+                <li><strong>Company</strong> (referred to as either &quot;the Company&quot;, &quot;We&quot;, &quot;Us&quot; or &quot;Our&quot; in this Agreement) refers to PlanIt.</li>
+                <li><strong>Cookies</strong> are small files that are placed on Your computer, mobile device or any other device by a website, containing the details of Your browsing history on that website among its many uses.</li>
+                <li><strong>Country</strong> refers to: Indonesia</li>
+                <li><strong>Device</strong> means any device that can access the Service such as a computer, a cellphone or a digital tablet.</li>
+                <li><strong>Personal Data</strong> is any information that relates to an identified or identifiable individual.</li>
+                <li><strong>Service</strong> refers to the Website.</li>
+                <li><strong>Service Provider</strong> means any natural or legal person who processes the data on behalf of the Company. It refers to third-party companies or individuals employed by the Company to facilitate the Service, to provide the Service on behalf of the Company, to perform services related to the Service or to assist the Company in analyzing how the Service is used.</li>
+                <li><strong>Usage Data</strong> refers to data collected automatically, either generated by the use of the Service or from the Service infrastructure itself (for example, the duration of a page visit).</li>
+                <li><strong>Website</strong> refers to PlanIt, accessible from <a href="https://www.plannerplanit.com" className="text-blue-600 hover:underline" rel="external nofollow noopener" target="_blank">https://www.plannerplanit.com</a></li>
+                <li><strong>You</strong> means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.</li>
+            </ul>
+
+            <h2 className="!text-2xl !font-semibold !text-gray-800 pt-4 border-t border-gray-200 !mt-8">Contact Us</h2>
+            <p>If you have any questions about this Privacy Policy, You can contact us:</p>
+            <ul className="list-disc list-inside space-y-2">
+                <li>By email: <a href="mailto:planner.planit.app@gmail.com" className="text-blue-600 hover:underline">planner.planit.app@gmail.com</a></li>
+                <li>By visiting this page on our website: <a href="https://www.plannerplanit.com/privacy-policy" className="text-blue-600 hover:underline" rel="external nofollow noopener" target="_blank">https://www.plannerplanit.com/privacy-policy</a></li>
+            </ul>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+export default PrivacyPolicy

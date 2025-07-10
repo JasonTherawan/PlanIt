@@ -9,10 +9,9 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
   const [error, setError] = useState("")
   const sidebarRef = useRef(null)
 
-  // Get user ID from localStorage
   const getUserId = () => {
     const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
-    return storedUser.id || storedUser.userId || 1
+    return storedUser.id || storedUser.userId || null
   }
 
   // Handle click outside to close sidebar
@@ -32,7 +31,6 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     }
   }, [isOpen, onClose])
 
-  // Fetch notifications
   const fetchNotifications = async () => {
     setIsLoading(true)
     try {
@@ -52,7 +50,6 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     }
   }
 
-  // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
       const response = await fetch(`http://localhost:5000/api/notifications/${notificationId}/read`, {
@@ -69,7 +66,6 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     }
   }
 
-  // Handle invitation response
   const handleInvitationResponse = async (meetingId, response) => {
     try {
       const userId = getUserId()
@@ -98,7 +94,6 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     }
   }
 
-  // Delete notification
   const deleteNotification = async (notificationId) => {
     try {
       const response = await fetch(`http://localhost:5000/api/notifications/${notificationId}`, {
@@ -115,7 +110,6 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     }
   }
   
-  // Mark all as read
   const markAllAsRead = async () => {
     try {
       const userId = getUserId()
@@ -141,7 +135,6 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     }
   }, [isOpen])
 
-  // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     const now = new Date()
@@ -158,7 +151,6 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     }
   }
 
-  // Get notification icon
   const getNotificationIcon = (type) => {
     switch (type) {
       case "meeting_invitation":
@@ -167,6 +159,11 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
         return <Calendar size={16} className="text-green-400" />
       case "team_update":
         return <Users size={16} className="text-purple-400" />
+      case "member_left_team":
+      case "team_deleted":
+      case "meeting_removed":
+      case "meeting_canceled":
+        return <Users size={16} className="text-red-400" />
       default:
         return <Bell size={16} className="text-gray-400" />
     }
@@ -181,14 +178,13 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     )
   }
 
-  // Get invitation status display
   const getInvitationStatusDisplay = (notification) => {
     if (
       notification.type !== "meeting_invitation" || 
       !notification.invitationstatus ||
       (notification.invitationstatus === "accepted" && notification.invitationtype === "mandatory")
     ) {
-      return null;
+      return null
     }
 
     const status = notification.invitationstatus

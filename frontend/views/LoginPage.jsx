@@ -2,15 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Calendar, User, Eye, EyeOff } from "lucide-react"
-import loginpageimage from "../assets/loginpageimage.png"
+import { User, Eye, EyeOff } from "lucide-react"
+import loginpageimage from "../assets/credentialpageimage.png"
 import bottomleftshape from "../assets/bottomleftshape.png"
 import toprightshape from "../assets/toprightshape.png"
 import GoogleSignInButton from "../components/GoogleSignInButton"
 
 const LoginPage = () => {
   const [credentials, setCredentials] = useState({
-    username: "",
     email: "",
     password: "",
   })
@@ -18,16 +17,15 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState("")
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Check if the user is already logged in
-    const user = localStorage.getItem("user");
+    const user = localStorage.getItem("user")
     if (user) {
-      navigate("/app");
+      navigate("/app")
     }
-  }, [navigate]);
+  }, [navigate])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -35,7 +33,6 @@ const LoginPage = () => {
       ...credentials,
       [name]: value,
     })
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -67,7 +64,6 @@ const LoginPage = () => {
       setApiError("")
 
       try {
-        // Make API call to login
         const response = await fetch("http://localhost:5000/api/login", {
           method: "POST",
           headers: {
@@ -83,16 +79,9 @@ const LoginPage = () => {
         const data = await response.json()
 
         if (response.ok) {
-          // Login successful
-          console.log("Login successful:", data)
-
-          // Store user data in localStorage
           localStorage.setItem("user", JSON.stringify(data.user))
-
-          // Navigate to calendar
           navigate("/app")
         } else {
-          // Login failed
           console.error("Login failed:", data)
           setApiError(data.message || "Invalid email or password")
         }
@@ -110,9 +99,8 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Background shapes */}
         <div className="fixed top-0 left-0 z-0">
           <img src={toprightshape} alt="Top right shape" className="w-auto h-auto" />
         </div>
@@ -120,27 +108,26 @@ const LoginPage = () => {
           <img src={bottomleftshape} alt="Bottom left shape" className="w-auto h-auto" />
         </div>
 
-        {/* Main content */}
-        <div className="relative z-10 flex-1 flex flex-col md:flex-row max-w-6xl mx-auto w-full shadow-lg rounded-lg overflow-hidden my-10">
-          {/* Left side - Illustration */}
-          <div className="bg-white w-full md:w-1/2 p-8 flex flex-col justify-center items-center">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-8">Login to your account</h2>
+        <div className="relative z-10 flex-1 flex flex-col md:flex-row max-w-6xl mx-auto w-full shadow-2xl rounded-lg overflow-hidden my-10">
+          <div className="bg-gray-100 w-full md:w-1/2 p-8 flex flex-col justify-center items-center">
+            <Link to="/" className="cursor-pointer mb-4">
+              <div className="flex items-center">
+                <img src="/planitLogo.png" alt="PlanIt Logo" className="w-12 h-12 mr-2"/>
+                <div className="text-center font-bold inline-block">
+                  <h1 className="text-3xl text-[#003366] tracking-wider border-b-4 border-[#003366]">PLANIT</h1>
+                  <p className="text-sm text-gray-600">Plan Smarter. Work Better.</p>
+                </div>
+              </div>
+            </Link>
+            <h2 className="text-2xl font-semibold text-gray-800">Login to your account</h2>
             <div className="w-full max-w-md">
               <img src={loginpageimage} alt="Planning illustration" className="w-full h-auto" />
             </div>
           </div>
 
-          {/* Right side - Login form */}
           <div className="bg-[#003366] w-full md:w-1/2 p-8 flex flex-col justify-center">
-            <div className="flex items-center mb-8">
-              <Calendar className="text-white w-8 h-8 mr-2" />
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-wider">PLANIT</h1>
-                <p className="text-sm text-gray-300">Plan Smarter. Work Better.</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-2">
+            <h3 className="text-3xl font-bold text-white mb-3 text-center">Welcome Back!</h3>
+            <form onSubmit={handleSubmit} className="space-y-1">
               <div>
                 <label htmlFor="email" className="block text-white mb-2">
                   Email
@@ -152,7 +139,7 @@ const LoginPage = () => {
                     name="email"
                     value={credentials.email}
                     onChange={handleChange}
-                    className={`w-full p-3 pr-10 rounded bg-white text-black ${errors.email ? "border-2 border-red-500" : ""}`}
+                    className={`w-full p-2.5 pr-10 rounded bg-white text-black ${errors.email ? "border-2 border-red-500" : ""}`}
                     placeholder="Enter your email"
                   />
                   <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
@@ -173,7 +160,7 @@ const LoginPage = () => {
                     name="password"
                     value={credentials.password}
                     onChange={handleChange}
-                    className={`w-full p-3 pr-10 rounded bg-white text-black ${errors.password ? "border-2 border-red-500" : ""}`}
+                    className={`w-full p-2.5 pr-10 rounded bg-white text-black ${errors.password ? "border-2 border-red-500" : ""}`}
                     placeholder="Enter your password"
                   />
                   <button
@@ -189,7 +176,7 @@ const LoginPage = () => {
                 </div>
               </div>
               
-              <div className="flex items-center pb-2">
+              <div className="flex items-center mb-4 mt-1">
                 <input
                   type="checkbox"
                   id="rememberMe"
@@ -209,7 +196,7 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-3 rounded transition duration-200 disabled:opacity-70"
+                className="w-full bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-2.5 rounded transition duration-200 disabled:opacity-70"
               >
                 {isLoading ? "Logging in..." : "Login"}
               </button>

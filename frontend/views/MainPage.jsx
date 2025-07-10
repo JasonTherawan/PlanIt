@@ -21,14 +21,14 @@ export default function MainPage() {
   
   useEffect(() => {
     const handleDataRefresh = () => {
-      setDataUpdateTrigger(prev => prev + 1);
-    };
+      setDataUpdateTrigger(prev => prev + 1)
+    }
 
-    window.addEventListener('refreshCalendarData', handleDataRefresh);
+    window.addEventListener('refreshCalendarData', handleDataRefresh)
 
     return () => {
-      window.removeEventListener('refreshCalendarData', handleDataRefresh);
-    };
+      window.removeEventListener('refreshCalendarData', handleDataRefresh)
+    }
   }, [])
 
   const handleDataUpdate = () => {
@@ -48,7 +48,6 @@ export default function MainPage() {
   return (
     <ProtectedRoute>
       <div className="flex h-screen w-full overflow-hidden">
-        {/* Fixed sidebar */}
         <div className="w-56 flex-shrink-0">
           <Sidebar
             currentDate={currentDate}
@@ -59,9 +58,7 @@ export default function MainPage() {
           />
         </div>
 
-        {/* Main content */}
         <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Fixed header */}
           <div className="flex-shrink-0">
             <Header
               currentDate={currentDate}
@@ -72,7 +69,6 @@ export default function MainPage() {
             />
           </div>
 
-          {/* Calendar grid */}
           <CalendarGrid
             currentDate={currentDate}
             events={events}
@@ -80,10 +76,8 @@ export default function MainPage() {
             dataUpdateTrigger={dataUpdateTrigger}
           />
 
-          {/* Profile Sidebar */}
           <ProfileSidebar isOpen={isProfileSidebarOpen} onClose={() => setIsProfileSidebarOpen(false)} setCurrentDate={setCurrentDate}/>
 
-          {/* Notification Sidebar */}
           <NotificationSidebar isOpen={isNotificationSidebarOpen} onClose={() => setIsNotificationSidebarOpen(false)} />
         </div>
       </div>

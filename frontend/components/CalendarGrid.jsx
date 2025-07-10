@@ -3,11 +3,10 @@
 import { useRef, useEffect, useState } from "react"
 import { Edit2, Trash2 } from "lucide-react"
 
-const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }) => {
+const CalendarGrid = ({ currentDate, setCurrentDate, dataUpdateTrigger }) => {
   const gridRef = useRef(null)
   const horizontalScrollRef = useRef(null)
   const [daysInMonth, setDaysInMonth] = useState([])
-  const [scrollPosition, setScrollPosition] = useState(0)
   const [activities, setActivities] = useState([])
   const [goals, setGoals] = useState([])
   const [teams, setTeams] = useState([])
@@ -15,18 +14,17 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
   const [showInfoModal, setShowInfoModal] = useState(false)
   const [infoModalContent, setInfoModalContent] = useState(null)
 
-  // Urgency color mapping
   const urgencyColors = {
-    low: "#10B981", // green
-    medium: "#FFDD00", // yellow
-    high: "#FF4D6D", // red
-    urgent: "#EF4444", // dark red
+    low: "#10B981",
+    medium: "#FFBB00",
+    "medium-high": "#3B82F6",
+    high: "#FF0000",
+    urgent: "#FF00C3",
   }
 
-  // Get user ID from localStorage
   const getUserId = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}")
-    return user.id || 1
+    return user.id || null
   }
 
   // Fetch activities, goals, and teams
@@ -34,25 +32,34 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     fetchAllData()
   }, [dataUpdateTrigger])
 
+  // Event listener for profile updates
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      fetchAllData()
+    }
+    window.addEventListener("profileUpdated", handleProfileUpdate)
+
+    return () => {
+      window.removeEventListener("profileUpdated", handleProfileUpdate)
+    }
+  }, [])
+
   const fetchAllData = async () => {
     try {
       const userId = getUserId()
 
-      // Fetch activities
       const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
-      // Fetch goals
       const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
-      // Fetch teams
       const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
@@ -67,11 +74,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
   useEffect(() => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
-
-    // Get the number of days in the month
     const daysInCurrentMonth = new Date(year, month + 1, 0).getDate()
-
-    // Generate array of days for the current month only
     const days = []
     for (let i = 1; i <= daysInCurrentMonth; i++) {
       days.push(new Date(year, month, i))
@@ -79,10 +82,9 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
 
     setDaysInMonth(days)
 
-    // Scroll to the current date
     setTimeout(() => {
       if (horizontalScrollRef.current) {
-        const dayWidth = 100 // Fixed width for each day column
+        const dayWidth = 100
         const currentDayIndex = days.findIndex(
           (day) =>
             day.getDate() === currentDate.getDate() &&
@@ -97,7 +99,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     }, 100)
   }, [currentDate])
 
-  // Add event listener for highlighting items from sidebar
+  // Add event listener for highlighting items
   useEffect(() => {
     const handleHighlightItem = (event) => {
       const { id, type, timelineId } = event.detail
@@ -137,7 +139,6 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     return () => window.removeEventListener("highlightCalendarItem", handleHighlightItem)
   }, [])
 
-  // Add this useEffect after the existing useEffect for highlighting items
   useEffect(() => {
     const handleShowInfoModal = (event) => {
       const { item } = event.detail
@@ -152,7 +153,6 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     }
   }, [])
   
-  // Generate time slots for 24 hours
   const timeSlots = []
   for (let i = 0; i < 24; i++) {
     timeSlots.push({
@@ -161,7 +161,6 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     })
   }
 
-  // Format day header
   const formatDayHeader = (date) => {
     const today = new Date()
     const isTodayDate =
@@ -175,27 +174,12 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     return { dayName, dayNumber, isTodayDate }
   }
 
-  // Check if a time slot has an event
-  const getEventsForTimeSlot = (day, hour) => {
-    return events.filter((event) => {
-      const eventDate = new Date(event.start)
-      return (
-        eventDate.getDate() === day.getDate() &&
-        eventDate.getMonth() === day.getMonth() &&
-        eventDate.getFullYear() === day.getFullYear() &&
-        eventDate.getHours() === hour
-      )
-    })
-  }
-
-  // Get activities for a specific day
   const getActivitiesForDay = (day) => {
     const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`
 
     return activities.filter((activity) => activity.activitydate === dateString)
   }
 
-  // Get team meetings for a specific day
   const getTeamMeetingsForDay = (day) => {
     const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`
 
@@ -217,7 +201,6 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     return dayMeetings
   }
 
-  // Calculate activity time span
   const getActivityTimeSpan = (activity) => {
     if (!activity.activitystarttime || !activity.activityendtime) {
       return { startHour: 0, duration: 1 } // Default to 1 hour at midnight
@@ -235,7 +218,6 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     return { startHour: startDecimal, duration }
   }
 
-  // Calculate meeting time span
   const getMeetingTimeSpan = (meeting) => {
     if (!meeting.meetingstarttime || !meeting.meetingendtime) {
       return { startHour: 0, duration: 1 } // Default to 1 hour at midnight
@@ -253,7 +235,6 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     return { startHour: startDecimal, duration }
   }
 
-  // Get goal timelines that span across days
   const getGoalTimelinesForMonth = () => {
     const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
     const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
@@ -268,7 +249,6 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
 
           // Check if timeline overlaps with current month
           if (startDate <= monthEnd && endDate >= monthStart) {
-            // Calculate the actual start and end within the month
             const actualStart = new Date(Math.max(startDate.getTime(), monthStart.getTime()))
             const actualEnd = new Date(Math.min(endDate.getTime(), monthEnd.getTime()))
 
@@ -313,12 +293,10 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     return timelineBlocks
   }
 
-  // Get the current time to highlight the current time slot
   const now = new Date()
   const currentHour = now.getHours()
   const currentMinute = now.getMinutes()
 
-  // Check if a day is today
   const isToday = (date) => {
     const today = new Date()
     return (
@@ -328,39 +306,37 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
     )
   }
   
-  // Info modal component
   const InfoModal = ({ item, onClose }) => {
-    const [creator, setCreator] = useState(null);
+    const [creator, setCreator] = useState(null)
   
     useEffect(() => {
         const fetchCreatorData = async (creatorId) => {
             try {
-                const response = await fetch(`http://localhost:5000/api/users/${creatorId}`);
+                const response = await fetch(`http://localhost:5000/api/users/${creatorId}`)
                 if (response.ok) {
-                    const userData = await response.json();
-                    setCreator(userData.user);
+                    const userData = await response.json()
+                    setCreator(userData.user)
                 }
             } catch (error) {
-                console.error("Error fetching creator data:", error);
-            }
-        };
-
-        if (item && item.type === 'meeting' && item.teamid) {
-            const team = teams.find(t => t.teamid === item.teamid);
-            if (team) {
-                fetchCreatorData(team.createdbyuserid);
+                console.error("Error fetching creator data:", error)
             }
         }
-    }, [item]);
+
+        if (item && item.type === 'meeting' && item.teamid) {
+            const team = teams.find(t => t.teamid === item.teamid)
+            if (team) {
+                fetchCreatorData(team.createdbyuserid)
+            }
+        }
+    }, [item])
 
     if (!item) return null
 
     const handleEdit = () => {
       onClose()
 
-      // For goals, we need to reconstruct the complete goal object with all timelines
+      // Reconstruct the complete goal object with all timelines
       if (item.type === "goal") {
-        // Find the complete goal data from the goals array
         const completeGoal = goals.find((goal) => goal.goalid === item.id)
         if (completeGoal) {
           const editItem = {
@@ -383,15 +359,12 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
 
     const handleDelete = () => {
       onClose()
-
       if (item.type === "activity") {
-        // Dispatch delete event for activity
         const event = new CustomEvent("deleteCalendarItem", {
           detail: { id: item.id, type: item.type },
         })
         window.dispatchEvent(event)
       } else if (item.type === "goal") {
-        // Dispatch delete event for timeline, not the whole goal
         const event = new CustomEvent("deleteCalendarItem", {
           detail: {
             id: item.id,
@@ -401,7 +374,6 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
         })
         window.dispatchEvent(event)
       } else if (item.type === "meeting") {
-        // Dispatch delete event for meeting
         const event = new CustomEvent("deleteCalendarItem", {
           detail: { id: item.id, type: item.type },
         })
@@ -543,12 +515,10 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
               <div className="text-sm">
                 <span className="font-medium">Urgency: </span>
                 <span
-                  className={`
-                ${item.activityurgency === "low" ? "text-green-600" : ""}
-                ${item.activityurgency === "medium" ? "text-yellow-600" : ""}
-                ${item.activityurgency === "high" ? "text-red-600" : ""}
-                ${item.activityurgency === "urgent" ? "text-red-700 font-bold" : ""}
-              `}
+                  style={{ 
+                    color: urgencyColors[item.activityurgency],
+                    fontWeight: 'bold'
+                  }}
                 >
                   {item.activityurgency.charAt(0).toUpperCase() + item.activityurgency.slice(1)}
                 </span>
@@ -583,25 +553,29 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
             )}
 
             {/* Members for meetings */}
-            {item.type === "meeting" && item.members && (
+            {item.type === "meeting" && (
                 <div className="text-sm">
                     <span className="font-medium">Members:</span>
                     <div className="flex flex-col gap-2 mt-1">
-                        {item.members.map((member) => (
-                            <div key={member.userid} className="flex items-center">
-                                <img src={member.userprofilepicture || `https://ui-avatars.com/api/?name=${member.username}&background=0D8ABC&color=fff`} alt={member.username} className="w-6 h-6 rounded-full mr-2" />
-                                <span>{member.userid === getUserId() ? "You" : member.username}</span>
-                                {item.invitationtype === "request" && (
-                                    <span className={`text-xs px-2 py-1 rounded ml-2 ${
-                                        member.status === "accepted" ? "bg-green-100 text-green-800" :
-                                        member.status === "declined" ? "bg-red-100 text-red-800" :
-                                        "bg-yellow-100 text-yellow-800"
-                                    }`}>
-                                        {member.status}
-                                    </span>
-                                )}
-                            </div>
-                        ))}
+                        {item.members && item.members.length > 0 ? (
+                            item.members.map((member) => (
+                                <div key={member.userid} className="flex items-center">
+                                    <img src={member.userprofilepicture || `https://ui-avatars.com/api/?name=${member.username}&background=0D8ABC&color=fff`} alt={member.username} className="w-6 h-6 rounded-full mr-2" />
+                                    <span>{member.userid === getUserId() ? "You" : member.username}</span>
+                                    {item.invitationtype === "request" && (
+                                        <span className={`text-xs px-2 py-1 rounded ml-2 ${
+                                            member.status === "accepted" ? "bg-green-100 text-green-800" :
+                                            member.status === "declined" ? "bg-red-100 text-red-800" :
+                                            "bg-yellow-100 text-yellow-800"
+                                        }`}>
+                                            {member.status}
+                                        </span>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-gray-500 italic">No current members</p>
+                        )}
                     </div>
                 </div>
             )}
@@ -615,7 +589,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
 
   return (
     <div className="flex-1 overflow-hidden relative">
-      {/* Background Image Div */}
+      {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
@@ -623,12 +597,12 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
           filter: 'blur(4px)',
           opacity: 0.2,
           zIndex: 0,
-          transform: 'scale(1.1)', // To cover edges from blur
+          transform: 'scale(1.1)',
         }}
       ></div>
 
       <div className="flex h-full relative z-10">
-        {/* Time labels column - Fixed */}
+        {/* Time labels column */}
         <div className="w-16 flex-shrink-0 border-r border-gray-200/50 bg-white/70 backdrop-blur-sm">
           <div className="h-12 border-b border-gray-200/50"></div> {/* Empty cell for the header row */}
           <div className="overflow-hidden h-[calc(100vh-112px)]" ref={gridRef}>
@@ -642,9 +616,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
 
         {/* Calendar grid with horizontal scrolling */}
         <div className="flex-1 overflow-hidden">
-          {/* Fixed header container */}
           <div className="sticky left-0 z-10 bg-white/70 backdrop-blur-sm">
-            {/* Day headers - Fixed position but showing scrollable content */}
             <div className="flex border-b border-gray-200/50 overflow-hidden relative">
               <div className="flex" style={{ minWidth: `${daysInMonth.length * 100}px` }}>
                 {daysInMonth.map((day, index) => {
@@ -671,17 +643,13 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
             className="overflow-x-auto overflow-y-auto h-[calc(100vh-112px)]"
             ref={horizontalScrollRef}
             onScroll={(e) => {
-              // Update the header scroll position to match
               const headerContainer = e.currentTarget.previousSibling.firstChild
               if (headerContainer) {
                 headerContainer.scrollLeft = e.currentTarget.scrollLeft
               }
-
-              // Update vertical scroll for time labels
               if (gridRef.current) {
                 gridRef.current.scrollTop = e.currentTarget.scrollTop
               }
-              setScrollPosition(e.currentTarget.scrollTop)
             }}
           >
             <div className="flex relative" style={{ minWidth: `${daysInMonth.length * 100}px` }}>
@@ -706,7 +674,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                       height: `${timelineBlock.height}px`,
                       zIndex: isHighlighted ? 30 : 15,
                     }}
-                    onClick={(e) => {
+                    onClick={() => {
                       const item = {
                         id: timelineBlock.goal.goalid,
                         type: "goal",
@@ -745,7 +713,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                     {timelineBlock.timeline.timelinestarttime && (
                       <div className="text-purple-600 text-xs">
                         {timelineBlock.timeline.timelinestarttime}
-                        {timelineBlock.timeline.timelineendtime && ` - ${timelineBlock.timeline.endtime}`}
+                        {timelineBlock.timeline.timelineendtime && ` - ${timelineBlock.timeline.timelineendtime}`}
                       </div>
                     )}
                   </div>
@@ -760,7 +728,7 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                 const dayItems = [
                   ...dayActivities.map(a => ({ ...a, type: 'activity', id: a.activityid, created_at: a.created_at || new Date(0).toISOString() })),
                   ...dayMeetings.map(m => ({ ...m, type: 'meeting', id: m.teammeetingid, created_at: m.created_at || new Date(0).toISOString() }))
-                ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
 
                 return (
                   <div
@@ -770,27 +738,27 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                     {dayItems.map((item, itemIndex) => {
                       const { startHour, duration } = item.type === 'activity'
                         ? getActivityTimeSpan(item)
-                        : getMeetingTimeSpan(item);
+                        : getMeetingTimeSpan(item)
 
-                      const topPosition = startHour * 56 + 2;
-                      const height = duration * 56 - 6;
+                      const topPosition = startHour * 56 + 2
+                      const height = duration * 56 - 6
 
                       const overlappingItems = dayItems.filter((otherItem, otherIndex) => {
-                        if (otherIndex >= itemIndex) return false;
+                        if (otherIndex >= itemIndex) return false
 
                         const { startHour: otherStart, duration: otherDuration } = otherItem.type === 'activity'
                           ? getActivityTimeSpan(otherItem)
-                          : getMeetingTimeSpan(otherItem);
+                          : getMeetingTimeSpan(otherItem)
                         
-                        const otherEnd = otherStart + otherDuration;
-                        const currentEnd = startHour + duration;
+                        const otherEnd = otherStart + otherDuration
+                        const currentEnd = startHour + duration
 
-                        return startHour < otherEnd && currentEnd > otherStart;
-                      });
+                        return startHour < otherEnd && currentEnd > otherStart
+                      })
 
-                      const overlapCount = overlappingItems.length;
-                      const leftOffset = overlapCount * 4;
-                      const zIndexBase = 15;
+                      const overlapCount = overlappingItems.length
+                      const leftOffset = overlapCount * 4
+                      const zIndexBase = 15
                       
                       const isHighlighted =
                         highlightedItem &&
@@ -801,18 +769,19 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                         return (
                           <div key={`activity-${item.id}`} className="relative">
                             <div
-                              className={`absolute bg-blue-50 border-l-4 rounded p-1 text-xs overflow-hidden
+                              className={`absolute bg-opacity-70 border-l-4 rounded p-1 text-xs overflow-hidden
                               transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
-                              ${isHighlighted ? "highlighted-calendar-item ring-2 ring-blue-700 z-30 scale-[1.03]" : ""}`}
+                              ${isHighlighted ? "highlighted-calendar-item ring-2 z-30 scale-[1.03]" : ""}`}
                               style={{
                                 borderLeftColor: urgencyColors[item.activityurgency],
+                                backgroundColor: `color-mix(in srgb, ${urgencyColors[item.activityurgency]} 20%, white)`,
                                 top: `${topPosition}px`,
                                 height: `${height}px`,
                                 left: `${4 + leftOffset}px`,
                                 right: "4px",
                                 zIndex: isHighlighted ? 30 : zIndexBase + overlapCount + 1,
                               }}
-                              onClick={(e) => {
+                              onClick={() => {
                                 const modalItem = {
                                   id: item.activityid,
                                   type: "activity",
@@ -842,9 +811,9 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                                 window.dispatchEvent(event)
                               }}
                             >
-                              <div className="font-medium text-blue-800 truncate">{item.activitytitle}</div>
+                              <div className="font-medium text-gray-800 truncate">{item.activitytitle}</div>
                               {item.activitystarttime && (
-                                <div className="text-blue-600 text-xs">
+                                <div className="text-gray-600 text-xs">
                                   {item.activitystarttime}
                                   {item.activityendtime && ` - ${item.activityendtime}`}
                                 </div>
@@ -856,17 +825,19 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                         return (
                           <div key={`meeting-${item.id}`} className="relative">
                             <div
-                              className={`absolute bg-orange-50 border-l-4 border-orange-500 rounded p-1 text-xs overflow-hidden
+                              className={`absolute border-l-4 rounded p-1 text-xs overflow-hidden
                                 transition-all duration-200 hover:transform hover:scale-[1.02] hover:z-30 hover:shadow-md
-                                ${isHighlighted ? "highlighted-calendar-item ring-2 ring-orange-500 z-30 scale-[1.03]" : ""}`}
+                                ${isHighlighted ? "highlighted-calendar-item ring-2 z-30 scale-[1.03]" : ""}`}
                               style={{
+                                borderLeftColor: urgencyColors['medium-high'],
+                                backgroundColor: `color-mix(in srgb, ${urgencyColors['medium-high']} 20%, white)`,
                                 top: `${topPosition}px`,
                                 height: `${height}px`,
                                 left: `${4 + leftOffset}px`,
                                 right: "4px",
                                 zIndex: isHighlighted ? 30 : zIndexBase + overlapCount + 1,
                               }}
-                              onClick={(e) => {
+                              onClick={() => {
                                 const modalItem = {
                                   id: item.teammeetingid,
                                   type: "meeting",
@@ -898,10 +869,10 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                                 window.dispatchEvent(event)
                               }}
                             >
-                              <div className="font-medium text-orange-800 truncate">{item.meetingtitle}</div>
-                              <div className="text-orange-600 text-xs truncate">Team: {item.teamname}</div>
+                              <div className="font-medium text-blue-800 truncate">{item.meetingtitle}</div>
+                              <div className="text-blue-600 text-xs truncate">Team: {item.teamname}</div>
                               {item.meetingstarttime && (
-                                <div className="text-orange-600 text-xs">
+                                <div className="text-blue-600 text-xs">
                                   {item.meetingstarttime}
                                   {item.meetingendtime && ` - ${item.meetingendtime}`}
                                 </div>
@@ -913,25 +884,8 @@ const CalendarGrid = ({ currentDate, events, setCurrentDate, dataUpdateTrigger }
                     })}
 
                     {timeSlots.map((slot) => {
-                      const eventsInSlot = getEventsForTimeSlot(day, slot.hour)
-
                       return (
                         <div key={slot.hour} className="h-14 border-b border-gray-200/50 relative">
-                          {/* Regular events */}
-                          {eventsInSlot.map((event) => (
-                            <div
-                              key={event.id}
-                              className="absolute left-1 right-1 bg-blue-100 border border-blue-300 rounded p-1 text-xs overflow-hidden"
-                              style={{
-                                top: "2px",
-                                height: "calc(100% - 4px)",
-                                zIndex: 10,
-                              }}
-                            >
-                              {event.title}
-                            </div>
-                          ))}
-
                           {/* Current time indicator */}
                           {isToday(day) && slot.hour === currentHour && (
                             <div

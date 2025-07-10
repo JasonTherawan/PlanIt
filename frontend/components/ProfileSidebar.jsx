@@ -14,10 +14,9 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [isGoogleUser, setIsGoogleUser] = useState(false)
-  const [googleProfilePicture, setGoogleProfilePicture] = useState("")
   const [selectedTeam, setSelectedTeam] = useState(null)
   const [teamDetails, setTeamDetails] = useState(null)
-  const [creator, setCreator] = useState(null);
+  const [creator, setCreator] = useState(null)
   const [isEditingTeam, setIsEditingTeam] = useState(false)
   const [isAddingMeeting, setIsAddingMeeting] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState([])
@@ -26,7 +25,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const [showAISuggestions, setShowAISuggestions] = useState(false)
   const sidebarRef = useRef(null)
 
-  // Form states
   const [editedUser, setEditedUser] = useState({
     username: "",
     bio: "",
@@ -55,40 +53,36 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     meetingEndTime: "",
     invitationType: "mandatory",
     invitedEmails: [""],
-    // AI Scheduling fields
     useAIScheduling: false,
     dateRangeStart: "",
     dateRangeEnd: "",
-    duration: 60, // minutes
+    duration: 60,
     timePreference: "",
   })
 
-  // Handle click outside to close sidebar
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Do not close the sidebar if the edit modal is open
       if (document.querySelector('.edit-item-modal-container')) {
-        return;
+        return
       }
       
       if (sidebarRef.current && !sidebarRef.current.contains(event.target) && isOpen) {
-        onClose();
+        onClose()
         if (selectedTeam) {
-          handleBackToProfile();
+          handleBackToProfile()
         }
       }
-    };
+    }
   
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside)
     }
   
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose, selectedTeam]);
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isOpen, onClose, selectedTeam])
 
-  // Get user data on component mount
   useEffect(() => {
     if (isOpen) {
       fetchUserData()
@@ -96,21 +90,34 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     }
   }, [isOpen])
 
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      fetchUserData()
+      if (selectedTeam) {
+        fetchTeamDetails(selectedTeam.teamid)
+      }
+    }
+    window.addEventListener("profileUpdated", handleProfileUpdate)
+
+    return () => {
+      window.removeEventListener("profileUpdated", handleProfileUpdate)
+    }
+  }, [selectedTeam])
+
   const fetchCreatorData = async (creatorId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${creatorId}`);
+      const response = await fetch(`http://localhost:5000/api/users/${creatorId}`)
       if (response.ok) {
-        const userData = await response.json();
-        setCreator(userData.user);
+        const userData = await response.json()
+        setCreator(userData.user)
       }
     } catch (error) {
-      console.error("Error fetching creator data:", error);
+      console.error("Error fetching creator data:", error)
     }
-  };
+  }
 
   const fetchUserData = async () => {
     try {
-      // Get user from localStorage first
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
 
       if (!storedUser.id) {
@@ -118,15 +125,9 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         return
       }
 
-      // Check if this is a Google user and store their Google profile picture
       const isGoogleUser = !!storedUser.googleId || !!storedUser.accessToken
       setIsGoogleUser(isGoogleUser)
 
-      if (isGoogleUser && storedUser.imageUrl) {
-        setGoogleProfilePicture(storedUser.imageUrl)
-      }
-
-      // Always fetch from API for the most up-to-date data
       try {
         const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
 
@@ -134,35 +135,31 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           const userData = await response.json()
           setUser(userData.user)
 
-          // Initialize edit form with user data
           setEditedUser({
             username: userData.user.username || "",
             bio: userData.user.userbio || "",
             dob: userData.user.userdob ? userData.user.userdob.split("T")[0] : "",
-            // For Google users, if no custom profile picture, use empty string (will show Google's)
             profilePicture: userData.user.userprofilepicture || "",
           })
         } else {
           console.error("Failed to fetch user data")
-          // For Google users, if API fails, use stored data as fallback
           if (isGoogleUser) {
             const userData = {
               userid: storedUser.id,
               username: storedUser.username || storedUser.name,
               useremail: storedUser.email,
-              userprofilepicture: null, // Google users start with null in DB
+              userprofilepicture: null,
               userbio: "",
               userdob: null,
               isgoogleuser: true,
             }
             setUser(userData)
 
-            // Initialize edit form with user data
             setEditedUser({
               username: userData.username || "",
               bio: userData.userbio || "",
-              dob: userData.user.userdob ? userData.user.userdob.split("T")[0] : "",
-              profilePicture: "",
+              dob: "",
+              profilePicture: null,
             })
           } else {
             navigate("/login")
@@ -170,7 +167,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         }
       } catch (error) {
         console.error("Error fetching user data:", error)
-        // For Google users, use stored data as fallback
         if (isGoogleUser) {
           const userData = {
             userid: storedUser.id,
@@ -183,12 +179,11 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           }
           setUser(userData)
 
-          // Initialize edit form with user data
           setEditedUser({
             username: userData.username || "",
             bio: userData.userbio || "",
-            dob: userData.user.userdob ? userData.user.userdob.split("T")[0] : "",
-            profilePicture: "",
+            dob: "",
+            profilePicture: null,
           })
         } else {
           navigate("/login")
@@ -219,7 +214,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const fetchTeamDetails = async (teamId) => {
     try {
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
-      if (!storedUser.id) return;
+      if (!storedUser.id) return
       
       const response = await fetch(`http://localhost:5000/api/teams/${teamId}?userId=${storedUser.id}`)
       if (response.ok) {
@@ -231,7 +226,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           teamStartWorkingHour: data.team.teamstartworkinghour || "",
           teamEndWorkingHour: data.team.teamendworkinghour || "",
         })
-        fetchCreatorData(data.team.createdbyuserid);
+        fetchCreatorData(data.team.createdbyuserid)
       }
     } catch (error) {
       console.error("Error fetching team details:", error)
@@ -246,7 +241,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const handleBackToProfile = () => {
     setSelectedTeam(null)
     setTeamDetails(null)
-    setCreator(null);
+    setCreator(null)
     setIsEditingTeam(false)
     setIsAddingMeeting(false)
   }
@@ -313,9 +308,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const handleProfilePictureChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
-
-    // For this demo, we'll just use a FileReader to get a data URL
-    // In a real app, you would upload to a server or cloud storage
     const reader = new FileReader()
     reader.onload = () => {
       setEditedUser((prev) => ({
@@ -324,6 +316,13 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       }))
     }
     reader.readAsDataURL(file)
+  }
+  
+  const handleRemoveProfilePicture = () => {
+    setEditedUser((prev) => ({
+      ...prev,
+      profilePicture: null,
+    }))
   }
 
   const handleSaveProfile = async () => {
@@ -336,6 +335,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
 
       if (!storedUser.id) {
         setError("User not authenticated")
+        setTimeout(() => setError(""), 3000)
         return
       }
 
@@ -357,10 +357,8 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         setUser(data.user)
         setSuccess("Profile updated successfully!")
         setIsEditing(false)
-
         setTimeout(() => setSuccess(""), 3000)
 
-        // Update localStorage user data
         localStorage.setItem(
           "user",
           JSON.stringify({
@@ -368,13 +366,18 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
             username: data.user.username,
           }),
         )
+        
+        window.dispatchEvent(new CustomEvent("profileUpdated"))
+
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Failed to update profile")
+        setTimeout(() => setError(""), 3000)
       }
     } catch (error) {
       console.error("Error updating profile:", error)
       setError("Network error. Please try again.")
+      setTimeout(() => setError(""), 3000)
     } finally {
       setIsLoading(false)
     }
@@ -402,17 +405,23 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       if (response.ok) {
         setSuccess("Team updated successfully!")
         setIsEditingTeam(false)
+        setSelectedTeam(prevTeam => ({
+            ...prevTeam,
+            teamname: editedTeam.teamName 
+        }))
+
         fetchTeamDetails(selectedTeam.teamid)
         fetchUserTeams()
-
         setTimeout(() => setSuccess(""), 3000)
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Failed to update team")
+        setTimeout(() => setError(""), 3000)
       }
     } catch (error) {
       console.error("Error updating team:", error)
       setError("Network error. Please try again.")
+      setTimeout(() => setError(""), 3000)
     } finally {
       setIsLoading(false)
     }
@@ -437,10 +446,12 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Failed to delete team")
+        setTimeout(() => setError(""), 3000)
       }
     } catch (error) {
       console.error("Error deleting team:", error)
       setError("Error deleting team")
+      setTimeout(() => setError(""), 3000)
     } finally {
       setIsLoading(false)
     }
@@ -465,10 +476,12 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Failed to delete meeting")
+        setTimeout(() => setError(""), 3000)
       }
     } catch (error) {
       console.error("Error deleting meeting:", error)
       setError("Error deleting meeting")
+      setTimeout(() => setError(""), 3000)
     } finally {
       setIsLoading(false)
     }
@@ -479,7 +492,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     setError("")
 
     try {
-      // Get team members from invited emails
       const validEmails = newMeeting.invitedEmails.filter((email) => email.trim())
       if (validEmails.length === 0) {
         setError("Please add at least one team member email")
@@ -487,20 +499,15 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         return
       }
 
-      // Include creator in the analysis
       const allMemberEmails = [user.useremail, ...validEmails]
 
-      // Get user data and activities for all members
       const memberActivities = {}
       const teamMembers = []
       const memberGoals = {}
       const memberTeams = {}
 
-      console.log("Fetching data for members:", allMemberEmails)
-
       for (const email of allMemberEmails) {
         try {
-          // Get user by email
           const userResponse = await fetch(`http://localhost:5000/api/users/by-email/${encodeURIComponent(email)}`)
 
           if (userResponse.ok) {
@@ -513,96 +520,51 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
               email: userData.user.useremail,
             })
 
-            console.log(`Found user ${userData.user.username} (${email})`)
-
-            // Get their activities
             const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
             if (activitiesResponse.ok) {
               const activitiesData = await activitiesResponse.json()
-              console.log(`Raw activities for ${userData.user.username}:`, activitiesData.activities)
-
-              // Filter activities within date range with better date handling
               const filteredActivities = activitiesData.activities.filter((activity) => {
                 if (!activity.activitydate) return false
-
                 const activityDate = new Date(activity.activitydate)
                 const startDate = new Date(newMeeting.dateRangeStart)
                 const endDate = new Date(newMeeting.dateRangeEnd)
-
-                // Ensure dates are valid
                 if (isNaN(activityDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                  console.warn(`Invalid date found for activity: ${activity.activitytitle}`, {
-                    activityDate: activity.activitydate,
-                    startDate: newMeeting.dateRangeStart,
-                    endDate: newMeeting.dateRangeEnd,
-                  })
                   return false
                 }
-
-                const isInRange = activityDate >= startDate && activityDate <= endDate
-                console.log(
-                  `Activity "${activity.activitytitle}" on ${activity.activitydate}: ${isInRange ? "INCLUDED" : "EXCLUDED"}`,
-                )
-                return isInRange
+                return activityDate >= startDate && activityDate <= endDate
               })
-
               memberActivities[userId] = filteredActivities
-              console.log(`Found ${filteredActivities.length} activities for ${userData.user.username} in date range`)
             } else {
-              console.warn(`Failed to fetch activities for ${userData.user.username}`)
               memberActivities[userId] = []
             }
 
-            // Get their goals with timelines
             const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
             if (goalsResponse.ok) {
               const goalsData = await goalsResponse.json()
-              console.log(`Raw goals for ${userData.user.username}:`, goalsData.goals)
-
-              // Filter goal timelines within date range
               const filteredGoals = goalsData.goals
                 .map((goal) => ({
                   ...goal,
                   timelines: goal.timelines.filter((timeline) => {
                     if (!timeline.timelinestartdate || !timeline.timelineenddate) return false
-
                     const timelineStart = new Date(timeline.timelinestartdate)
                     const timelineEnd = new Date(timeline.timelineenddate)
                     const rangeStart = new Date(newMeeting.dateRangeStart)
                     const rangeEnd = new Date(newMeeting.dateRangeEnd)
-
-                    // Check for valid dates
-                    if (
-                      isNaN(timelineStart.getTime()) ||
-                      isNaN(timelineEnd.getTime()) ||
-                      isNaN(rangeStart.getTime()) ||
-                      isNaN(rangeEnd.getTime())
-                    ) {
-                      console.warn(`Invalid date in timeline: ${timeline.timelinetitle}`)
+                    if ( isNaN(timelineStart.getTime()) || isNaN(timelineEnd.getTime()) || isNaN(rangeStart.getTime()) || isNaN(rangeEnd.getTime())) {
                       return false
                     }
-
-                    const overlaps = timelineStart <= rangeEnd && timelineEnd >= rangeStart
-                    console.log(
-                      `Timeline "${timeline.timelinetitle}" (${timeline.timelinestartdate} to ${timeline.timelineenddate}): ${overlaps ? "INCLUDED" : "EXCLUDED"}`,
-                    )
-                    return overlaps
+                    return timelineStart <= rangeEnd && timelineEnd >= rangeStart
                   }),
                 }))
                 .filter((goal) => goal.timelines.length > 0)
-
               memberGoals[userId] = filteredGoals
-              console.log(`Found ${filteredGoals.length} relevant goals for ${userData.user.username}`)
             } else {
-              console.warn(`Failed to fetch goals for ${userData.user.username}`)
               memberGoals[userId] = []
             }
 
-            // Get their team meetings
             const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
             if (teamsResponse.ok) {
               const teamsData = await teamsResponse.json()
-              // Extract all meetings within date range
               const allMeetings = []
               teamsData.teams.forEach((team) => {
                 team.meetings.forEach((teamMeeting) => {
@@ -615,13 +577,10 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                 })
               })
               memberTeams[userId] = allMeetings
-              console.log(`Found ${allMeetings.length} team meetings for ${userData.user.username}`)
             } else {
               memberTeams[userId] = []
             }
           } else {
-            console.warn(`User not found for email: ${email}`)
-            // Add as unknown user for AI analysis
             teamMembers.push({
               userid: `unknown_${email}`,
               username: email.split("@")[0],
@@ -633,7 +592,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           }
         } catch (error) {
           console.error(`Error fetching data for ${email}:`, error)
-          // Add as unknown user with empty data
           teamMembers.push({
             userid: `unknown_${email}`,
             username: email.split("@")[0],
@@ -645,7 +603,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         }
       }
 
-      // Combine all scheduling conflicts for comprehensive analysis
       const allMemberSchedules = {}
       Object.keys(memberActivities).forEach((userId) => {
         allMemberSchedules[userId] = {
@@ -655,14 +612,12 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         }
       })
 
-      // Validate that we have the required date range
       if (!newMeeting.dateRangeStart || !newMeeting.dateRangeEnd) {
         setError("Please specify both start and end dates for the meeting range")
         setIsLoadingAI(false)
         return
       }
 
-      // Validate date range
       const startDate = new Date(newMeeting.dateRangeStart)
       const endDate = new Date(newMeeting.dateRangeEnd)
       if (startDate > endDate) {
@@ -671,32 +626,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         return
       }
 
-      console.log(`Analyzing schedules for date range: ${newMeeting.dateRangeStart} to ${newMeeting.dateRangeEnd}`)
-
-      // Log summary of collected data
-      console.log("=== SCHEDULE ANALYSIS SUMMARY ===")
-      Object.keys(allMemberSchedules).forEach((userId) => {
-        const member = teamMembers.find((m) => m.userid === userId)
-        const memberName = member ? member.username : userId
-        const schedule = allMemberSchedules[userId]
-
-        console.log(`${memberName}:`)
-        console.log(`  - Activities: ${schedule.activities.length}`)
-        console.log(`  - Goals: ${schedule.goals.length}`)
-        console.log(`  - Meetings: ${schedule.meetings.length}`)
-
-        // Log specific conflicts
-        schedule.activities.forEach((activity) => {
-          console.log(
-            `    Activity: ${activity.activitytitle} on ${activity.activitydate} ${activity.activitystarttime || "all day"}`,
-          )
-        })
-      })
-      console.log("=== END SUMMARY ===")
-
-      console.log("Complete member schedules:", allMemberSchedules)
-
-      // Call AI service with comprehensive data
       const aiService = (await import("../services/aiService.js")).default
       const result = await aiService.findOptimalMeetingTimes(
         teamMembers,
@@ -717,7 +646,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         setAiSuggestions(result.suggestions)
         setSelectedSuggestion(null)
         setShowAISuggestions(true)
-        console.log("AI suggestions generated:", result.suggestions)
       } else {
         setError(result.error || "Failed to generate meeting suggestions")
       }
@@ -779,7 +707,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           duration: 60,
           timePreference: "",
         })
-        // Reset AI states
         setAiSuggestions([])
         setSelectedSuggestion(null)
         setShowAISuggestions(false)
@@ -791,10 +718,12 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Failed to add meeting")
+        setTimeout(() => setError(""), 3000)
       }
     } catch (error) {
       console.error("Error adding meeting:", error)
       setError("Network error. Please try again.")
+      setTimeout(() => setError(""), 3000)
     } finally {
       setIsLoading(false)
     }
@@ -806,15 +735,16 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     setError("")
     setSuccess("")
 
-    // Validate passwords
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setError("New passwords don't match")
+      setTimeout(() => setError(""), 3000)
       setIsLoading(false)
       return
     }
 
     if (passwordForm.newPassword.length < 6) {
       setError("Password must be at least 6 characters")
+      setTimeout(() => setError(""), 3000)
       setIsLoading(false)
       return
     }
@@ -824,6 +754,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
 
       if (!storedUser.id) {
         setError("User not authenticated")
+        setTimeout(() => setError(""), 3000)
         return
       }
 
@@ -840,28 +771,30 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
 
       if (response.ok) {
         setSuccess("Password changed successfully!")
-        setIsChangingPassword(false)
-        setPasswordForm({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        })
+        if (sidebarRef.current) {
+          sidebarRef.current.scrollTo({ top: 0, behavior: "smooth" })
+        }
+        setTimeout(() => {
+            setSuccess("")
+            setIsChangingPassword(false)
+            setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+        }, 3000)
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Failed to change password")
+        setTimeout(() => setError(""), 3000)
       }
     } catch (error) {
       console.error("Error changing password:", error)
       setError("Network error. Please try again.")
+      setTimeout(() => setError(""), 3000)
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Update the handleLogout function to handle both Google and non-Google users
   const handleLogout = async () => {
     try {
-      // Sign out from Google if it's a Google user
       if (isGoogleUser && window.googleAuthService) {
         await window.googleAuthService.signOut()
       }
@@ -871,14 +804,12 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       navigate("/login")
     } catch (error) {
       console.error("Error during logout:", error)
-      // Still navigate to login even if Google signout fails
       localStorage.removeItem("user")
       localStorage.removeItem("googleAccessToken")
       navigate("/login")
     }
   }
 
-  // Update the handleDeleteAccount function to handle both Google and non-Google users
   const handleDeleteAccount = async () => {
     if (!window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       return
@@ -892,6 +823,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
 
       if (!storedUser.id) {
         setError("User not authenticated")
+        setTimeout(() => setError(""), 3000)
         return
       }
 
@@ -900,7 +832,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       })
 
       if (response.ok) {
-        // Sign out from Google if it's a Google user
         if (isGoogleUser && window.googleAuthService) {
           await window.googleAuthService.signOut()
         }
@@ -911,64 +842,17 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       } else {
         const errorData = await response.json()
         setError(errorData.message || "Failed to delete account")
+        setTimeout(() => setError(""), 3000)
       }
     } catch (error) {
       console.error("Error deleting account:", error)
       setError("Network error. Please try again.")
+      setTimeout(() => setError(""), 3000)
     } finally {
       setIsLoading(false)
     }
   }
-  
-  const addMemberEmailField = () => {
-    if (isCreatingTeam) {
-      setNewTeam({
-        ...newTeam,
-        memberEmails: [...newTeam.memberEmails, ""],
-      })
-    } else if (useAIScheduling) {
-      setAiSchedulingData({
-        ...aiSchedulingData,
-        memberEmails: [...aiSchedulingData.memberEmails, ""],
-      })
-    }
-  }
 
-  const removeMemberEmailField = (index) => {
-    if (isCreatingTeam) {
-      const updatedEmails = newTeam.memberEmails.filter((_, i) => i !== index)
-      setNewTeam({
-        ...newTeam,
-        memberEmails: updatedEmails.length > 0 ? updatedEmails : [""],
-      })
-    } else if (useAIScheduling) {
-      const updatedEmails = aiSchedulingData.memberEmails.filter((_, i) => i !== index)
-      setAiSchedulingData({
-        ...aiSchedulingData,
-        memberEmails: updatedEmails.length > 0 ? updatedEmails : [""],
-      })
-    }
-  }
-
-  const updateMemberEmail = (index, value) => {
-    if (isCreatingTeam) {
-      const updatedEmails = [...newTeam.memberEmails]
-      updatedEmails[index] = value
-      setNewTeam({
-        ...newTeam,
-        memberEmails: updatedEmails,
-      })
-    } else if (useAIScheduling) {
-      const updatedEmails = [...aiSchedulingData.memberEmails]
-      updatedEmails[index] = value
-      setAiSchedulingData({
-        ...aiSchedulingData,
-        memberEmails: updatedEmails,
-      })
-    }
-  }
-
-  // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return "Not set"
 
@@ -980,45 +864,26 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     })
   }
   
-  // Get the profile picture to display
   const getDisplayProfilePicture = () => {
-    if (isEditing && editedUser.profilePicture) {
-      return editedUser.profilePicture
-    }
-
-    // If user has custom profile picture, use it
-    if (user?.userprofilepicture) {
-      return user.userprofilepicture
-    }
-
-    // For Google users, use their Google profile picture if no custom one
-    if (isGoogleUser && googleProfilePicture) {
-      return googleProfilePicture
-    }
-
-    return null
+    const pictureSource = isEditing ? editedUser.profilePicture : user?.userprofilepicture
+    return pictureSource || null
   }
   
   const handleViewMeetingOnCalendar = (meeting) => {
     const meetingDate = new Date(meeting.meetingdate)
     
-    // Set the main calendar's date
     setCurrentDate(meetingDate)
 
-    // Determine if the meeting is in the past
     const now = new Date()
-    now.setHours(0, 0, 0, 0) // Normalize current date for accurate comparison
+    now.setHours(0, 0, 0, 0)
     const isPast = meetingDate < now
 
-    // Dispatch an event to tell the main sidebar to switch tabs
     const switchTabEvent = new CustomEvent("switchSidebarTab", {
       detail: { isPast },
-    });
+    })
     window.dispatchEvent(switchTabEvent)
   
-    // Use a timeout to allow the calendar and sidebar to re-render
     setTimeout(() => {
-      // Highlight the item on the calendar grid
       const highlightEvent = new CustomEvent("highlightCalendarItem", {
         detail: {
           id: meeting.teammeetingid,
@@ -1028,7 +893,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       })
       window.dispatchEvent(highlightEvent)
 
-      // Highlight the item in the main sidebar
       const sidebarEvent = new CustomEvent("highlightSidebarItem", {
         detail: { 
           id: meeting.teammeetingid, 
@@ -1039,7 +903,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       window.dispatchEvent(sidebarEvent)
     }, 100)
   
-    // Close the profile sidebar
     onClose()
   }
 
@@ -1070,7 +933,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div ref={sidebarRef} className="bg-[#002147] text-white w-full max-w-80 h-full overflow-y-auto">
-        {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-gray-700">
           <div className="flex items-center">
             {selectedTeam && (
@@ -1085,7 +947,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-6">
           {error && (
             <div className="mb-4 p-3 bg-red-900 bg-opacity-50 border border-red-700 rounded-md flex items-center">
@@ -1101,7 +962,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
           )}
 
           {selectedTeam && teamDetails ? (
-            // Team Detail View
             <div>
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
@@ -1128,20 +988,23 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                     )}
                   </div>
                 </div>
+                
+                <div className="bg-gray-800 rounded-t-md p-4 pb-0 space-y-3">
+                    {creator && (
+                      <div>
+                        <span className="block text-sm font-medium text-gray-400 mb-1">Created by:</span>
+                        <div className="flex items-center">
+                            <img src={creator.userprofilepicture || `https://ui-avatars.com/api/?name=${creator.username}&background=0D8ABC&color=fff`} alt={creator.username} className="w-8 h-8 rounded-full mr-3" />
+                            <p className="text-white">
+                                {creator.userid === user?.userid ? `${creator.username} (You)` : creator.username}
+                            </p>
+                        </div>
+                      </div>
+                    )}
+                </div>
 
                 {isEditingTeam ? (
-                  <div className="bg-gray-800 rounded-md p-4 space-y-3">
-                    {creator && (
-                        <div>
-                            <div className="block text-sm font-medium text-gray-300 mb-2">Created by</div>
-                            <div className="flex items-center mt-2">
-                              <img src={creator.userprofilepicture || `https://ui-avatars.com/api/?name=${creator.username}&background=0D8ABC&color=fff`} alt={creator.username} className="w-6 h-6 rounded-full mr-2" />
-                              <p className="w-full p-2 bg-gray-900 border border-gray-700 rounded text-gray-400">
-                                  {creator.userid === user?.userid ? `${creator.username} (You)` : creator.username}
-                              </p>
-                            </div>
-                        </div>
-                    )}
+                  <div className="bg-gray-800 rounded-b-md p-4 space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-1">Team Name</label>
                       <input
@@ -1201,18 +1064,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-gray-800 rounded-md p-4 space-y-3">
-                    {creator && (
-                      <div>
-                        <span className="block text-sm font-medium text-gray-400 mb-1">Created by:</span>
-                        <div className="flex items-center">
-                            <img src={creator.userprofilepicture || `https://ui-avatars.com/api/?name=${creator.username}&background=0D8ABC&color=fff`} alt={creator.username} className="w-8 h-8 rounded-full mr-3" />
-                            <p className="text-white">
-                                {creator.userid === user?.userid ? `${creator.username} (You)` : creator.username}
-                            </p>
-                        </div>
-                      </div>
-                    )}
+                  <div className="bg-gray-800 rounded-b-md p-4 space-y-3">
                     <div>
                       <span className="text-gray-400 text-sm">Description:</span>
                       <p className="text-white">{teamDetails.teamdescription || "No description"}</p>
@@ -1267,7 +1119,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                           className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                         />
                       </div>
-                      {/* AI Scheduling Toggle */}
                       <div className="flex items-center space-x-2">
                         <input
                           type="checkbox"
@@ -1282,7 +1133,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                       </div>
 
                       {newMeeting.useAIScheduling ? (
-                        // AI Scheduling Form
                         <div className="space-y-3 border border-blue-600 rounded p-3">
                           <h5 className="text-sm font-medium text-blue-400">AI Meeting Scheduler</h5>
                           
@@ -1394,7 +1244,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                           )}
                         </div>
                       ) : (
-                        // Manual Scheduling Form
                         <>
                           <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
@@ -1494,7 +1343,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                     </div>
                   </div>
                 )}
-                {/* AI Suggestions Modal */}
                 {showAISuggestions && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto relative">
@@ -1644,11 +1492,9 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
               </div>
             </div>
           ) : (
-            // Profile View
             <>
               {user ? (
                 <>
-                  {/* Profile Picture and Name Section */}
                   <div className="flex flex-col items-center mb-6">
                     <div className="relative">
                       <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-700 mb-2">
@@ -1658,7 +1504,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                             alt="Profile"
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              // Fallback to default avatar if image fails to load
                               e.target.style.display = "none"
                               e.target.nextSibling.style.display = "flex"
                             }}
@@ -1673,15 +1518,25 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                       </div>
 
                       {isEditing && (
-                        <label className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-1 cursor-pointer">
-                          <Camera size={16} />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleProfilePictureChange}
-                          />
-                        </label>
+                        <div className="absolute bottom-0 right-0 flex items-center">
+                            <label className="bg-blue-600 rounded-full p-1 cursor-pointer hover:bg-blue-700" title="Change picture">
+                                <Camera size={16} />
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleProfilePictureChange}
+                                />
+                            </label>
+                            <button
+                                type="button"
+                                onClick={handleRemoveProfilePicture}
+                                className="ml-1 bg-red-600 rounded-full p-1 cursor-pointer hover:bg-red-700"
+                                title="Remove profile picture"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
                       )}
                     </div>
 
@@ -1702,9 +1557,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                     )}
                   </div>
 
-                  {/* User Details */}
                   <div className="space-y-4 mb-6">
-                    {/* Email */}
                     <div className="flex items-start">
                       <Mail className="w-5 h-5 mr-3 mt-0.5 text-gray-400 flex-shrink-0" />
                       <div>
@@ -1713,7 +1566,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                       </div>
                     </div>
 
-                    {/* Date of Birth */}
                     <div className="flex items-start">
                       <Calendar className="w-5 h-5 mr-3 mt-0.5 text-gray-400 flex-shrink-0" />
                       <div>
@@ -1732,7 +1584,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                       </div>
                     </div>
 
-                    {/* Biography */}
                     <div>
                       <p className="text-sm text-gray-400 mb-1">Biography</p>
                       {isEditing ? (
@@ -1750,46 +1601,46 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                     </div>
                   </div>
 
-                  {/* Teams */}
-                  <div className="mb-6">
-                    <h4 className="text-lg font-medium mb-3">Teams</h4>
-                    {teams.length > 0 ? (
-                      <div className="space-y-3">
-                        {teams.map((team) => (
-                          <div
-                            key={team.teamid}
-                            className="bg-gray-800 rounded-md p-3 cursor-pointer hover:bg-gray-700 transition-colors"
-                            onClick={() => handleTeamClick(team)}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                  <h5 className="font-medium">{team.teamname}</h5>
-                                  <ChevronRight size={16} className="text-gray-400" />
-                                </div>
-                                <div className="flex items-center mt-1">
-                                  <span className="text-xs px-2 py-1 rounded bg-blue-900 text-blue-300 mr-2">
-                                    {team.createdbyuserid === user.userid ? "Creator" : "Member"}
-                                  </span>
-                                  <Users size={12} className="text-gray-400 mr-1" />
-                                  <span className="text-xs text-gray-400">
-                                    {team.meetings ? team.meetings.length : 0} meetings
-                                  </span>
+                  {!isEditing && (
+                    <div className="mb-6">
+                      <h4 className="text-lg font-medium mb-3">Teams</h4>
+                      {teams.length > 0 ? (
+                        <div className="space-y-3">
+                          {teams.map((team) => (
+                            <div
+                              key={team.teamid}
+                              className="bg-gray-800 rounded-md p-3 cursor-pointer hover:bg-gray-700 transition-colors"
+                              onClick={() => handleTeamClick(team)}
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <h5 className="font-medium">{team.teamname}</h5>
+                                    <ChevronRight size={16} className="text-gray-400" />
+                                  </div>
+                                  <div className="flex items-center mt-1">
+                                    <span className="text-xs px-2 py-1 rounded bg-blue-900 text-blue-300 mr-2">
+                                      {team.createdbyuserid === user.userid ? "Creator" : "Member"}
+                                    </span>
+                                    <Users size={12} className="text-gray-400 mr-1" />
+                                    <span className="text-xs text-gray-400">
+                                      {team.meetings ? team.meetings.length : 0} meetings
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
+                              {team.teamdescription && (
+                                <p className="text-sm text-gray-400 mt-1">{team.teamdescription}</p>
+                              )}
                             </div>
-                            {team.teamdescription && (
-                              <p className="text-sm text-gray-400 mt-1">{team.teamdescription}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-gray-400 text-sm">You are not a member of any teams.</p>
-                    )}
-                  </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">You are not a member of any teams.</p>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Edit Profile Form */}
                   {isEditing && (
                     <div className="flex justify-between mb-6">
                       <button
@@ -1818,7 +1669,6 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                     </div>
                   )}
 
-                  {/* Change Password Form */}
                   {isChangingPassword && (
                     <div className="mb-6 bg-gray-800 rounded-md p-4">
                       <h4 className="text-lg font-medium mb-3">Change Password</h4>
@@ -1880,19 +1730,18 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                     </div>
                   )}
 
-                  {/* Action Buttons */}
                   <div className="space-y-3">
                   {!isEditing && !isChangingPassword && (
                     <>
                         <button
                         onClick={() => {
-                            setIsEditing(true);
+                            setIsEditing(true)
                             setEditedUser({
                             username: user.username || "",
                             bio: user.userbio || "",
-                            dob: user.userdob || "",
+                            dob: user.userdob ? user.userdob.split("T")[0] : "",
                             profilePicture: user.userprofilepicture || "",
-                            });
+                            })
                         }}
                         className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                         >
