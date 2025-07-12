@@ -10,7 +10,12 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-CORS(app)
+
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    CORS(app, supports_credentials=True, origins=[frontend_url])
+else:
+    CORS(app)
 
 # DB_HOST = "localhost"
 # DB_NAME = "planit"
