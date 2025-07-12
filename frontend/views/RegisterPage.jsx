@@ -278,14 +278,14 @@ const RegisterPage = () => {
               <button
                 type="submit"
                 disabled={isLoading || !agreedToTerms}
-                className="w-full my-2 bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-2.5 rounded transition duration-200 disabled:opacity-70"
+                className="w-full my-2 bg-[#7DD3FC] hover:bg-[#38BDF8] text-[#003366] font-semibold py-2.5 rounded transition duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Registering..." : "Register"}
               </button>
             </form>
 
             <div className="mt-2">
-              <GoogleSignInButton mode="signup" className="w-full" />
+              <GoogleSignInButton mode="signup" className="w-full" disabled={!agreedToTerms}/>
             </div>
 
             <div className="mt-6 text-center">

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom"
 import googleAuthService from "../services/googleAuth"
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => {
+const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe, disabled }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const navigate = useNavigate()
@@ -125,7 +125,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
     <div className={className}>
       <button
         onClick={handleGoogleSignIn}
-        disabled={isLoading}
+        disabled={isLoading || disabled}
         className="w-full flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
