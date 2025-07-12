@@ -7,6 +7,7 @@ import loginpageimage from "../assets/credentialpageimage.png"
 import bottomleftshape from "../assets/bottomleftshape.png"
 import toprightshape from "../assets/toprightshape.png"
 import GoogleSignInButton from "../components/GoogleSignInButton"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const LoginPage = () => {
   const [credentials, setCredentials] = useState({
@@ -64,7 +65,7 @@ const LoginPage = () => {
       setApiError("")
 
       try {
-        const response = await fetch("http://localhost:5000/api/login", {
+        const response = await fetch(`${API_URL}/api/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -77,6 +78,7 @@ const LoginPage = () => {
         })
 
         const data = await response.json()
+
 
         if (response.ok) {
           localStorage.setItem("user", JSON.stringify(data.user))

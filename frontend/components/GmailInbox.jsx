@@ -5,6 +5,7 @@ import { X, Mail, Reply, Forward, Calendar, Search, RefreshCw, AlertCircle, Tras
 import googleAuthService from "../services/googleAuth"
 import gmailService from "../services/gmailService"
 import aiService from "../services/aiService"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const GmailInbox = ({ isOpen, onClose }) => {
   const [messages, setMessages] = useState([])
@@ -273,7 +274,7 @@ const GmailInbox = ({ isOpen, onClose }) => {
               activityEndTime: event.endTime,
             }
 
-            const response = await fetch("http://localhost:5000/api/activities", {
+            const response = await fetch(`${API_URL}/api/activities`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",

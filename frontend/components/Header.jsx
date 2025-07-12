@@ -2,6 +2,7 @@
 
 import { Search, ChevronLeft, ChevronRight, User, X, Bell } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationClick, dataUpdateTrigger }) => {
   const [searchQuery, setSearchQuery] = useState("")
@@ -23,7 +24,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
     try {
       const userId = getUserId()
       if (!userId) return;
-      const response = await fetch(`http://localhost:5000/api/notifications?userId=${userId}`)
+      const response = await fetch(`${API_URL}/api/notifications?userId=${userId}`)
       if (response.ok) {
         const data = await response.json()
         setUnreadCount(data.unreadCount || 0)
@@ -38,7 +39,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
       if (!storedUser.id) return
 
-      const response = await fetch(`http://localhost:5000/api/users/${storedUser.id}`)
+      const response = await fetch(`${API_URL}/api/users/${storedUser.id}`)
       if (response.ok) {
         const { user: apiUser } = await response.json()
         setUserProfileData({
@@ -92,9 +93,9 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
       if (!userId) return;
 
       const [activitiesRes, goalsRes, teamsRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/activities?userId=${userId}`),
-        fetch(`http://localhost:5000/api/goals?userId=${userId}`),
-        fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+        fetch(`${API_URL}/api/activities?userId=${userId}`),
+        fetch(`${API_URL}/api/goals?userId=${userId}`),
+        fetch(`${API_URL}/api/teams?userId=${userId}`)
       ]);
       
       if (activitiesRes.ok) {

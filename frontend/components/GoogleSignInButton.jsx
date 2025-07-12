@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import googleAuthService from "../services/googleAuth"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => {
   const [isLoading, setIsLoading] = useState(false)
@@ -17,7 +18,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
 
       if (mode === "signup") {
         try {
-          const registerResponse = await fetch("http://localhost:5000/api/register", {
+          const registerResponse = await fetch(`${API_URL}/api/register`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -45,7 +46,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
             // If registration fails (e.g., user already exists), try to login
             console.log("Registration failed, attempting login...")
 
-            const loginResponse = await fetch("http://localhost:5000/api/login", {
+            const loginResponse = await fetch(`${API_URL}/api/login`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -80,7 +81,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe }) => 
       } else {
         // For sign in, try to login with Google ID
         try {
-          const loginResponse = await fetch("http://localhost:5000/api/login", {
+          const loginResponse = await fetch(`${API_URL}/api/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

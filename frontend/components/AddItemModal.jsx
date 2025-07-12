@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { X, Plus, Trash2, AlertCircle, CheckCircle } from "lucide-react"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const AddItemModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState("activity")
@@ -83,19 +84,19 @@ const AddItemModal = ({ isOpen, onClose }) => {
     try {
       const userId = getUserId()
 
-      const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
+      const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
-      const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
+      const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
-      const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+      const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
         setTeams(teamsData.teams || [])
@@ -550,7 +551,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
       for (const email of allMemberEmails) {
         try {
-          const userResponse = await fetch(`http://localhost:5000/api/users/by-email/${encodeURIComponent(email)}`)
+          const userResponse = await fetch(`${API_URL}/api/users/by-email/${encodeURIComponent(email)}`)
 
           if (userResponse.ok) {
             const userData = await userResponse.json()
@@ -563,7 +564,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
             })
 
             // Get their activities
-            const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
+            const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
             if (activitiesResponse.ok) {
               const activitiesData = await activitiesResponse.json()
 
@@ -595,7 +596,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
             }
 
             // Get their goals with timelines
-            const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
+            const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
             if (goalsResponse.ok) {
               const goalsData = await goalsResponse.json()
 
@@ -634,7 +635,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
             }
 
             // Get their team meetings
-            const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+            const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
             if (teamsResponse.ok) {
               const teamsData = await teamsResponse.json()
               // Extract all meetings within date range
@@ -785,7 +786,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           activityEndTime: activity.activityEndTime,
         }
 
-        const response = await fetch("http://localhost:5000/api/activities", {
+        const response = await fetch(`${API_URL}/api/activities`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -857,7 +858,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           })),
         }
 
-        const response = await fetch("http://localhost:5000/api/goals", {
+        const response = await fetch(`${API_URL}/api/goals`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -899,7 +900,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           })),
         }
 
-        const response = await fetch("http://localhost:5000/api/teams", {
+        const response = await fetch(`${API_URL}/api/teams`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

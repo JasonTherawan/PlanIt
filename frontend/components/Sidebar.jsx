@@ -5,6 +5,7 @@ import { Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Mail } from "lucide-rea
 import AddItemModal from "./AddItemModal"
 import EditItemModal from "./EditItemModal"
 import GmailInbox from "./GmailInbox"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
@@ -80,21 +81,21 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
       const userId = getUserId()
 
       // Fetch activities
-      const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
+      const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
       // Fetch goals
-      const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
+      const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
       // Fetch teams
-      const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+      const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
         setTeams(teamsData.teams || [])
@@ -114,7 +115,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     if (!confirm("Are you sure you want to delete this activity?")) return
 
     try {
-      const response = await fetch(`http://localhost:5000/api/activities/${activityId}`, {
+      const response = await fetch(`${API_URL}/api/activities/${activityId}`, {
         method: "DELETE",
       })
 
@@ -134,7 +135,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     if (!confirm("Are you sure you want to delete this entire goal and all its timelines?")) return
 
     try {
-      const response = await fetch(`http://localhost:5000/api/goals/${goalId}`, {
+      const response = await fetch(`${API_URL}/api/goals/${goalId}`, {
         method: "DELETE",
       })
 
@@ -153,7 +154,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     if (!confirm("Are you sure you want to delete this timeline?")) return
 
     try {
-      const response = await fetch(`http://localhost:5000/api/timelines/${timelineId}`, {
+      const response = await fetch(`${API_URL}/api/timelines/${timelineId}`, {
         method: "DELETE",
       })
 
@@ -179,7 +180,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     if (!confirm("Are you sure you want to delete this team meeting?")) return
 
     try {
-      const response = await fetch(`http://localhost:5000/api/meetings/${meetingId}`, {
+      const response = await fetch(`${API_URL}/api/meetings/${meetingId}`, {
         method: "DELETE",
       })
 

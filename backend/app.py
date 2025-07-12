@@ -12,21 +12,22 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 CORS(app)
 
-DB_HOST = "localhost"
-DB_NAME = "planit"
-DB_USER = os.getenv("DB_USER")
-DB_PASS = os.getenv("DB_PASS")
-DB_PORT = "5432"
+# DB_HOST = "localhost"
+# DB_NAME = "planit"
+# DB_USER = os.getenv("DB_USER")
+# DB_PASS = os.getenv("DB_PASS")
+# DB_PORT = "5432"
 
 def get_db_connection():
     """Create and return a database connection"""
-    conn = psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASS,
-        port=DB_PORT
-    )
+    # conn = psycopg2.connect(
+    #     host=DB_HOST,
+    #     database=DB_NAME,
+    #     user=DB_USER,
+    #     password=DB_PASS,
+    #     port=DB_PORT
+    # )
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     return conn
 
 def _get_internal_user_id(cur, user_id_param):

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { X, Bell, Check, Users, Calendar, Trash2 } from "lucide-react"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const NotificationSidebar = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([])
@@ -35,7 +36,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     setIsLoading(true)
     try {
       const userId = getUserId()
-      const response = await fetch(`http://localhost:5000/api/notifications?userId=${userId}`)
+      const response = await fetch(`${API_URL}/api/notifications?userId=${userId}`)
       if (response.ok) {
         const data = await response.json()
         setNotifications(data.notifications || [])
@@ -52,7 +53,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
 
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`${API_URL}/api/notifications/${notificationId}/read`, {
         method: "PUT",
       })
       if (response.ok) {
@@ -69,7 +70,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
   const handleInvitationResponse = async (meetingId, response) => {
     try {
       const userId = getUserId()
-      const apiResponse = await fetch(`http://localhost:5000/api/meeting-invitations/${meetingId}/respond`, {
+      const apiResponse = await fetch(`${API_URL}/api/meeting-invitations/${meetingId}/respond`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -96,7 +97,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
 
   const deleteNotification = async (notificationId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/notifications/${notificationId}`, {
+      const response = await fetch(`${API_URL}/api/notifications/${notificationId}`, {
         method: "DELETE",
       })
       if (response.ok) {
@@ -113,7 +114,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
   const markAllAsRead = async () => {
     try {
       const userId = getUserId()
-      const response = await fetch(`http://localhost:5000/api/notifications/mark-all-read`, {
+      const response = await fetch(`${API_URL}/api/notifications/mark-all-read`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

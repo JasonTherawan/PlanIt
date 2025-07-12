@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from "react"
 import { Edit2, Trash2 } from "lucide-react"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const CalendarGrid = ({ currentDate, setCurrentDate, dataUpdateTrigger }) => {
   const gridRef = useRef(null)
@@ -48,19 +49,19 @@ const CalendarGrid = ({ currentDate, setCurrentDate, dataUpdateTrigger }) => {
     try {
       const userId = getUserId()
 
-      const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
+      const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
-      const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
+      const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
-      const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+      const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
         setTeams(teamsData.teams || [])
@@ -312,7 +313,7 @@ const CalendarGrid = ({ currentDate, setCurrentDate, dataUpdateTrigger }) => {
     useEffect(() => {
         const fetchCreatorData = async (creatorId) => {
             try {
-                const response = await fetch(`http://localhost:5000/api/users/${creatorId}`)
+                const response = await fetch(`${API_URL}/api/users/${creatorId}`)
                 if (response.ok) {
                     const userData = await response.json()
                     setCreator(userData.user)

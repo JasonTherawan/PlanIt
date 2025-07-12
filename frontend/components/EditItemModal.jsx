@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { X, Plus, Trash2, AlertCircle, CheckCircle } from "lucide-react"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const EditItemModal = ({ isOpen, onClose, item }) => {
   const [isLoading, setIsLoading] = useState(false)
@@ -67,19 +68,19 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     try {
       const userId = getUserId()
 
-      const activitiesResponse = await fetch(`http://localhost:5000/api/activities?userId=${userId}`)
+      const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
-      const goalsResponse = await fetch(`http://localhost:5000/api/goals?userId=${userId}`)
+      const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
-      const teamsResponse = await fetch(`http://localhost:5000/api/teams?userId=${userId}`)
+      const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
         setTeams(teamsData.teams || [])
@@ -93,7 +94,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     try {
       const team = teams.find((t) => t.meetings && t.meetings.some((m) => m.teammeetingid === meetingId))
       if (team) {
-        const response = await fetch(`http://localhost:5000/api/teams/${team.teamid}`)
+        const response = await fetch(`${API_URL}/api/teams/${team.teamid}`)
         if (response.ok) {
           const data = await response.json()
           const meetingData = data.team.meetings.find((m) => m.teammeetingid === meetingId)
@@ -201,7 +202,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
     setSuccessMessage("")
 
     try {
-      const response = await fetch(`http://localhost:5000/api/goals/${item.id}`, {
+      const response = await fetch(`${API_URL}/api/goals/${item.id}`, {
         method: "DELETE",
       })
 
@@ -657,7 +658,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           activityEndTime: activity.activityEndTime,
         }
 
-        const response = await fetch(`http://localhost:5000/api/activities/${item.id}`, {
+        const response = await fetch(`${API_URL}/api/activities/${item.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -731,7 +732,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           })),
         }
 
-        const response = await fetch(`http://localhost:5000/api/goals/${item.id}`, {
+        const response = await fetch(`${API_URL}/api/goals/${item.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -789,7 +790,7 @@ const EditItemModal = ({ isOpen, onClose, item }) => {
           originalMeeting: originalMeeting,
         }
 
-        const response = await fetch(`http://localhost:5000/api/meetings/${item.id}`, {
+        const response = await fetch(`${API_URL}/api/meetings/${item.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
