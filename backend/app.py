@@ -177,12 +177,14 @@ def login():
             cur.execute("SELECT UserId, UserName, UserEmail, UserPassword, UserProfilePicture FROM Users WHERE UserEmail = %s", (email,))
             user_record = cur.fetchone()
 
+        if not user_record:
+            return jsonify({'success': False, 'message': 'Account is not registered'}), 401
+
         is_authenticated = False
-        if user_record:
-            if google_id:
-                is_authenticated = True
-            elif len(user_record) > 3 and user_record[3] and check_password_hash(user_record[3], password):
-                is_authenticated = True
+        if google_id:
+            is_authenticated = True
+        elif len(user_record) > 3 and user_record[3] and check_password_hash(user_record[3], password):
+            is_authenticated = True
 
         if is_authenticated:
             if remember_me:
