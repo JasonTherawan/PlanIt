@@ -274,15 +274,15 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
   }
   
   return (
-    <div className="flex justify-between items-center p-4 border-b">
+    <div className="relative flex justify-between items-center p-4 border-b">
       <div className="flex items-center space-x-4">
         <button onClick={navigateToPreviousMonth} className="p-1 rounded-full hover:bg-gray-200">
           <ChevronLeft size={20} />
         </button>
+        <h1 className="text-xl font-medium">{formatMonthYear()}</h1>
         <button onClick={navigateToNextMonth} className="p-1 rounded-full hover:bg-gray-200">
           <ChevronRight size={20} />
         </button>
-        <h1 className="text-xl font-medium">{formatMonthYear()}</h1>
       </div>
 
       <div className="flex items-center space-x-4">

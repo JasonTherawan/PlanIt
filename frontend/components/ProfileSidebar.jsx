@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { User, Mail, Calendar, Edit2, Lock, LogOut, Trash2, X, Camera, Save, AlertCircle, Users, ChevronRight, Plus, Eye } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
@@ -1781,6 +1781,13 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                   <p className="text-gray-400">Loading profile...</p>
                 </div>
               )}
+              <div className="mt-7 pt-5 border-t border-gray-700 text-center">
+                <p className="text-xs text-gray-500 mb-2">&copy; 2025 PlanIt. All rights reserved.</p>
+                <div className="flex justify-center space-x-4">
+                  <Link to="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:underline">Terms & Conditions</Link>
+                  <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:underline">Privacy Policy</Link>
+                </div>
+              </div>
             </>
           )}
         </div>

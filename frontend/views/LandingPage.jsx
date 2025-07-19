@@ -14,12 +14,10 @@ const LandingPage = () => {
           </div>
         </div>
         <nav className="flex items-center space-x-8">
-          <Link to="/about" className="hover:underline">
-            About us
-          </Link>
-          <Link to="/login" className="hover:underline">
-            Login
-          </Link>
+          <Link to="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link>
+          <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
+          <Link to="/about" className="hover:underline">About us</Link>
+          <Link to="/login" className="hover:underline">Login</Link>
         </nav>
       </header>
 
@@ -46,6 +44,9 @@ const LandingPage = () => {
               Learn more
             </Link>
           </div>
+        </div>
+        <div className="absolute bottom-0 w-full text-center pb-8 z-10">
+          <p className="text-sm text-gray-400">&copy; 2025 PlanIt. All rights reserved.</p>
         </div>
       </main>
     </div>

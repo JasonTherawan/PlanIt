@@ -24,7 +24,7 @@ const LoginPage = () => {
   useEffect(() => {
     const user = localStorage.getItem("user")
     if (user) {
-      navigate("/app")
+      navigate("/app", { replace: true })
     }
   }, [navigate])
 
@@ -82,7 +82,7 @@ const LoginPage = () => {
 
         if (response.ok) {
           localStorage.setItem("user", JSON.stringify(data.user))
-          navigate("/app")
+          navigate("/app", { replace: true })
         } else {
           console.error("Login failed:", data)
           setApiError(data.message || "Invalid email or password")
@@ -125,6 +125,7 @@ const LoginPage = () => {
             <div className="w-full max-w-md">
               <img src={loginpageimage} alt="Planning illustration" className="w-full h-auto" />
             </div>
+            <p className="text-sm text-gray-400">&copy; 2025 PlanIt. All rights reserved.</p>
           </div>
 
           <div className="bg-[#003366] w-full md:w-1/2 p-8 flex flex-col justify-center">

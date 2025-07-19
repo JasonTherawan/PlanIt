@@ -41,7 +41,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe, disab
               userId: registerData.userId,
             }
             localStorage.setItem("user", JSON.stringify(updatedUser))
-            navigate("/app")
+            navigate("/app", { replace: true })
           } else {
             // If registration fails (e.g., user already exists), try to login
             console.log("Registration failed, attempting login...")
@@ -68,7 +68,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe, disab
                 userId: loginData.user.userId,
               }
               localStorage.setItem("user", JSON.stringify(updatedUser))
-              navigate("/app")
+              navigate("/app", { replace: true })
             } else {
               console.error("Both registration and login failed:", loginData.message)
               setError("Failed to create or access account. Please try again.")
@@ -103,7 +103,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe, disab
               userId: loginData.user.userId,
             }
             localStorage.setItem("user", JSON.stringify(updatedUser))
-            navigate("/app")
+            navigate("/app", { replace: true })
           } else {
             console.error("Login failed:", loginData.message)
             setError("Account not found. Please sign up first.")

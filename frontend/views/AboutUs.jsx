@@ -101,6 +101,10 @@ const AboutUs = () => {
             </a>
           </div>
         </div>
+        
+        <div className="bottom-0 w-full text-center mt-16 z-10">
+          <p className="text-sm text-gray-400">&copy; 2025 PlanIt. All rights reserved.</p>
+        </div>
       </main>
     </div>
   )

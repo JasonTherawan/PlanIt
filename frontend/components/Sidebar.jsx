@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { Link } from "react-router-dom"
 import { Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Mail } from "lucide-react"
 import AddItemModal from "./AddItemModal"
 import EditItemModal from "./EditItemModal"
@@ -883,28 +884,34 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
 
   return (
     <div className="w-56 bg-[#002147] text-white flex flex-col h-full">
-      <div className="p-4 pb-2 flex items-center justify-between">
-        <button
-          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-600"
-          onClick={() => setIsItemModalOpen(true)}
-        >
-          <Plus size={20} />
-        </button>
-        <button
-          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isGoogleUser
+      <div className="border-b border-gray-700 p-4 pb-2 flex items-center justify-between">
+        <Link to="/" className="flex items-center space-x-2">
+          <img src="/planitLogo.png" alt="PlanIt Logo" className="w-6 h-6"/>
+          <h2 className="font-bold tracking-wider text-white">PLANIT</h2>
+        </Link>
+        <div className="flex items-center space-x-2">
+          <button
+            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-600"
+            onClick={() => setIsItemModalOpen(true)}
+          >
+            <Plus size={20} />
+          </button>
+          <button
+            className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              isGoogleUser
               ? "hover:bg-gray-600 text-white cursor-pointer"
               : "bg-gray-600 text-gray-400 cursor-not-allowed"
-          }`}
-          onClick={() => isGoogleUser && setIsGmailInboxOpen(true)}
-          title={isGoogleUser ? "Gmail Inbox" : "Gmail access requires Google account"}
-          disabled={!isGoogleUser}
-        >
-          <Mail size={20} />
-        </button>
+            }`}
+            onClick={() => isGoogleUser && setIsGmailInboxOpen(true)}
+            title={isGoogleUser ? "Gmail Inbox" : "Gmail access requires Google account"}
+            disabled={!isGoogleUser}
+          >
+            <Mail size={20} />
+          </button>
+        </div>
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="p-4 pt-2">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-lg font-bold">
             {viewDate.toLocaleString("default", { month: "long" })} {viewDate.getFullYear()}
