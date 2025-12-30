@@ -2,7 +2,6 @@
 
 import { useRef, useEffect, useState } from "react"
 import { Edit2, Trash2 } from "lucide-react"
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const CalendarGrid = ({ currentDate, setCurrentDate, dataUpdateTrigger }) => {
   const gridRef = useRef(null)

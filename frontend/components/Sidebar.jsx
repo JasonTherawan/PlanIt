@@ -6,7 +6,6 @@ import { Plus, ChevronLeft, ChevronRight, Edit2, Trash2, Mail } from "lucide-rea
 import AddItemModal from "./AddItemModal"
 import EditItemModal from "./EditItemModal"
 import GmailInbox from "./GmailInbox"
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)

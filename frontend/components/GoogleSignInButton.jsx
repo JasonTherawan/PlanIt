@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import googleAuthService from "../services/googleAuth"
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe, disabled }) => {
   const [isLoading, setIsLoading] = useState(false)

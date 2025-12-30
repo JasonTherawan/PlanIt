@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { X, Plus, Trash2, AlertCircle, CheckCircle } from "lucide-react"
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const AddItemModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState("activity")

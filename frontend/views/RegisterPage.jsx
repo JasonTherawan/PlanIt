@@ -7,7 +7,6 @@ import loginpageimage from "../assets/credentialpageimage.png"
 import bottomleftshape from "../assets/bottomleftshape.png"
 import toprightshape from "../assets/toprightshape.png"
 import GoogleSignInButton from "../components/GoogleSignInButton"
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({

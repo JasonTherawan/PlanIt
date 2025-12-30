@@ -2,7 +2,6 @@
 
 import { Search, ChevronLeft, ChevronRight, User, X, Bell } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationClick, dataUpdateTrigger }) => {
   const [searchQuery, setSearchQuery] = useState("")

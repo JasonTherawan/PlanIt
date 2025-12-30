@@ -10,9 +10,7 @@
 
 PlanIt is a full-stack productivity and scheduling web application designed for both individuals and teams. It unifies calendar management, to-do lists, long-term goal tracking, and team collaboration into a single, intelligent platform. Key features include an integrated Gmail client and an AI-powered meeting scheduler that analyzes team members' schedules to find optimal times.
 
-**Live Deployment**: This application is deployed and accessible on Railway via **[plannerplanit.up.railway.app](https://plannerplanit.up.railway.app/)**.
-
-**Application Demo**: **[Watch the demo on YouTube](https://youtu.be/fyQQAP_fmcw)**.
+**Live Deployment**: This application is deployed and accessible on Vercel via **[planitplanner.vercel.app](https://planitplanner.vercel.app/)**.
 
 -----
 
@@ -94,7 +92,7 @@ PlanIt is a full-stack productivity and scheduling web application designed for 
 2.  **Setup Backend:**
 
     ```bash
-    cd backend
+    cd api
     python -m venv venv
     venv\Scripts\activate
     pip install -r requirements.txt
@@ -122,8 +120,8 @@ PlanIt is a full-stack productivity and scheduling web application designed for 
 
       - In one terminal, run the backend:
         ```bash
-        cd backend
-        python app.py
+        cd api
+        python index.py
         ```
       - In a second terminal, run the frontend:
         ```bash
@@ -136,9 +134,9 @@ PlanIt is a full-stack productivity and scheduling web application designed for 
 
 This project is a monorepo containing both the frontend and backend code.
 
-  - `/backend`: Contains the Flask server (`app.py`), `Procfile` for production, and `requirements.txt`.
+  - `/api`: Contains the Flask server (`index.py`).
   - `/frontend`: Contains all React components, views, and services.
-  - **Root**: Contains shared configuration files like `package.json` and `vite.config.js`.
+  - **Root**: Contains shared configuration files like `package.json`, `vite.config.js`, and `requirements.txt`.
 
 -----
 

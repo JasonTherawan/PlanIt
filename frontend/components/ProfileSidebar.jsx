@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { User, Mail, Calendar, Edit2, Lock, LogOut, Trash2, X, Camera, Save, AlertCircle, Users, ChevronRight, Plus, Eye } from "lucide-react"
 import { useNavigate, Link } from "react-router-dom"
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
   const navigate = useNavigate()
