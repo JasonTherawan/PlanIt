@@ -274,7 +274,7 @@ const GmailInbox = ({ isOpen, onClose }) => {
               activityEndTime: event.endTime,
             }
 
-            const response = await fetch(`${API_URL}/api/activities`, {
+            const response = await fetch(`/api/activities`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",

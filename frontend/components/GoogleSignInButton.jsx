@@ -18,7 +18,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe, disab
 
       if (mode === "signup") {
         try {
-          const registerResponse = await fetch(`${API_URL}/api/register`, {
+          const registerResponse = await fetch(`/api/register`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -46,7 +46,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe, disab
             // If registration fails (e.g., user already exists), try to login
             console.log("Registration failed, attempting login...")
 
-            const loginResponse = await fetch(`${API_URL}/api/login`, {
+            const loginResponse = await fetch(`/api/login`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -81,7 +81,7 @@ const GoogleSignInButton = ({ mode = "signin", className = "", rememberMe, disab
       } else {
         // For sign in, try to login with Google ID
         try {
-          const loginResponse = await fetch(`${API_URL}/api/login`, {
+          const loginResponse = await fetch(`/api/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

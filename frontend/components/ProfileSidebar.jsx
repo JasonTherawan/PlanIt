@@ -107,7 +107,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
 
   const fetchCreatorData = async (creatorId) => {
     try {
-      const response = await fetch(`${API_URL}/api/users/${creatorId}`)
+      const response = await fetch(`/api/users/${creatorId}`)
       if (response.ok) {
         const userData = await response.json()
         setCreator(userData.user)
@@ -130,7 +130,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       setIsGoogleUser(isGoogleUser)
 
       try {
-        const response = await fetch(`${API_URL}/api/users/${storedUser.id}`)
+        const response = await fetch(`/api/users/${storedUser.id}`)
 
         if (response.ok) {
           const userData = await response.json()
@@ -201,7 +201,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
 
       if (!storedUser.id) return
 
-      const response = await fetch(`${API_URL}/api/teams?userId=${storedUser.id}`)
+      const response = await fetch(`/api/teams?userId=${storedUser.id}`)
 
       if (response.ok) {
         const teamsData = await response.json()
@@ -217,7 +217,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
       if (!storedUser.id) return
       
-      const response = await fetch(`${API_URL}/api/teams/${teamId}?userId=${storedUser.id}`)
+      const response = await fetch(`/api/teams/${teamId}?userId=${storedUser.id}`)
       if (response.ok) {
         const data = await response.json()
         setTeamDetails(data.team)
@@ -340,7 +340,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         return
       }
 
-      const response = await fetch(`${API_URL}/api/users/${storedUser.id}`, {
+      const response = await fetch(`/api/users/${storedUser.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -390,7 +390,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     setSuccess("")
 
     try {
-      const response = await fetch(`${API_URL}/api/teams/${selectedTeam.teamid}`, {
+      const response = await fetch(`/api/teams/${selectedTeam.teamid}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -435,7 +435,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     setError("")
 
     try {
-      const response = await fetch(`${API_URL}/api/teams/${teamId}`, {
+      const response = await fetch(`/api/teams/${teamId}`, {
         method: "DELETE",
       })
 
@@ -465,7 +465,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     setError("")
 
     try {
-      const response = await fetch(`${API_URL}/api/meetings/${meetingId}`, {
+      const response = await fetch(`/api/meetings/${meetingId}`, {
         method: "DELETE",
       })
 
@@ -509,7 +509,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
 
       for (const email of allMemberEmails) {
         try {
-          const userResponse = await fetch(`${API_URL}/api/users/by-email/${encodeURIComponent(email)}`)
+          const userResponse = await fetch(`/api/users/by-email/${encodeURIComponent(email)}`)
 
           if (userResponse.ok) {
             const userData = await userResponse.json()
@@ -521,7 +521,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
               email: userData.user.useremail,
             })
 
-            const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
+            const activitiesResponse = await fetch(`/api/activities?userId=${userId}`)
             if (activitiesResponse.ok) {
               const activitiesData = await activitiesResponse.json()
               const filteredActivities = activitiesData.activities.filter((activity) => {
@@ -539,7 +539,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
               memberActivities[userId] = []
             }
 
-            const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
+            const goalsResponse = await fetch(`/api/goals?userId=${userId}`)
             if (goalsResponse.ok) {
               const goalsData = await goalsResponse.json()
               const filteredGoals = goalsData.goals
@@ -563,7 +563,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
               memberGoals[userId] = []
             }
 
-            const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
+            const teamsResponse = await fetch(`/api/teams?userId=${userId}`)
             if (teamsResponse.ok) {
               const teamsData = await teamsResponse.json()
               const allMeetings = []
@@ -675,7 +675,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
     setSuccess("")
 
     try {
-      const response = await fetch(`${API_URL}/api/teams/${selectedTeam.teamid}/meetings`, {
+      const response = await fetch(`/api/teams/${selectedTeam.teamid}/meetings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -759,7 +759,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         return
       }
 
-      const response = await fetch(`${API_URL}/api/users/${storedUser.id}/password`, {
+      const response = await fetch(`/api/users/${storedUser.id}/password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -828,7 +828,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
         return
       }
 
-      const response = await fetch(`${API_URL}/api/users/${storedUser.id}`, {
+      const response = await fetch(`/api/users/${storedUser.id}`, {
         method: "DELETE",
       })
 

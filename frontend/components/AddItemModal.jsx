@@ -84,19 +84,19 @@ const AddItemModal = ({ isOpen, onClose }) => {
     try {
       const userId = getUserId()
 
-      const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
+      const activitiesResponse = await fetch(`/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
-      const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
+      const goalsResponse = await fetch(`/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
-      const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
+      const teamsResponse = await fetch(`/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
         setTeams(teamsData.teams || [])
@@ -551,7 +551,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
 
       for (const email of allMemberEmails) {
         try {
-          const userResponse = await fetch(`${API_URL}/api/users/by-email/${encodeURIComponent(email)}`)
+          const userResponse = await fetch(`/api/users/by-email/${encodeURIComponent(email)}`)
 
           if (userResponse.ok) {
             const userData = await userResponse.json()
@@ -564,7 +564,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
             })
 
             // Get their activities
-            const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
+            const activitiesResponse = await fetch(`/api/activities?userId=${userId}`)
             if (activitiesResponse.ok) {
               const activitiesData = await activitiesResponse.json()
 
@@ -596,7 +596,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
             }
 
             // Get their goals with timelines
-            const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
+            const goalsResponse = await fetch(`/api/goals?userId=${userId}`)
             if (goalsResponse.ok) {
               const goalsData = await goalsResponse.json()
 
@@ -635,7 +635,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
             }
 
             // Get their team meetings
-            const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
+            const teamsResponse = await fetch(`/api/teams?userId=${userId}`)
             if (teamsResponse.ok) {
               const teamsData = await teamsResponse.json()
               // Extract all meetings within date range
@@ -786,7 +786,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           activityEndTime: activity.activityEndTime,
         }
 
-        const response = await fetch(`${API_URL}/api/activities`, {
+        const response = await fetch(`/api/activities`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -858,7 +858,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           })),
         }
 
-        const response = await fetch(`${API_URL}/api/goals`, {
+        const response = await fetch(`/api/goals`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -900,7 +900,7 @@ const AddItemModal = ({ isOpen, onClose }) => {
           })),
         }
 
-        const response = await fetch(`${API_URL}/api/teams`, {
+        const response = await fetch(`/api/teams`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

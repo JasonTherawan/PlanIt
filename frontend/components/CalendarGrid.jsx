@@ -49,19 +49,19 @@ const CalendarGrid = ({ currentDate, setCurrentDate, dataUpdateTrigger }) => {
     try {
       const userId = getUserId()
 
-      const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
+      const activitiesResponse = await fetch(`/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
-      const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
+      const goalsResponse = await fetch(`/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
-      const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
+      const teamsResponse = await fetch(`/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
         setTeams(teamsData.teams || [])
@@ -313,7 +313,7 @@ const CalendarGrid = ({ currentDate, setCurrentDate, dataUpdateTrigger }) => {
     useEffect(() => {
         const fetchCreatorData = async (creatorId) => {
             try {
-                const response = await fetch(`${API_URL}/api/users/${creatorId}`)
+                const response = await fetch(`/api/users/${creatorId}`)
                 if (response.ok) {
                     const userData = await response.json()
                     setCreator(userData.user)

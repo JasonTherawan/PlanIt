@@ -83,7 +83,7 @@ const RegisterPage = () => {
           password: formData.password,
         }
 
-        const response = await fetch(`${API_URL}/api/register`, {
+        const response = await fetch(`/api/register`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

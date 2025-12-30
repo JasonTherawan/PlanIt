@@ -36,7 +36,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
     setIsLoading(true)
     try {
       const userId = getUserId()
-      const response = await fetch(`${API_URL}/api/notifications?userId=${userId}`)
+      const response = await fetch(`/api/notifications?userId=${userId}`)
       if (response.ok) {
         const data = await response.json()
         setNotifications(data.notifications || [])
@@ -53,7 +53,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
 
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch(`${API_URL}/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
         method: "PUT",
       })
       if (response.ok) {
@@ -70,7 +70,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
   const handleInvitationResponse = async (meetingId, response) => {
     try {
       const userId = getUserId()
-      const apiResponse = await fetch(`${API_URL}/api/meeting-invitations/${meetingId}/respond`, {
+      const apiResponse = await fetch(`/api/meeting-invitations/${meetingId}/respond`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -97,7 +97,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
 
   const deleteNotification = async (notificationId) => {
     try {
-      const response = await fetch(`${API_URL}/api/notifications/${notificationId}`, {
+      const response = await fetch(`/api/notifications/${notificationId}`, {
         method: "DELETE",
       })
       if (response.ok) {
@@ -114,7 +114,7 @@ const NotificationSidebar = ({ isOpen, onClose }) => {
   const markAllAsRead = async () => {
     try {
       const userId = getUserId()
-      const response = await fetch(`${API_URL}/api/notifications/mark-all-read`, {
+      const response = await fetch(`/api/notifications/mark-all-read`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -24,7 +24,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
     try {
       const userId = getUserId()
       if (!userId) return;
-      const response = await fetch(`${API_URL}/api/notifications?userId=${userId}`)
+      const response = await fetch(`/api/notifications?userId=${userId}`)
       if (response.ok) {
         const data = await response.json()
         setUnreadCount(data.unreadCount || 0)
@@ -39,7 +39,7 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
       if (!storedUser.id) return
 
-      const response = await fetch(`${API_URL}/api/users/${storedUser.id}`)
+      const response = await fetch(`/api/users/${storedUser.id}`)
       if (response.ok) {
         const { user: apiUser } = await response.json()
         setUserProfileData({
@@ -93,9 +93,9 @@ const Header = ({ currentDate, setCurrentDate, onProfileClick, onNotificationCli
       if (!userId) return;
 
       const [activitiesRes, goalsRes, teamsRes] = await Promise.all([
-        fetch(`${API_URL}/api/activities?userId=${userId}`),
-        fetch(`${API_URL}/api/goals?userId=${userId}`),
-        fetch(`${API_URL}/api/teams?userId=${userId}`)
+        fetch(`/api/activities?userId=${userId}`),
+        fetch(`/api/goals?userId=${userId}`),
+        fetch(`/api/teams?userId=${userId}`)
       ]);
       
       if (activitiesRes.ok) {

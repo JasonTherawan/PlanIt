@@ -82,21 +82,21 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
       const userId = getUserId()
 
       // Fetch activities
-      const activitiesResponse = await fetch(`${API_URL}/api/activities?userId=${userId}`)
+      const activitiesResponse = await fetch(`/api/activities?userId=${userId}`)
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json()
         setActivities(activitiesData.activities || [])
       }
 
       // Fetch goals
-      const goalsResponse = await fetch(`${API_URL}/api/goals?userId=${userId}`)
+      const goalsResponse = await fetch(`/api/goals?userId=${userId}`)
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json()
         setGoals(goalsData.goals || [])
       }
 
       // Fetch teams
-      const teamsResponse = await fetch(`${API_URL}/api/teams?userId=${userId}`)
+      const teamsResponse = await fetch(`/api/teams?userId=${userId}`)
       if (teamsResponse.ok) {
         const teamsData = await teamsResponse.json()
         setTeams(teamsData.teams || [])
@@ -116,7 +116,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     if (!confirm("Are you sure you want to delete this activity?")) return
 
     try {
-      const response = await fetch(`${API_URL}/api/activities/${activityId}`, {
+      const response = await fetch(`/api/activities/${activityId}`, {
         method: "DELETE",
       })
 
@@ -136,7 +136,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     if (!confirm("Are you sure you want to delete this entire goal and all its timelines?")) return
 
     try {
-      const response = await fetch(`${API_URL}/api/goals/${goalId}`, {
+      const response = await fetch(`/api/goals/${goalId}`, {
         method: "DELETE",
       })
 
@@ -155,7 +155,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     if (!confirm("Are you sure you want to delete this timeline?")) return
 
     try {
-      const response = await fetch(`${API_URL}/api/timelines/${timelineId}`, {
+      const response = await fetch(`/api/timelines/${timelineId}`, {
         method: "DELETE",
       })
 
@@ -181,7 +181,7 @@ const Sidebar = ({ currentDate, setCurrentDate, onDataUpdate }) => {
     if (!confirm("Are you sure you want to delete this team meeting?")) return
 
     try {
-      const response = await fetch(`${API_URL}/api/meetings/${meetingId}`, {
+      const response = await fetch(`/api/meetings/${meetingId}`, {
         method: "DELETE",
       })
 
