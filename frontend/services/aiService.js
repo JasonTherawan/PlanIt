@@ -1,7 +1,6 @@
 class AIService {
   constructor() {
-    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY
-    this.apiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+    this.apiEndpoint = "/api/ai/generate";
   }
 
   async analyzeEmailForEvents(emailContent) {
@@ -46,43 +45,25 @@ class AIService {
         ${emailContent}
       `
 
-      const requestBody = {
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          topK: 1,
-          topP: 1,
-          maxOutputTokens: 1000,
-        },
-      }
-
-      const response = await fetch(`${this.apiEndpoint}?key=${this.apiKey}`, {
+      const response = await fetch(this.apiEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody),
-      })
+        body: JSON.stringify({ prompt: prompt }),
+      });
 
       if (!response.ok) {
-        throw new Error(`Gemini API request failed: ${response.status} ${response.statusText}`)
+        throw new Error(`Backend request failed: ${response.status}`);
       }
 
-      const data = await response.json()
-
+      const data = await response.json();
+      
       if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        throw new Error("Invalid response from Gemini API")
+        throw new Error("Invalid response from AI API");
       }
-
-      const aiResponse = data.candidates[0].content.parts[0].text
+      
+      const aiResponse = data.candidates[0].content.parts[0].text;
 
       try {
         const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)
@@ -248,43 +229,25 @@ class AIService {
         }
       `
 
-      const requestBody = {
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.2, 
-          topK: 1,
-          topP: 1,
-          maxOutputTokens: 3000,
-        },
-      }
-
-      const response = await fetch(`${this.apiEndpoint}?key=${this.apiKey}`, {
+      const response = await fetch(this.apiEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody),
-      })
+        body: JSON.stringify({ prompt: prompt }),
+      });
 
       if (!response.ok) {
-        throw new Error(`Gemini API request failed: ${response.status} ${response.statusText}`)
+        throw new Error(`Backend request failed: ${response.status}`);
       }
 
-      const data = await response.json()
-
+      const data = await response.json();
+      
       if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        throw new Error("Invalid response from Gemini API")
+        throw new Error("Invalid response from AI API");
       }
-
-      const aiResponse = data.candidates[0].content.parts[0].text
+      
+      const aiResponse = data.candidates[0].content.parts[0].text;
 
       try {
         const jsonMatch = aiResponse.match(/\{[\s\S]*\}/)

@@ -3,6 +3,7 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import requests
 import psycopg2
 import os
 
@@ -1957,6 +1958,42 @@ def get_user_by_email(email):
     finally:
         if conn:
             conn.close()
+
+@app.route('/api/ai/generate', methods=['POST'])
+def generate_ai_content():
+    # Check if user is logged in
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    prompt = data.get('prompt')
+    
+    if not prompt:
+        return jsonify({'success': False, 'message': 'Prompt is required'}), 400
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return jsonify({'success': False, 'message': 'Server API key not configured'}), 500
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": {
+            "temperature": 0.1,
+            "maxOutputTokens": 1000
+        }
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+        response.raise_for_status()
+        return jsonify(response.json()), 200
+    except Exception as e:
+        print(f"Gemini API Error: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to communicate with AI service'}), 500
 
 if __name__ == '__main__':
     app.run(debug=False)
