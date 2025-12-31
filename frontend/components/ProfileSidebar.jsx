@@ -1781,7 +1781,7 @@ const ProfileSidebar = ({ isOpen, onClose, setCurrentDate }) => {
                 </div>
               )}
               <div className="mt-7 pt-5 border-t border-gray-700 text-center">
-                <p className="text-xs text-gray-500 mb-2">&copy; 2025 PlanIt. All rights reserved.</p>
+                <p className="text-xs text-gray-500 mb-2">&copy; 2026 PlanIt. All rights reserved.</p>
                 <div className="flex justify-center space-x-4">
                   <Link to="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:underline">Terms & Conditions</Link>
                   <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:underline">Privacy Policy</Link>

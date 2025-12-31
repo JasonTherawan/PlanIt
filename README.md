@@ -112,8 +112,8 @@ PlanIt is a full-stack productivity and scheduling web application designed for 
         DB_USER=your_postgres_user
         DB_PASS=your_postgres_password
         SECRET_KEY=your_flask_secret_key
+        GEMINI_API_KEY=your_gemini_api_key
         VITE_GOOGLE_CLIENT_ID=your_google_client_id
-        VITE_GEMINI_API_KEY=your_gemini_api_key
         ```
 
 5.  **Run the Application:**

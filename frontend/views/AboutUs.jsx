@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { Lightbulb, Users, Zap, Mail, Linkedin, Github } from "lucide-react"
+import { Lightbulb, Users, Zap, Mail, Linkedin, Github, Globe } from "lucide-react"
 import bottomleftshape from "../assets/bottomleftshape.png"
 import toprightshape from "../assets/toprightshape.png"
 
@@ -99,11 +99,15 @@ const AboutUs = () => {
               <Github size={24} className="mr-3" />
               <span>JasonTherawan</span>
             </a>
+            <a href="https://JasonTherawan.vercel.app" target="_blank" rel="noopener noreferrer" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+              <Globe size={24} className="mr-3" />
+              <span>Portfolio</span>
+            </a>
           </div>
         </div>
         
         <div className="bottom-0 w-full text-center mt-16 z-10">
-          <p className="text-sm text-gray-400">&copy; 2025 PlanIt. All rights reserved.</p>
+          <p className="text-sm text-gray-400">&copy; 2026 PlanIt. All rights reserved.</p>
         </div>
       </main>
     </div>

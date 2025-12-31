@@ -141,7 +141,7 @@ const RegisterPage = () => {
             <div className="w-full max-w-md">
               <img src={loginpageimage} alt="Planning illustration" className="w-full h-auto" />
             </div>
-            <p className="text-sm text-gray-400">&copy; 2025 PlanIt. All rights reserved.</p>
+            <p className="text-sm text-gray-400">&copy; 2026 PlanIt. All rights reserved.</p>
           </div>
 
           <div className="bg-[#003366] w-full md:w-1/2 p-8 flex flex-col justify-center">

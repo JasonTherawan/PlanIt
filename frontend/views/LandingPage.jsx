@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom"
-import { Calendar } from "lucide-react"
 import bgImage from '../assets/landingpagebg.png'
 
 const LandingPage = () => {
@@ -46,7 +45,7 @@ const LandingPage = () => {
           </div>
         </div>
         <div className="absolute bottom-0 w-full text-center pb-8 z-10">
-          <p className="text-sm text-gray-400">&copy; 2025 PlanIt. All rights reserved.</p>
+          <p className="text-sm text-gray-400">&copy; 2026 PlanIt. All rights reserved.</p>
         </div>
       </main>
     </div>

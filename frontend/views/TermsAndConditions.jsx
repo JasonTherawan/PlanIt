@@ -34,7 +34,7 @@ const TermsAndConditions = () => {
         <div className="max-w-4xl mx-auto bg-gray-100 backdrop-blur-sm p-8 md:p-12 rounded-lg shadow-2xl">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-extrabold text-gray-900">Terms and Conditions</h1>
-            <p className="mt-4 text-sm text-gray-500">Last updated: July 10, 2025</p>
+            <p className="mt-4 text-sm text-gray-500">Last updated: January 1, 2026</p>
           </div>
 
           <div className="prose prose-lg max-w-none text-gray-700 space-y-4">
@@ -65,7 +65,7 @@ const TermsAndConditions = () => {
         </div>
         
         <div className="bottom-0 w-full text-center mt-16 z-10">
-          <p className="text-sm text-gray-400">&copy; 2025 PlanIt. All rights reserved.</p>
+          <p className="text-sm text-gray-400">&copy; 2026 PlanIt. All rights reserved.</p>
         </div>
       </main>
     </div>
